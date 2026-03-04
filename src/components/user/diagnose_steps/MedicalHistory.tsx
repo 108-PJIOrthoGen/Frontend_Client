@@ -82,18 +82,6 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
 
     return (
         <>
-            <header className="flex-shrink-0 bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10">
-                <div>
-                    <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tiền sử bệnh</h1>
-                    <p className="text-slate-500 text-sm mt-1">Ghi nhận tiền sử bệnh và tiền sử phẫu thuật.</p>
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="h-2 w-32 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-primary w-2/4"></div>
-                    </div>
-                    <span className="text-xs font-semibold text-primary">Hoàn thành 40%</span>
-                </div>
-            </header>
 
             <div className="flex-1 overflow-y-auto p-8 pb-32">
                 <div className="max-w-5xl mx-auto space-y-6">
@@ -101,10 +89,10 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                     {/* Medical History Context */}
                     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-[20px]">history</span>
-                                Hỏi bệnh
-                            </h2>
+                            <div>
+                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tiền sử bệnh</h1>
+                                <p className="text-slate-500 text-sm mt-1">Ghi nhận tiền sử bệnh </p>
+                            </div>
                         </div>
                         <div className="p-6 grid grid-cols-1 gap-6">
                             <label className="flex flex-col gap-1.5">
@@ -261,20 +249,23 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                         </div>
                     </section>
 
+
+                </div>
+
+            </div>
+            {/* Fixed Footer with buttons */}
+            <div className="fixed bottom-0 left-72 right-0 bg-white border-t border-slate-200 p-4 px-8 flex items-center justify-between z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button onClick={onPrev} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
+                    <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
+                </button>
+                <div className="flex gap-3">
+
+                    <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                        Tiếp tục <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Footer */}
-            <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 p-4 px-8 flex items-center justify-between z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px]">arrow_back</span>
-                    Quay lại
-                </button>
-                <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                    Tiếp tục
-                    <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                </button>
-            </div>
         </>
     );
 };

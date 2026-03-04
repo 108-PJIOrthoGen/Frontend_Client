@@ -41,9 +41,14 @@ export interface PatientDemographics {
 }
 
 export interface CultureSample {
+  id: string;
   sampleNumber: number;
-  status: 'negative' | 'positive';
   bacteriaName: string;
+  incubation_days: number | '';
+  used_antibiotic_before: boolean;
+  days_off_antibiotic: number | '';
+  notes: string;
+  result: 'POSITIVE' | 'NEGATIVE' | 'CONTAMINATED' | 'PENDING' | '';
 }
 
 export interface TestItem {
@@ -58,6 +63,15 @@ export interface ClinicalAssessment {
   major: {
     sinusTract: boolean;
     twoPositiveCultures: boolean;
+  };
+  examination?: {
+    date_on_illness: string;
+    whole_body: string;
+    vessel: number | '';
+    temperature: number | '';
+    blood_press: string;
+    breath: number | '';
+    bmi: number | '';
   };
   symptoms: {
     fever: boolean;
@@ -79,8 +93,7 @@ export interface ClinicalAssessment {
   };
   hematologyTests: TestItem[];
   biochemistryTests: TestItem[];
-  fluidTests: TestItem[];
-  otherTests: TestItem[];
+
   fluidAnalysis: TestItem[];  // For Cấy khuẩn and Nhuộm Gram only
   cultureSamples: CultureSample[];
   diagnosis: {

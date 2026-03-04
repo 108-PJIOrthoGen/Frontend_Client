@@ -22,7 +22,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
         {
             id: '1',
             role: 'assistant',
-            content: 'Xin chào! Tôi là AI Assistant. Bạn có thể hỏi tôi bất kỳ điều gì về phác đồ điều trị, kháng sinh, hay phẫu thuật.',
+            content: 'Xin chào! Tôi là trợ lý AI. Bạn có thể hỏi tôi bất kỳ điều gì về phác đồ điều trị, kháng sinh, hay phẫu thuật trên.',
             timestamp: new Date()
         }
     ]);
@@ -201,7 +201,6 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         {/* Section: surgery */}
                         <SurgerySection />
 
-
                     </div>
                 </div>
 
@@ -280,8 +279,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                     )}
                                 </span>
                                 <div className={`p-3 rounded-lg max-w-[90%] ${message.role === 'user'
-                                        ? 'bg-blue-500 text-white rounded-tr-none'
-                                        : 'bg-slate-100 text-slate-900 rounded-tl-none border border-slate-200'
+                                    ? 'bg-blue-500 text-white rounded-tr-none'
+                                    : 'bg-slate-100 text-slate-900 rounded-tl-none border border-slate-200'
                                     }`}>
                                     <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
                                     <span className={`text-[10px] mt-1 block ${message.role === 'user' ? 'text-blue-100' : 'text-slate-500'

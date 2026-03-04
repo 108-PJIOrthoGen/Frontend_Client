@@ -239,7 +239,7 @@ const PatientTable = () => {
     };
 
     return (
-        <div style={{ padding: "0 20px", marginTop: "10px" }}>
+        <div style={{ padding: "0 10px", marginTop: "10px" }}>
 
 
             {/* DataTable Card */}

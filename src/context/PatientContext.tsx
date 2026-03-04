@@ -53,6 +53,15 @@ const defaultDemographics: PatientDemographics = {
 
 const defaultClinical: ClinicalAssessment = {
   major: { sinusTract: false, twoPositiveCultures: false },
+  examination: {
+    date_on_illness: '',
+    whole_body: '',
+    vessel: '',
+    temperature: '',
+    blood_press: '',
+    breath: '',
+    bmi: '',
+  },
   symptoms: {
     fever: false,
     sinusTract: false,
@@ -75,36 +84,36 @@ const defaultClinical: ClinicalAssessment = {
     { id: 'bc_1', name: 'Định lượng CRP', result: '', normalRange: '0 - 5', unit: 'mg/l' },
     { id: 'bc_2', name: 'D-Dimer', result: '', normalRange: '< 0.5', unit: 'μg/mL' },
     { id: 'bc_3', name: 'Alpha Defensin', result: '', normalRange: '< 5.2', unit: 'μg/mL' },
+    { id: 'bc_4', name: 'Định lượng Glucose', result: '', normalRange: '4.1 - 5.6', unit: 'mmol/l' },
+    { id: 'bc_5', name: 'Định lượng Urê máu', result: '', normalRange: '2.8 - 7.2', unit: 'mmol/l' },
+    { id: 'bc_6', name: 'Định lượng Creatinin', result: '', normalRange: '59 - 104', unit: 'µmol/l' },
+    { id: 'bc_7', name: 'Định lượng Albumin', result: '', normalRange: '35 - 52', unit: 'g/L' },
+    { id: 'bc_8', name: 'Hoạt độ AST', result: '', normalRange: '35 - 52', unit: 'U/L' },
+    { id: 'bc_9', name: 'Hoạt độ ALT', result: '', normalRange: '35 - 52', unit: 'U/L' },
+    { id: 'bc_10', name: 'Na+', result: '', normalRange: '135 - 145', unit: 'mmol/L' },
+    { id: 'bc_11', name: 'K+', result: '', normalRange: '3.5 - 5.0', unit: 'mmol/L' },
+    { id: 'bc_12', name: 'Cl-', result: '', normalRange: '', unit: 'mmol/L' },
+    { id: 'bc_13', name: 'Định lượng HbA1c', result: '', normalRange: '4 - 6.2', unit: '%' },
   ],
-  fluidTests: [
-    { id: 'ft_1', name: 'Leukocyte Esterase', result: '', normalRange: '', unit: 'cells/μL' },
-  ],
-  otherTests: [
-    { id: 'ot_1', name: 'Định lượng Glucose', result: '', normalRange: '4.1 - 5.6', unit: 'mmol/l' },
-    { id: 'ot_2', name: 'Định lượng Urê máu', result: '', normalRange: '2.8 - 7.2', unit: 'mmol/l' },
-    { id: 'ot_3', name: 'Định lượng Creatinin', result: '', normalRange: '59 - 104', unit: 'µmol/l' },
-    { id: 'ot_4', name: 'Định lượng Albumin', result: '', normalRange: '35 - 52', unit: 'g/L' },
-    { id: 'ot_5', name: 'Định lượng Protein toàn phần', result: '', normalRange: '66 - 83', unit: 'g/L' },
-    { id: 'ot_6', name: 'Điện giải đồ (Na, K, Cl)', result: '', normalRange: '', unit: 'mmol/L' },
-    { id: 'ot_7', name: 'Na+', result: '', normalRange: '135 - 145', unit: 'mmol/L' },
-    { id: 'ot_8', name: 'K+', result: '', normalRange: '3.5 - 5.0', unit: 'mmol/L' },
-    { id: 'ot_9', name: 'Cl-', result: '', normalRange: '', unit: 'mmol/L' },
-    { id: 'ot_10', name: 'Định lượng Canxi toàn phần', result: '', normalRange: '2.2 - 2.65', unit: 'mmol/L' },
-    { id: 'ot_11', name: 'Định lượng HbA1c', result: '', normalRange: '4 - 6.2', unit: '%' },
-    { id: 'ot_12', name: 'Bạch cầu (Dịch)', result: '', normalRange: '', unit: 'Tế bào/Vi trường' },
-    { id: 'ot_13', name: '%NEUT (Dịch)', result: '', normalRange: '', unit: '%' },
-    { id: 'ot_14', name: 'Định lượng CRP (Dịch)', result: '', normalRange: '', unit: 'mg/l' },
-  ],
+
   fluidAnalysis: [
     { id: 'fa_1', name: 'Cấy khuẩn', result: '', normalRange: '', unit: 'CFU/mL' },
     { id: 'fa_2', name: 'Nhuộm Gram', result: '', normalRange: '', unit: '' },
+    { id: 'fa_3', name: 'Bạch cầu (Dịch)', result: '', normalRange: '', unit: 'Tế bào/Vi trường' },
+    { id: 'fa_4', name: '%NEUT (Dịch)', result: '', normalRange: '', unit: '%' },
+    { id: 'fa_5', name: 'Định lượng CRP (Dịch)', result: '', normalRange: '', unit: 'mg/l' },
   ],
   cultureSamples: [
-    { sampleNumber: 1, status: 'negative', bacteriaName: '' },
-    { sampleNumber: 2, status: 'negative', bacteriaName: '' },
-    { sampleNumber: 3, status: 'negative', bacteriaName: '' },
-    { sampleNumber: 4, status: 'negative', bacteriaName: '' },
-    { sampleNumber: 5, status: 'negative', bacteriaName: '' },
+    {
+      id: 'default-1',
+      sampleNumber: 1,
+      bacteriaName: '',
+      incubation_days: '' as '',
+      used_antibiotic_before: false,
+      days_off_antibiotic: '' as '',
+      notes: '',
+      result: '' as any
+    }
   ],
   diagnosis: { score: 0, probability: 0, status: 'Inconclusive', reasoning: [] },
 };
