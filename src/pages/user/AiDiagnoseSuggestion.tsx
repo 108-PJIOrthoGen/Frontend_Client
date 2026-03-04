@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Steps, Button } from 'antd';
-import { Step1PatientSelection } from '../../components/user/diagnose_steps/Step1PatientSelection';
-import { PatientIntake } from '../../components/user/rag_diagnose/PatientIntake';
-import { MedicalHistoryPage } from '../../components/user/rag_diagnose/MedicalHistory';
-import { ClinicalAssessmentPage } from '../../components/user/rag_diagnose/ClinicalAssessment';
+import { Steps, Button, Breadcrumb } from 'antd';
+import { Step1PatientSelection } from '../../components/user/diagnose_steps/S1PatientSelection';
+import { PatientIntake } from '../../components/user/diagnose_steps/S1PatientIntake';
+import { MedicalHistoryPage } from '../../components/user/diagnose_steps/MedicalHistory';
+import { ClinicalAssessmentPage } from '../../components/user/diagnose_steps/ClinicalAssessment';
 import { Step4Antibiogram } from '../../components/user/diagnose_steps/Step4Antibiogram';
-import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/Step5TreatmentPlan';
+import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S5TreatmentPlan';
+import { HomeOutlined } from '@ant-design/icons';
+import MedicalExamination from '@/components/user/diagnose_steps/MedicalExamination';
 
 const AiDiagnosisSuggestion = () => {
     const [currentStep, setCurrentStep] = useState(() => {
@@ -46,7 +48,11 @@ const AiDiagnosisSuggestion = () => {
             ),
         },
         {
-            title: 'Nhập tiền sử bệnh',
+            title: 'Quản lý người bệnh',
+            content: <MedicalExamination onNext={next} onPrev={prev} />,
+        },
+        {
+            title: 'Nhập dữ liệu bệnh án',
             content: <MedicalHistoryPage onNext={next} onPrev={prev} />,
         },
         {
@@ -69,8 +75,21 @@ const AiDiagnosisSuggestion = () => {
         <div className="flex flex-col h-full bg-slate-50 relative w-full overflow-hidden">
             {/* Header Breadcrumb / Steps */}
             <div className="bg-white px-8 py-5 border-b border-slate-200 shadow-sm z-10">
-                <div className="mb-2 text-sm text-slate-500 font-medium">
-                    Homepage / Hỗ trợ chẩn đoán & tạo phác đồ / <span className="text-primary">Step {currentStep + 1}</span>
+                <div className="mb-2 text-slate-900 font-medium">
+                    <Breadcrumb
+                        items={[
+                            {
+                                href: "/",
+                                title: <HomeOutlined style={{ fontSize: "15px", color: "#1890ff" }} />,
+                            },
+                            {
+                                title: "Chẩn đoán & đề xuất điều trị"
+                            }, {
+                                title: <span className="text-primary">Bước {currentStep + 1}</span>
+                            }
+                        ]}
+                        style={{ marginBottom: "10px" }}
+                    />
                 </div>
                 <Steps
                     current={currentStep}

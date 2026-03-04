@@ -35,9 +35,9 @@ export const LayoutClient = () => {
   ];
 
   const menuItems = [
-    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 1 },
-    { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'history', step: 2 },
-    { path: '/chart-testing', label: 'Biểu đồ và thống kê', icon: 'clinical_notes', step: 3 },
+    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
+    { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
+    { path: '/chart-testing', label: 'Biểu đồ và thống kê chỉ số', icon: 'history', step: "Giám sát kết quả" },
   ];
 
   // Helper to check if a route is active (or if it's the root path)
@@ -79,7 +79,7 @@ export const LayoutClient = () => {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-1 px-4">
-            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Quy trình</p>
+            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chức năng</p>
             {menuItems.map((item) => (
               <NavLink
                 key={item.path}
@@ -93,10 +93,10 @@ export const LayoutClient = () => {
                   {item.icon}
                 </span>
                 <div className="flex flex-col">
-                  <span className={`text-sm ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
+                  <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
                     {item.label}
                   </span>
-                  <span className="text-xs opacity-80">Bước {item.step} / 5</span>
+                  <span className="text-xs opacity-80"> {item.step} </span>
                 </div>
               </NavLink>
             ))}
@@ -109,7 +109,7 @@ export const LayoutClient = () => {
             <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200">
               <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
               <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-sm font-bold text-slate-900 truncate">
+                <span className="text-lg font-bold text-slate-900 truncate">
                   {'Phạm Trung Hiếu'}
                 </span>
                 <span className="text-xs font-medium text-slate-500 truncate">

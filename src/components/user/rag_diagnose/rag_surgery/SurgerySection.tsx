@@ -57,9 +57,9 @@ const SurgerySection = () => {
 
     return (
         <div style={{
-            border: "1px solid rgba(100,116,139,0.3)",
+            border: "1px solid rgba(148, 164, 250, 0.41)",
             borderRadius: "12px",
-            background: "rgba(15,23,42,0.5)",
+            background: "rgba(202, 185, 185, 0.5)",
             backdropFilter: "blur(8px)",
             overflow: "hidden",
             fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif",
@@ -67,7 +67,7 @@ const SurgerySection = () => {
             {/* Section Header */}
             <div style={{
                 padding: "12px 14px",
-                background: "linear-gradient(135deg, rgba(30,58,138,0.4), rgba(15,23,42,0.6))",
+                background: "linear-gradient(135deg, rgba(246, 246, 248, 0.88), rgba(208, 213, 226, 0.6))",
                 borderBottom: "1px solid rgba(100,116,139,0.2)",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
@@ -81,7 +81,7 @@ const SurgerySection = () => {
                         <ScalpelIcon />
                     </div>
                     <div>
-                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0", letterSpacing: "0.04em" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#0d0d0e", letterSpacing: "0.04em" }}>
                             PHÁC ĐỒ PHẪU THUẬT
                         </div>
                         <div style={{ fontSize: "10px", color: "#64748b", letterSpacing: "0.03em" }}>
@@ -133,7 +133,7 @@ const SurgerySection = () => {
 
                 {/* Divider */}
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(100,116,139,0.2)" }} />
+                    <div style={{ flex: 1, height: "1px", background: "rgba(134, 179, 243, 0.2)" }} />
                     <span style={{ fontSize: "10px", color: "#475569", letterSpacing: "0.06em", textTransform: "uppercase" }}>
                         Các bước phẫu thuật
                     </span>

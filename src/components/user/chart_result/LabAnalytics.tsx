@@ -1,5 +1,6 @@
+import { usePatient } from '@/context/PatientContext';
 import React from 'react';
-import { usePatient } from '../context/PatientContext';
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
 
 export const LabAnalytics: React.FC = () => {

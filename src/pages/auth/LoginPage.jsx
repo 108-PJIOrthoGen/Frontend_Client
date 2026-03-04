@@ -1,11 +1,10 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import {
-    Layout, Menu, Button, Row, Col, Form, Input, Switch, message, notification,
-    Typography,
+    Layout, Menu, Button, Row, Col, Form, Input, Switch, message, notification, Typography,
 } from "antd";
-import signinbg from "../../../public/loginpre108.png";
-import { DribbbleOutlined, TwitterOutlined, InstagramOutlined, GithubOutlined } from "@ant-design/icons";
+import signinbg from "../../../public/bvien108.jfif";
+import { GithubOutlined, TwitterOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { runLoginAction } from "../../redux/slice/accountSlice";
 import { loginAPI } from "@/apis/api";
@@ -108,7 +107,7 @@ const LoginPage = () => {
                         </Menu>
                     </div>
                     <div className="header-col header-btn">
-                        <Button type="primary">Tải trên Mobile</Button>
+                        <Button type="primary">Hệ thống hỗ trợ chẩn đoán với AI</Button>
                     </div>
                 </Header>
                 <Content className="signin">
@@ -120,7 +119,7 @@ const LoginPage = () => {
                         >
                             <Title className="mb-15">Đăng nhập</Title>
                             <Title className="font-regular text-muted" level={5}>
-                                Nhập email hoặc username đã đăng ký trước đó
+                                Nhập thông tin tài khoản đã được cung cấp
                             </Title>
                             <Form
                                 onFinish={onFinish}
@@ -177,10 +176,8 @@ const LoginPage = () => {
                                     </Button>
                                 </Form.Item>
                                 <p className="font-semibold text-muted">
-                                    Chưa có tài khoản?{" "}
-                                    <Link to="/sign-up" className="text-dark font-bold">
-                                        Đăng ký
-                                    </Link>
+                                    Tài khoản chỉ được cấp cho các bác sĩ.{" "}
+                                    Không tự đăng ký.
                                 </p>
                             </Form>
                         </Col>
@@ -191,7 +188,7 @@ const LoginPage = () => {
                             lg={{ span: 12 }}
                             md={{ span: 12 }}
                         >
-                            <img src={signinbg} alt="" />
+                            <img style={{ height: "300px", maxWidth: "90%" }} src={signinbg} alt="" />
                         </Col>
                     </Row>
                 </Content>
