@@ -6,6 +6,7 @@ import AiDiagnosisSuggestion from "@/pages/user/AiDiagnoseSuggestion";
 import Error404 from "@/pages/errors/NotFoundPage";
 import PatientTable from "@/pages/user/PatientTable";
 import ChartTesting from "@/pages/user/ChartTesting";
+import CompareResult from "@/pages/user/CompareResult";
 
 const router = createBrowserRouter([
     {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
             {
                 path: "chart-testing",
                 element: <ChartTesting />
+            },
+            {
+                path: "compare-result",
+                element: <CompareResult />
             },
 
         ]

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PJI UI Mockup - Lịch sử gợi ý & AI vs Phác đồ xác nhận</title>
+  <style>
+    :root{
+      --bg:#f6f8fb;
+      --card:#ffffff;
+      --line:#dbe3ef;
+      --text:#1b2430;
+      --muted:#607086;
+      --primary:#2563eb;
+      --success:#0f766e;
+      --warn:#b45309;
+      --danger:#b91c1c;
+      --tag:#eef4ff;
+      --shadow:0 10px 30px rgba(16,24,40,.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:var(--bg);
+      color:var(--text);
+    }
+    .topbar{
+      background:#0f172a;
+      color:#fff;
+      padding:16px 28px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+    }
+    .topbar .title{font-size:20px;font-weight:700}
+    .topbar .sub{font-size:13px;color:#cbd5e1}
+    .container{max-width:1480px;margin:0 auto;padding:24px}
+    .patient-header{
+      background:linear-gradient(135deg,#ffffff,#f8fbff);
+      border:1px solid var(--line);
+      border-radius:24px;
+      box-shadow:var(--shadow);
+      padding:22px 24px;
+      display:grid;
+      grid-template-columns: 1.4fr 1fr auto;
+      gap:18px;
+      align-items:center;
+      margin-bottom:22px;
+    }
+    .patient-main h1{margin:0 0 6px;font-size:24px}
+    .meta{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{
+      background:var(--tag);
+      color:#21447d;
+      border:1px solid #cfe0ff;
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:600;
+    }
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .stat{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px}
+    .stat .k{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .stat .v{font-size:18px;font-weight:700}
+    .actions{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+    .btn{
+      padding:11px 16px;border-radius:12px;border:1px solid var(--line);
+      background:#fff;font-weight:600;cursor:default;
+    }
+    .btn.primary{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+    .layout{display:grid;grid-template-columns: 440px 1fr; gap:22px;}
+    .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .card-header{padding:18px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+    .card-header h2{margin:0;font-size:18px}
+    .card-body{padding:18px 20px}
+    .small{font-size:13px;color:var(--muted)}
+
+    .timeline{position:relative;padding-left:18px}
+    .timeline::before{content:"";position:absolute;left:7px;top:8px;bottom:8px;width:2px;background:#d6e0ef}
+    .event{position:relative;padding-left:18px;margin-bottom:18px}
+    .event:last-child{margin-bottom:0}
+    .event::before{
+      content:"";position:absolute;left:-1px;top:6px;width:16px;height:16px;border-radius:50%;background:#fff;border:3px solid var(--primary)
+    }
+    .event.confirmed::before{border-color:var(--success)}
+    .event.review::before{border-color:var(--warn)}
+    .event-card{
+      border:1px solid var(--line);border-radius:16px;padding:14px;background:#fbfdff
+    }
+    .event-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+    .event-top h3{margin:0;font-size:15px}
+    .time{font-size:12px;color:var(--muted);white-space:nowrap}
+    .badge{font-size:12px;font-weight:700;padding:6px 10px;border-radius:999px;display:inline-block}
+    .badge.blue{background:#e8f0ff;color:#1d4ed8}
+    .badge.green{background:#e7f8ef;color:#0f766e}
+    .badge.orange{background:#fff2e2;color:#b45309}
+    .kv{display:grid;grid-template-columns: 130px 1fr; gap:8px;font-size:13px;margin:6px 0}
+    .kv .k{color:var(--muted)}
+    .inline-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .chip{padding:7px 10px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:12px;font-weight:600}
+
+    .stack{display:grid;grid-template-rows:auto auto; gap:22px}
+
+    .summary-grid{display:grid;grid-template-columns: repeat(4,1fr); gap:12px; margin-bottom:16px}
+    .summary-box{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fafcff}
+    .summary-box .label{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .summary-box .value{font-size:20px;font-weight:800}
+
+    .compare-grid{display:grid;grid-template-columns:1fr 1fr; gap:18px; margin-bottom:16px}
+    .panel{border:1px solid var(--line);border-radius:18px;padding:16px;background:#fcfdff}
+    .panel h3{margin:0 0 12px;font-size:16px}
+    .section-title{font-size:13px;font-weight:800;color:#334155;margin:14px 0 8px;text-transform:uppercase;letter-spacing:.03em}
+    .list{display:grid;gap:8px}
+    .item{border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
+    .item .main{font-weight:700;margin-bottom:6px}
+    .item .sub{font-size:13px;color:var(--muted)}
+
+    .diff-table{width:100%;border-collapse:separate;border-spacing:0;margin-top:6px;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+    .diff-table th,.diff-table td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;font-size:13px;vertical-align:top;background:#fff}
+    .diff-table th{background:#f8fbff;font-size:12px;color:#475569;text-transform:uppercase;letter-spacing:.03em}
+    .diff-table tr:last-child td{border-bottom:none}
+    .diff-keep{color:#0f766e;font-weight:700}
+    .diff-change{color:#b45309;font-weight:700}
+    .diff-major{color:#b91c1c;font-weight:700}
+
+    .callout{
+      border:1px solid #fde2b7;background:#fff9ef;border-radius:16px;padding:14px 16px;color:#7c4a03;font-size:13px
+    }
+
+    .footer-note{margin-top:10px;font-size:12px;color:var(--muted)}
+
+    @media (max-width: 1200px){
+      .layout{grid-template-columns:1fr}
+      .patient-header{grid-template-columns:1fr}
+      .compare-grid{grid-template-columns:1fr}
+      .summary-grid{grid-template-columns:repeat(2,1fr)}
+    }
+    @media (max-width: 700px){
+      .summary-grid{grid-template-columns:1fr}
+      .stats{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div>
+      <div class="title">PJI Clinical Decision Support</div>
+      <div class="sub">Mockup UI rút gọn theo yêu cầu: chỉ giữ Lịch sử gợi ý và AI vs Phác đồ đã xác nhận</div>
+    </div>
+    <div class="sub">Demo cho bác sĩ / hội chẩn / audit</div>
+  </div>
+
+  <div class="container">
+    <div class="patient-header">
+      <div class="patient-main">
+        <h1>BN-240311-018 • Nguyễn Văn A • Nữ, 67 tuổi</h1>
+        <div class="meta">
+          <div class="pill">Khoa Chấn thương chỉnh hình</div>
+          <div class="pill">Sau thay khớp háng 3 tháng</div>
+          <div class="pill">Nghi ngờ PJI: Cao</div>
+          <div class="pill">Phác đồ hiện hành: Đã xác nhận</div>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Lần AI gần nhất</div><div class="v">11:42</div></div>
+        <div class="stat"><div class="k">Tổng số lần gợi ý</div><div class="v">3</div></div>
+        <div class="stat"><div class="k">Bác sĩ phụ trách</div><div class="v">BS. Hương</div></div>
+      </div>
+      <div class="actions">
+        <div class="btn">Xem hồ sơ ca bệnh</div>
+        <div class="btn">Xuất PDF</div>
+        <div class="btn primary">Gợi ý lại</div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="card">
+        <div class="card-header">
+          <h2>1. Lịch sử gợi ý & quyết định điều trị</h2>
+          <div class="small">Timeline ưu tiên cho bác sĩ</div>
+        </div>
+        <div class="card-body">
+          <div class="timeline">
+            <div class="event">
+              <div class="event-card">
+                <div class="event-top">
+                  <div>
+                    <h3>AI gợi ý lần 1</h3>
+                    <span class="badge blue">AI Recommendation</span>
+                  </div>
+                  <div class="time">09:10 • 11/03/2026</div>
+                </div>
+                <div class="kv"><div class="k">Phác đồ chính</div><div>Cefazolin 2g q8h IV</div></div>
+                <div class="kv"><div class="k">Mức nghi ngờ PJI</div><div>Cao</div></div>
+                <div class="kv"><div class="k">Độ đầy đủ dữ liệu</div><div>68%</div></div>
+                <div class="kv"><div class="k">Tình trạng</div><div>Chưa review</div></div>
+                <div class="inline-actions">
+                  <div class="chip">Xem chi tiết</div>
+                  <div class="chip">Dùng làm mốc</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="event">
+              <div class="event-card">
+                <div class="event-top">
+                  <div>
+                    <h3>AI gợi ý lần 2</h3>
+                    <span class="badge blue">AI Recommendation</span>
+                  </div>
+                  <div class="time">11:42 • 11/03/2026</div>
+                </div>
+                <div class="kv"><div class="k">Phác đồ chính</div><div>Vancomycin 15 mg/kg q24h IV</div></div>
+                <div class="kv"><div class="k">Mức nghi ngờ PJI</div><div>Cao</div></div>
+                <div class="kv"><div class="k">Điểm đáng chú ý</div><div>Có kết quả cấy dịch khớp: MRSA</div></div>
+                <div class="kv"><div class="k">Tình trạng</div><div>Đang được review</div></div>
+                <div class="inline-actions">
+                  <div class="chip">Xem chi tiết</div>
+                  <div class="chip">Đặt làm bản AI đang xét</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="event review">
+              <div class="event-card">
+                <div class="event-top">
+                  <div>
+                    <h3>Bác sĩ chỉnh sửa</h3>
+                    <span class="badge orange">Doctor Review</span>
+                  </div>
+                  <div class="time">12:05 • 11/03/2026</div>
+                </div>
+                <div class="kv"><div class="k">Hành động</div><div>Modified</div></div>
+                <div class="kv"><div class="k">Nội dung sửa</div><div>Giảm khoảng cách liều theo eGFR</div></div>
+                <div class="kv"><div class="k">Lý do</div><div>Chức năng thận giảm, cần hạn chế độc tính</div></div>
+                <div class="inline-actions">
+                  <div class="chip">Xem lý do chỉnh sửa</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="event confirmed">
+              <div class="event-card">
+                <div class="event-top">
+                  <div>
+                    <h3>Phác đồ cuối đã xác nhận</h3>
+                    <span class="badge green">Final Plan</span>
+                  </div>
+                  <div class="time">12:15 • 11/03/2026</div>
+                </div>
+                <div class="kv"><div class="k">Phác đồ hiện hành</div><div>Vancomycin 15 mg/kg q24h IV</div></div>
+                <div class="kv"><div class="k">Người xác nhận</div><div>BS. Hương</div></div>
+                <div class="kv"><div class="k">Theo dõi thêm</div><div>Creatinine mỗi 48 giờ</div></div>
+                <div class="inline-actions">
+                  <div class="chip">Xem bản xác nhận</div>
+                  <div class="chip">In hội chẩn</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="footer-note">Gợi ý UX: ở timeline chỉ cần cho bác sĩ thấy “đã xảy ra gì theo thời gian” và bấm vào một mốc để đổ dữ liệu sang panel bên phải.</div>
+        </div>
+      </div>
+
+      <div class="stack">
+        <div class="card">
+          <div class="card-header">
+            <h2>3. AI vs Phác đồ đã xác nhận</h2>
+            <div class="small">Màn này nên là trung tâm khi bác sĩ review</div>
+          </div>
+          <div class="card-body">
+            <div class="summary-grid">
+              <div class="summary-box">
+                <div class="label">Bản AI đang so sánh</div>
+                <div class="value">Lần 2</div>
+              </div>
+              <div class="summary-box">
+                <div class="label">Trạng thái review</div>
+                <div class="value">Modified</div>
+              </div>
+              <div class="summary-box">
+                <div class="label">Mức khác biệt</div>
+                <div class="value">Trung bình</div>
+              </div>
+              <div class="summary-box">
+                <div class="label">Ảnh hưởng lâm sàng</div>
+                <div class="value">Có</div>
+              </div>
+            </div>
+
+            <div class="compare-grid">
+              <div class="panel">
+                <h3>AI đề xuất</h3>
+                <div class="section-title">Đánh giá ca bệnh</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Mức nghi ngờ PJI: Cao</div>
+                    <div class="sub">Dựa trên CRP tăng, ESR tăng, đau khớp kéo dài, cấy dịch khớp MRSA.</div>
+                  </div>
+                </div>
+                <div class="section-title">Phác đồ gợi ý</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Vancomycin 15 mg/kg q12h IV</div>
+                    <div class="sub">Ưu tiên bao phủ MRSA. Theo dõi chức năng thận trong quá trình dùng thuốc.</div>
+                  </div>
+                </div>
+                <div class="section-title">Cảnh báo an toàn</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Nguy cơ độc tính thận</div>
+                    <div class="sub">Creatinine tăng từ 1.1 lên 1.9 mg/dL.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel">
+                <h3>Phác đồ bác sĩ đã xác nhận</h3>
+                <div class="section-title">Quyết định cuối</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Vancomycin 15 mg/kg q24h IV</div>
+                    <div class="sub">Giữ thuốc chính, điều chỉnh khoảng cách liều theo eGFR hiện tại.</div>
+                  </div>
+                </div>
+                <div class="section-title">Theo dõi / kế hoạch</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Theo dõi creatinine mỗi 48 giờ</div>
+                    <div class="sub">Hội chẩn thêm dược lâm sàng nếu creatinine tiếp tục tăng.</div>
+                  </div>
+                </div>
+                <div class="section-title">Lý do chỉnh sửa</div>
+                <div class="list">
+                  <div class="item">
+                    <div class="main">Giảm nguy cơ độc tính thận</div>
+                    <div class="sub">Bác sĩ ưu tiên an toàn do chức năng thận đang xấu đi.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <table class="diff-table">
+              <thead>
+                <tr>
+                  <th style="width:22%">Hạng mục</th>
+                  <th>AI đề xuất</th>
+                  <th>Phác đồ xác nhận</th>
+                  <th style="width:16%">Mức ảnh hưởng</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Thuốc chính</strong></td>
+                  <td>Vancomycin</td>
+                  <td>Vancomycin</td>
+                  <td class="diff-keep">Giữ nguyên</td>
+                </tr>
+                <tr>
+                  <td><strong>Khoảng cách liều</strong></td>
+                  <td>q12h</td>
+                  <td>q24h</td>
+                  <td class="diff-change">Có thay đổi</td>
+                </tr>
+                <tr>
+                  <td><strong>Đường dùng</strong></td>
+                  <td>IV</td>
+                  <td>IV</td>
+                  <td class="diff-keep">Giữ nguyên</td>
+                </tr>
+                <tr>
+                  <td><strong>Kế hoạch theo dõi</strong></td>
+                  <td>Theo dõi chức năng thận</td>
+                  <td>Creatinine mỗi 48 giờ</td>
+                  <td class="diff-change">Cụ thể hơn</td>
+                </tr>
+                <tr>
+                  <td><strong>Lý do lâm sàng</strong></td>
+                  <td>Bao phủ MRSA</td>
+                  <td>Bao phủ MRSA + giảm nguy cơ độc tính thận</td>
+                  <td class="diff-major">Quan trọng</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Khuyến nghị bố cục thực tế</h2>
+            <div class="small">Để team UI/UX bám dễ hơn</div>
+          </div>
+          <div class="card-body">
+            <div class="callout">
+              <strong>Nên ưu tiên màn này làm landing của module review phác đồ.</strong><br/><br/>
+              Bên trái là timeline để bác sĩ chọn mốc. Bên phải luôn cố định panel “AI vs Phác đồ đã xác nhận”.
+              Khi click một mốc AI trong timeline, panel bên phải tự đổi sang so sánh bản AI đó với bản final hiện hành.
+            </div>
+            <div class="section-title">Tổ chức thao tác nên có</div>
+            <div class="list">
+              <div class="item">
+                <div class="main">1. Chọn mốc trong timeline</div>
+                <div class="sub">AI lần 1, AI lần 2, hoặc review của bác sĩ.</div>
+              </div>
+              <div class="item">
+                <div class="main">2. Xem ngay phần khác biệt có ý nghĩa lâm sàng</div>
+                <div class="sub">Đừng bắt bác sĩ đọc diff text dài. Dùng bảng 4 cột như mockup ở trên.</div>
+              </div>
+              <div class="item">
+                <div class="main">3. Hiển thị rõ lý do bác sĩ chỉnh sửa</div>
+                <div class="sub">Đây là điểm giúp tăng niềm tin và audit về sau.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

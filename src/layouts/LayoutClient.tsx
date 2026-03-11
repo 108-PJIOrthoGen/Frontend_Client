@@ -1,6 +1,6 @@
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, MenuProps, Avatar } from 'antd';
+import { Dropdown, MenuProps, Avatar, Image } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { usePatient } from '../context/PatientContext';
 
@@ -37,7 +37,8 @@ export const LayoutClient = () => {
   const menuItems = [
     { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
     { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
-    { path: '/chart-testing', label: 'Biểu đồ và thống kê chỉ số', icon: 'history', step: "Giám sát kết quả" },
+    { path: '/chart-testing', label: 'Biểu đồ chỉ số viêm', icon: 'history', step: "Giám sát kết quả" },
+    { path: '/compare-result', label: 'So sánh kết quả', icon: 'compare', step: "Kết quả của AI và bác sĩ" },
   ];
 
   // Helper to check if a route is active (or if it's the root path)
@@ -54,8 +55,8 @@ export const LayoutClient = () => {
         <div className="flex flex-col">
           {/* Header */}
           <div className="flex items-center gap-3 px-6 py-6">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-[12px]">BK</span>
+            <div style={{ width: "5rem", height: "4rem" }} className="flex items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Image src={"/unnamed.gif"} alt="Logo" preview={false} />
             </div>
             <div>
               <h1 className="text-slate-900 text-lg font-bold leading-tight">108 MC Hospital</h1>
