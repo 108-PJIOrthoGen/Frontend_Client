@@ -77,28 +77,7 @@ const initialTreatments = [
             },
         ],
     },
-    {
-        id: 2,
-        zone: "Kháng sinh trong mô xương / khoang phẫu thuật",
-        zoneCode: "BONE",
-        medications: [
-            {
-                id: 21,
-                name: "Vancomycin bột rắc",
-                form: "powder",
-                dose: "1–2g/lần (0.5–1g/cm²)",
-                frequency: "Mỗi lần thay băng",
-                duration: "Theo chỉ định phẫu thuật",
-                technique: [
-                    { code: "clean", label: "Debridement hoàn toàn trước khi áp dụng" },
-                    { code: "pack", label: "Rắc trực tiếp vào hốc xương / quanh implant" },
-                    { code: "cover", label: "Đóng vết thương kín sau khi rắc" },
-                ],
-                caution: "Chỉ dùng trong phẫu thuật, không dùng ngoại trú",
-                evidence: "B",
-            },
-        ],
-    },
+
     {
         id: 3,
         zone: "Kháng sinh trong cement / spacer",

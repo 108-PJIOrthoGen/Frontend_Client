@@ -1,0 +1,158 @@
+{
+  "DIAGNOSTIC_TEST": {
+    "category": "DIAGNOSTIC_TEST",
+    "title": "Chẩn đoán AI - Đánh giá nhiễm trùng khớp giả theo ICM 2018 Scoring",
+    "scoring_system": {
+        "name": "ICM 2018 PJI Diagnostic Criteria",
+        "version": "2018 (Philadelphia Consensus)",
+        "total_score": 9,
+        "interpretation": "INFECTED",
+        "confidence_note": "Độ tin cậy cao dựa trên đầy đủ dữ liệu lâm sàng, xét nghiệm và vi sinh"
+    },
+    "major_criteria": {
+        "note": "Mỗi tiêu chí chính = Decision (kết luận ngay là Infected nếu dương tính, không cần tính điểm)",
+        "items": [
+            {
+                "criterion": "≥ 2 mẫu nuôi cấy dương tính cùng một vi khuẩn",
+                "result": true,
+                "result_detail": "2/2 mẫu nuôi cấy dương tính Staphylococcus aureus (dịch khớp + mô quanh khớp giả)",
+                "is_decisive": true
+            },
+            {
+                "criterion": "Đường rò thông với khớp giả",
+                "result": false,
+                "result_detail": "Không có đường rò (sinus_tract = false)",
+                "is_decisive": false
+            }
+        ],
+        "major_criteria_met": true,
+        "major_criteria_conclusion": "Đã thỏa tiêu chí chính: 2 mẫu nuôi cấy cùng vi khuẩn → Có thể kết luận INFECTED ngay. Điểm minor dưới đây để bổ trợ mức độ."
+    },
+    "minor_criteria_scoring": {
+        "note": "Tính điểm từ các tiêu chí phụ khi chưa thỏa major criteria, hoặc bổ trợ đánh giá mức độ",
+        "items": [
+            {
+                "criterion": "Serum CRP (>10 mg/L) or D-Dimer (>860 ng/mL)",
+                "score_weight": 2,
+                "result": true,
+                "result_detail": "CRP = 95.3 mg/L (>10), D-Dimer = 1.85 mg/L FEU = 1850 ng/mL (>860)",
+                "score_awarded": 2
+            },
+            {
+                "criterion": "Tốc độ máu lắng tăng ESR (>30 mm/h)",
+                "score_weight": 1,
+                "result": true,
+                "result_detail": "ESR = 85 mm/h (>30)",
+                "score_awarded": 1
+            },
+            {
+                "criterion": "Synovial WBC (>3000 cells/μL) or Leukocyte Esterase (++)",
+                "score_weight": 3,
+                "result": true,
+                "result_detail": "Synovial WBC = 52,000 cells/μL (>>3000)",
+                "score_awarded": 3
+            },
+            {
+                "criterion": "Tỷ lệ bạch cầu đa nhân trung tính dịch khớp tăng Synovial PMN% (>80%)",
+                "score_weight": 2,
+                "result": true,
+                "result_detail": "Synovial PMN = 92% (>80%)",
+                "score_awarded": 2
+            },
+            {
+                "criterion": "Positive Alpha-Defensin",
+                "score_weight": 3,
+                "result": true,
+                "result_detail": "Alpha-Defensin = POSITIVE",
+                "score_awarded": 3
+            },
+            {
+                "criterion": "Elevated Serum IL-6 (>10 pg/mL)",
+                "criterion_vi": "IL-6 huyết thanh tăng",
+                "score_weight": 1,
+                "result": true,
+                "result_detail": "Serum IL-6 = 45.2 pg/mL (>10)",
+                "score_awarded": 1
+            },
+            {
+                "criterion": "1 mẫu nuôi cấy dương tính đơn lẻ",
+                "score_weight": 2,
+                "result": false,
+                "result_detail": "Không áp dụng - đã có 2 mẫu dương tính (thuộc major criteria)",
+                "score_awarded": 0
+            },
+            {
+                "criterion": "Giải phẫu bệnh dương tính (>5 PMN per HPF)",
+                "score_weight": 3,
+                "result": null,
+                "result_detail": "Chưa có kết quả giải phẫu bệnh",
+                "score_awarded": 0
+            }
+        ],
+        "total_minor_score": 12,
+        "total_minor_score_note": "12/20 điểm minor khả dụng → vượt xa ngưỡng ≥6 (Infected)"
+    },
+    "ai_reasoning": {
+        "primary_diagnosis": "Periprosthetic Joint Infection (PJI) - Nhiễm trùng khớp giả háng phải",
+        "infection_classification": "CHRONIC",
+        "infection_classification_reasoning": "Triệu chứng > 4 tuần (onset 2 tháng), khớp giả lỏng lẻo (implant_stability = UNSTABLE), không có sự kiện hematogenous.",
+        "identified_organism": {
+            "name": "Staphylococcus aureus",
+            "resistance_profile": "MRSA (Methicillin-Resistant Staphylococcus aureus)",
+            "resistance_detail": "Oxacillin R (MIC >2). Nhạy Vancomycin, Rifampicin, Ciprofloxacin, TMP-SMX, Daptomycin, Linezolid.",
+            "biofilm_forming": true,
+            "virulence_note": "S. aureus là tác nhân PJI phổ biến nhất, khả năng hình thành biofilm cao trên bề mặt implant."
+        },
+        "key_clinical_factors": [
+            {
+                "factor": "Thời gian nhiễm trùng",
+                "value": "Mạn tính (~2 tháng triệu chứng, > 1095 ngày sau THA ban đầu)",
+                "impact": "Chỉ định two-stage revision, không phù hợp DAIR"
+            },
+            {
+                "factor": "Độ ổn định implant",
+                "value": "UNSTABLE - khớp giả lỏng lẻo trên X-quang và CT",
+                "impact": "Bắt buộc tháo khớp giả, loại trừ DAIR"
+            },
+            {
+                "factor": "Vi khuẩn gây bệnh",
+                "value": "MRSA - vi khuẩn kháng thuốc, hình thành biofilm",
+                "impact": "Cần Rifampicin phối hợp (anti-biofilm). Không dùng beta-lactam."
+            },
+            {
+                "factor": "Dị ứng thuốc",
+                "value": "Dị ứng Penicillin (phát ban toàn thân)",
+                "impact": "Loại trừ nhóm Penicillin và cân nhắc cross-reactivity Cephalosporin. Ưu tiên Vancomycin."
+            },
+            {
+                "factor": "Bệnh đồng mắc",
+                "value": "Tiểu đường type 2 (HbA1c 7.8%), Tăng huyết áp, BMI 27.5",
+                "impact": "Tăng nguy cơ nhiễm trùng tái phát. Cần tối ưu đường huyết. Rifampicin tương tác Metformin."
+            },
+            {
+                "factor": "Tình trạng dinh dưỡng",
+                "value": "Albumin 32 g/L (ranh giới thấp)",
+                "impact": "Nguy cơ chậm lành vết thương. Cần bổ sung dinh dưỡng trước phẫu thuật."
+            }
+        ],
+        "reasoning_summary": "Bệnh nhân thỏa mãn cả tiêu chí chính (2 mẫu nuôi cấy cùng vi khuẩn) và điểm minor = 12 (>>6) theo ICM 2018. Chẩn đoán xác định PJI mạn tính háng phải do MRSA. Do nhiễm trùng mạn tính + implant lỏng lẻo + MRSA, chiến lược tối ưu là two-stage revision với spacer kháng sinh tại chỗ (Vancomycin + Tobramycin PMMA) kết hợp kháng sinh toàn thân (Vancomycin IV → Rifampicin + TMP-SMX uống). DAIR không phù hợp vì nhiễm trùng mạn > 4 tuần và implant không ổn định.",
+        "warnings": [
+            {
+                "type": "ALLERGY_ALERT",
+                "severity": "HIGH",
+                "message": "Dị ứng Penicillin - TUYỆT ĐỐI KHÔNG dùng nhóm Penicillin. Cân nhắc nguy cơ cross-reactivity với Cephalosporin."
+            },
+            {
+                "type": "DRUG_INTERACTION",
+                "severity": "MEDIUM",
+                "message": "Rifampicin làm giảm nồng độ Metformin, Amlodipine qua CYP450 induction. Theo dõi đường huyết và huyết áp chặt chẽ."
+            },
+            {
+                "type": "RENAL_CHECK",
+                "severity": "LOW",
+                "message": "Creatinine 95 μmol/L (hiện bình thường). Theo dõi sát khi dùng Vancomycin IV - cần chỉnh liều nếu suy thận."
+            }
+        ]
+    }
+}
+}

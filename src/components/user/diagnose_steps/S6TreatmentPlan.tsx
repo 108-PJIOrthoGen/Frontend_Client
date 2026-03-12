@@ -232,6 +232,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-2xl">
                     {/* Section: Local Antibiotics */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {/* Section: surgery */}
+                        <SurgerySection />
                         <SystemicAntibioticTreatment
                             phases={phases}
                             editingPhaseId={editingPhaseId}
@@ -242,8 +244,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         {/**Section: Local Antibitics */}
                         <LocalAntibioticTreatment />
 
-                        {/* Section: surgery */}
-                        <SurgerySection />
+
 
                     </div>
                 </div>

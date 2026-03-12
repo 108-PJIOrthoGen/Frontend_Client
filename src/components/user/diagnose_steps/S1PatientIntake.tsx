@@ -131,23 +131,7 @@ export const PatientIntake: React.FC<PatientIntakeProps> = ({ onNext, onCancel }
                 <input name="phone" value={demographics.phone} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: 09123.." type="tel" />
               </label>
 
-              <div className="grid grid-cols-2 gap-4 col-span-2 md:col-span-2">
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-slate-700">Chiều cao (cm)</span>
-                  <input name="height" value={demographics.height} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 border" type="number" />
-                </label>
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium text-slate-700">Cân nặng (kg)</span>
-                  <input name="weight" value={demographics.weight} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 border" type="number" />
-                </label>
-              </div>
-              {/* <div className="md:col-start-3 md:row-start-2 bg-primary/5 rounded-lg border border-primary/10 p-3 flex flex-col justify-center items-center">
-                <span className="text-xs font-semibold text-primary uppercase tracking-wide">Chỉ số BMI</span>
-                <div className="flex items-baseline gap-1 mt-1">
-                  <span className="text-2xl font-bold text-slate-900">{demographics.bmi}</span>
-                  <span className="text-xs text-slate-500">kg/m²</span>
-                </div>
-              </div> */}
+
             </div>
           </section>
 

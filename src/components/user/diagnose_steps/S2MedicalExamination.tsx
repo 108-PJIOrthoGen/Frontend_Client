@@ -32,7 +32,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý người bệnh</h1>
+                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý bệnh án</h1>
                                 <p className="text-slate-500 text-sm mt-1">Thông tin tiếp nhận, khám bệnh và điều trị.</p>
                             </div>
                         </div>
@@ -95,8 +95,13 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                             </label>
 
                             <label className="flex flex-col gap-1.5">
-                                <span className="text-sm font-medium text-slate-700">Chuyển viện đến</span>
-                                <input name="transferredTo" value={formData.transferredTo} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: Bệnh viện Chợ Rẫy" type="text" />
+                                <span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ <span className="text-red-500">*</span></span>
+                                <select name="treatmentResult" value={formData.treatmentResult} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
+                                    <option value="" disabled>-- Trạng thái hồ sơ --</option>
+                                    <option value="normal">Đang điều trị</option>
+                                    <option value="bad">Hoàn thành</option>
+                                    <option value="worse">Đã hủy</option>
+                                </select>
                             </label>
                         </div>
                     </section>

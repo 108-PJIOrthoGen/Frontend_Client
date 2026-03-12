@@ -5,9 +5,10 @@ import { PatientIntake } from '../../components/user/diagnose_steps/S1PatientInt
 import { MedicalHistoryPage } from '../../components/user/diagnose_steps/MedicalHistory';
 import { ClinicalAssessmentPage } from '../../components/user/diagnose_steps/ClinicalAssessment';
 import { Step4Antibiogram } from '../../components/user/diagnose_steps/S4Antibiogram';
-import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S5TreatmentPlan';
+import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S6TreatmentPlan';
 import { HomeOutlined } from '@ant-design/icons';
 import MedicalExamination from '@/components/user/diagnose_steps/S2MedicalExamination';
+import { S5AssessmentPji } from '@/components/user/diagnose_steps/S5AssessmentPji';
 
 const AiDiagnosisSuggestion = () => {
     const [currentStep, setCurrentStep] = useState(() => {
@@ -62,6 +63,10 @@ const AiDiagnosisSuggestion = () => {
         {
             title: 'Bảng kháng sinh đồ',
             content: <Step4Antibiogram onNext={next} onPrev={prev} />,
+        },
+        {
+            title: 'Đánh giá nguy cơ PJI',
+            content: <S5AssessmentPji onNext={next} onPrev={prev} />,
         },
         {
             title: 'Gợi ý phác đồ',
