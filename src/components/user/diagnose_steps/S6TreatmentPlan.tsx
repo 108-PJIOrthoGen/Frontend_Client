@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Input, Drawer, Spin, Modal, Result } from 'antd';
-import { SendOutlined, InfoCircleOutlined, DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { SendOutlined } from '@ant-design/icons';
 import { usePatient } from '../../../context/PatientContext';
 import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
 import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import {
+    LOCAL_PLAN,
+    RAG_CITATIONS,
+    SURGERY_PLAN,
+    SYSTEMIC_PLAN,
+} from './treatmentTemplateData';
 
 interface Step5Props {
     onPrev: () => void;
@@ -17,48 +23,9 @@ interface Message {
     timestamp: Date;
 }
 
-type PhaseColor = 'blue' | 'emerald';
-
-interface TreatmentPhase {
-    id: string;
-    phaseNumber: number;
-    weekLabel: string;
-    routeLabel: string;
-    drugName: string;
-    dosage: string;
-    duration: string;
-    color: PhaseColor;
-}
-
-type EditablePhaseField = 'weekLabel' | 'routeLabel' | 'drugName' | 'dosage' | 'duration';
-
 export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
-    const { treatment, setTreatment } = usePatient();
+    const { setTreatment } = usePatient();
 
-    const [phases, setPhases] = useState<TreatmentPhase[]>(() => [
-        {
-            id: 'phase-1',
-            phaseNumber: 1,
-            weekLabel: 'Tuần 1-2',
-            routeLabel: 'Điều trị tiêm tĩnh mạch',
-            drugName: treatment.ivDrug,
-            dosage: treatment.ivDosage,
-            duration: treatment.ivDuration,
-            color: 'blue',
-        },
-        {
-            id: 'phase-2',
-            phaseNumber: 2,
-            weekLabel: 'Tuần 3-6',
-            routeLabel: 'Điều trị uống duy trì',
-            drugName: treatment.oralDrug,
-            dosage: treatment.oralDosage,
-            duration: treatment.oralDuration,
-            color: 'emerald',
-        },
-    ]);
-
-    const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
     const [isChatOpen, setIsChatOpen] = useState(false);
@@ -74,66 +41,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const [isLoading, setIsLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const handlePhaseFieldChange = (id: string, field: EditablePhaseField, value: string) => {
-        setPhases(prev =>
-            prev.map(phase =>
-                phase.id === id
-                    ? {
-                        ...phase,
-                        [field]: value,
-                    }
-                    : phase
-            )
-        );
-    };
-
-    const handleAddPhase = () => {
-        const newId = `phase-${Date.now()}`;
-        setPhases(prev => {
-            const nextIndex = prev.length + 1;
-            const lastColor = prev[prev.length - 1]?.color ?? 'emerald';
-            const nextColor: PhaseColor = lastColor === 'blue' ? 'emerald' : 'blue';
-
-            return [
-                ...prev,
-                {
-                    id: newId,
-                    phaseNumber: nextIndex,
-                    weekLabel: '',
-                    routeLabel: '',
-                    drugName: '',
-                    dosage: '',
-                    duration: '',
-                    color: nextColor,
-                },
-            ];
-        });
-        setEditingPhaseId(newId);
-    };
-
-    const toggleEditPhase = (id: string) => {
-        setEditingPhaseId(prev => (prev === id ? null : id));
-    };
-
     const handleConfirmTreatment = () => {
-        // Đồng bộ 2 phase đầu tiên về TreatmentPlan trong context (giữ tương thích với cấu trúc hiện tại)
-        setTreatment(prev => {
-            const [ivPhase, oralPhase] = phases;
-            return {
-                ...prev,
-                ivDrug: ivPhase?.drugName || prev.ivDrug,
-                ivDosage: ivPhase?.dosage || prev.ivDosage,
-                ivDuration: ivPhase?.duration || prev.ivDuration,
-                oralDrug: oralPhase?.drugName || prev.oralDrug,
-                oralDosage: oralPhase?.dosage || prev.oralDosage,
-                oralDuration: oralPhase?.duration || prev.oralDuration,
-            };
-        });
-
-        // TODO: gửi `phases` lên backend/AI nếu cần
-        console.log('Confirmed systemic antibiotic phases:', phases);
-
-        // Hiển thị Result modal thành công
+        // TODO: gửi dữ liệu lên backend/AI nếu cần
         setIsSuccessModalOpen(true);
     };
 
@@ -187,10 +96,10 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
         const lowerMessage = userMessage.toLowerCase();
 
         const responses: { [key: string]: string } = {
-            'dair': 'DAIR (Debridement, Antibiotics, Implant Retention) không phù hợp vì onset LATE > 3 tháng. Theo guideline ICM 2018, việc giữ lại khớp nhân tạo có tỉ lệ thất bại rất cao đối với nhiễm trùng mạn tính (> 30 ngày).',
-            'kháng sinh': 'Phác đồ kháng sinh được chia thành 2 giai đoạn:\n- Giai đoạn 1: Daptomycin 6-8 mg/kg IV trong 2-4 tuần\n- Giai đoạn 2: Rifampin + Levofloxacin uống duy trì 12 tuần',
-            'phẫu thuật': 'Đối với PJI mạn tính, cần xem xét loại bỏ implant. Các lựa chọn bao gồm:\n1. Two-stage revision\n2. Arthrodesis\n3. Amputation (trường hợp nặng)',
-            'phác đồ': 'Phác đồ điều trị PJI bao gồm:\n1. Chẩn đoán xác định (CHC, mô bệnh học)\n2. Ngừng kháng sinh trước 5 ngày khí chẩn đoán\n3. Điều trị đa mô đun: Phẫu thuật + Kháng sinh',
+            'dair': 'DAIR khong phu hop cho PJI man tinh > 4 tuan va MRSA. Phuong an uu tien la two-stage revision ket hop khang sinh.',
+            'khang sinh': 'Phac do 2 giai doan: 6 tuan IV Vancomycin + Rifampicin, sau do 6 tuan TMP-SMX + Rifampicin duong uong.',
+            'phau thuat': 'Chi dinh two-stage revision: giai doan 1 thao implant + dat spacer khang sinh, giai doan 2 reimplantation sau 8-12 tuan neu dat tieu chuan.',
+            'phac do': 'Phac do tong the gom phau thuat 2 giai doan, khang sinh toan than 12 tuan, khang sinh tai cho qua ALCS, va theo doi sat CRP/ESR/chuc nang gan than.',
         };
 
         for (const [key, response] of Object.entries(responses)) {
@@ -199,7 +108,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
             }
         }
 
-        return 'Đây là một câu hỏi tốt. Theo các guideline hiện tại, việc điều trị cần phải cân nhắc kỹ lưỡng dựa trên đặc điểm lâm sàng và vi sinh vật gây bệnh. Bạn có thể cung cấp thêm thông tin để tôi đưa ra gợi ý chi tiết hơn?';
+        return 'Can doi chieu voi tinh trang lam sang, khang sinh do va cac nguy co benh nen. Neu ban muon, toi co the tom tat nhanh theo tung giai doan dieu tri.';
     };
 
     return (
@@ -234,16 +143,12 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     {/* Section: Local Antibiotics */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {/* Section: surgery */}
-                        <SurgerySection />
+                        <SurgerySection surgeryPlan={SURGERY_PLAN} />
                         <SystemicAntibioticTreatment
-                            phases={phases}
-                            editingPhaseId={editingPhaseId}
-                            onPhaseFieldChange={handlePhaseFieldChange}
-                            onToggleEditPhase={toggleEditPhase}
-                            onAddPhase={handleAddPhase}
+                            guidelinePlan={SYSTEMIC_PLAN}
                         />
                         {/**Section: Local Antibitics */}
-                        <LocalAntibioticTreatment />
+                        <LocalAntibioticTreatment localPlan={LOCAL_PLAN} />
 
 
 
@@ -258,23 +163,32 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-purple-600">smart_toy</span>
-                                    <h3 className="font-bold text-slate-900 text-sm">Cơ sở bằng chứng (RAG)</h3>
+                                    <h3 className="font-bold text-slate-900 text-sm">Co so bang chung (RAG)</h3>
                                 </div>
                                 <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tạo bởi AI</span>
                             </div>
-                            <div className="p-5 flex-1 space-y-4">
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Trích dẫn hướng dẫn</p>
-                                    <blockquote className="text-sm text-slate-700 italic border-l-2 border-primary pl-3 leading-relaxed">
-                                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Porro modi cupiditate sunt maiores? Impe
-                                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Porro modi cupiditate sunt maiores? Impe
-                                        Lorem ipsum dolor sit amet, consectetur adipisicing elit. Porro modi cupiditate sunt maiores? Impedit ratione enim magnam vel! Dolores, veniam? Non blanditiis veniam adipisci, quos amet ad earum aliquam alias.
-                                    </blockquote>
-                                    <div className="mt-2 flex items-center gap-1.5">
-                                        <span className="material-symbols-outlined text-xs text-slate-400">menu_book</span>
-                                        <a href="#" className="text-xs font-medium text-primary hover:underline">Hướng dẫn đồng thuận ICM 2018</a>
-                                    </div>
-                                </div>
+                            <div className="p-4 flex-1 space-y-3 max-h-[calc(100vh-220px)] overflow-y-auto">
+                                {RAG_CITATIONS.map((citation) => (
+                                    <article key={citation.sourceUri} className="rounded-lg border border-slate-200 bg-white p-3">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
+                                                {citation.sourceType}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500">Relevance {citation.relevanceScore.toFixed(2)}</span>
+                                        </div>
+                                        <p className="text-xs font-semibold text-slate-900 mt-2 leading-relaxed">{citation.sourceTitle}</p>
+                                        <p className="text-xs text-slate-600 mt-1 italic">"{citation.snippet}"</p>
+                                        <p className="text-xs text-slate-700 mt-2"><span className="font-semibold">Cited for:</span> {citation.citedFor}</p>
+                                        <a
+                                            href={citation.sourceUri}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex mt-2 text-xs text-blue-600 hover:underline"
+                                        >
+                                            Xem tai lieu
+                                        </a>
+                                    </article>
+                                ))}
                             </div>
                         </div>
                     </div>

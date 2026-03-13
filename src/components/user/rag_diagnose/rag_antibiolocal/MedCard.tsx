@@ -1,13 +1,22 @@
 import React, { useState } from 'react'
-import { FORM_META } from './LocalAntibioticTreatment';
 import { CheckCircleOutlined, DeleteOutlined, EditOutlined, PlusCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { BrainIcon } from '@/components/icons';
+
+const FORM_META: Record<string, { bg: string; border: string; badge: string; icon: string; label: string }> = {
+    default: {
+        bg: 'bg-slate-50',
+        border: 'border-slate-200',
+        badge: 'bg-slate-100 text-slate-700',
+        icon: '💊',
+        label: 'Thuoc',
+    },
+};
 
 
 const MedCard = ({ med, zoneColor }) => {
     const [expanded, setExpanded] = useState(false);
     const [hovered, setHovered] = useState(false);
-    const meta = FORM_META[med.form];
+    const meta = FORM_META[med.form] || FORM_META.default;
 
     const TECHNIQUE_COLORS = {
         clean: "text-cyan-600 bg-cyan-50",

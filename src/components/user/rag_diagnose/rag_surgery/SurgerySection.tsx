@@ -1,74 +1,90 @@
-import { SurgeryStep } from '@/types/types';
-import React, { useState } from 'react'
-import ProtocolField from './ProtocolField';
-import StepCard from './StepCard';
+import React, { useState } from 'react';
+import { SurgeryPlanData } from '@/components/user/diagnose_steps/treatmentTemplateData';
 
-const PlusIcon = () => (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-        <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-); const ScalpelIcon = () => (
+const ScalpelIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M20 2L8 14M8 14L4 18C3 19 3 21 5 21C6.5 21 7.5 20 8 19L14 13M8 14L14 8" />
         <circle cx="19" cy="5" r="1" fill="currentColor" />
     </svg>
 );
-const SurgerySection = () => {
-    const initialSteps: SurgeryStep[] = [
-        {
-            id: 1, step: 1,
-            name: "Tháo khớp + đặt spacer kháng sinh",
-            description: "Tháo bỏ khớp nhân tạo bị nhiễm trùng, làm sạch ổ khớp triệt để, đặt spacer xi măng có chứa kháng sinh (Gentamicin + Vancomycin).",
-            duration: "2–3 giờ",
-            timing: "Ngay sau chẩn đoán xác định",
-            surgeon: "PTV Chấn thương chỉnh hình",
-            notes: "Cần cấy khuẩn mô trong mổ ≥5 mẫu. Tránh đóng da căng.",
-            risk: "Cao",
-            status: "Bắt buộc",
-        },
-        {
-            id: 2, step: 2,
-            name: "Thay khớp lại (Revision TKA)",
-            description: "Thay thế spacer bằng khớp nhân tạo mới sau khi kiểm soát hoàn toàn nhiễm trùng. Đánh giá CRP, VS, hút dịch khớp trước mổ.",
-            duration: "3–4 giờ",
-            timing: "Tuần 8–12 (sau khi CRP < 10 mg/L)",
-            surgeon: "PTV Chấn thương chỉnh hình",
-            notes: "Dùng kháng sinh dự phòng Cefazolin 1g IV trước mổ 30'. Kiểm tra vi sinh dịch khớp âm tính.",
-            risk: "Trung bình",
-            status: "Bắt buộc",
-        },
-    ];
-    const [steps, setSteps] = useState<SurgeryStep[]>(initialSteps);
-    const [approach, setApproach] = useState("2 giai đoạn (Two-stage exchange)");
-    const [anesthesia, setAnesthesia] = useState("Gây tê tủy sống");
-    const [antibioticProtocol, setAntibioticProtocol] = useState("Cefazolin 1g IV x 3 liều");
-    const [priority, setPriority] = useState<"Khẩn cấp" | "Ưu tiên" | "Thường quy">("Ưu tiên");
 
-    const handleDelete = (id: number) => setSteps(s => s.filter(x => x.id !== id));
-    const handleEdit = (id: number) => alert(`Mở form chỉnh sửa bước ID: ${id}`);
-    const handleAdd = () => alert("Mở form thêm bước phẫu thuật mới");
+const StageItem = ({ stage }: { stage: SurgeryPlanData['stages'][0] }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-    const priorityStyle: Record<string, { bg: string; color: string; dot: string }> = {
-        "Khẩn cấp": { bg: "rgba(239,68,68,0.15)", color: "#f87171", dot: "#ef4444" },
-        "Ưu tiên": { bg: "rgba(251,191,36,0.15)", color: "#fbbf24", dot: "#f59e0b" },
-        "Thường quy": { bg: "rgba(34,197,94,0.15)", color: "#4ade80", dot: "#22c55e" },
-    };
-    const pr = priorityStyle[priority];
+    return (
+        <div className="rounded-lg border border-slate-200 bg-cyan-100 overflow-hidden transition-all duration-200 shadow-sm">
+            <div
+                className="flex flex-wrap items-center gap-2 p-3 cursor-pointer hover:bg-cyan-200 transition-colors"
+                onClick={() => setIsExpanded(!isExpanded)}
+            >
+                <span className="text-md font-bold px-2 py-1 rounded-md bg-green-100 text-green-700 border border-green-200">
+                    Giai đoạn {stage.stageOrder}
+                </span>
+                <h4 className="text-md font-semibold text-slate-900">{stage.stageName}</h4>
+                <div className="ml-auto flex items-center gap-2">
+                    <span className="text-xs text-slate-600">~{stage.estimatedDurationMinutes} phút</span>
+                    <svg
+                        className={`w-4 h-4 text-slate-400 transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </div>
+            </div>
+
+            <div
+                className={`transition-all duration-300 ease-in-out origin-top ${isExpanded ? 'max-h-[1500px] opacity-100 scale-y-100' : 'max-h-0 opacity-0 scale-y-95'}`}
+            >
+                <div className="p-3 pt-0 border-t border-slate-100">
+                    {stage.intervalFromStage1 && (
+                        <p className="text-md text-indigo-700 bg-yellow-200 border border-yellow-200 rounded-md px-2 py-1 mb-2 mt-2">
+                            Khoảng cách: {stage.intervalFromStage1}
+                        </p>
+                    )}
+
+                    {stage.preconditions && stage.preconditions.length > 0 && (
+                        <div className="mb-2 mt-2">
+                            <p className="text-[11px] uppercase font-semibold tracking-wide text-slate-800 mb-1">Điều kiện trước mổ</p>
+                            <ul className="space-y-1">
+                                {stage.preconditions.map((item, idx) => (
+                                    <li key={idx} className="text-md text-slate-700">- {item}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
+                    <div className="space-y-1.5 mt-3">
+                        {stage.steps.map(step => (
+                            <div key={step.stepOrder} className="text-xs rounded-md border border-slate-200 bg-slate-50 px-2.5 py-2">
+                                <p className="font-semibold text-slate-900">Bước {step.stepOrder}: {step.stepName}</p>
+                                <p className="text-slate-600 mt-0.5 leading-relaxed">{step.description}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+interface SurgerySectionProps {
+    surgeryPlan: SurgeryPlanData;
+}
+
+const SurgerySection: React.FC<SurgerySectionProps> = ({ surgeryPlan }) => {
 
     return (
         <div style={{
-            border: "1px solid rgba(148, 164, 250, 0.41)",
+            border: "1px solid #cbd5e1",
             borderRadius: "12px",
-            background: "rgba(202, 185, 185, 0.5)",
-            backdropFilter: "blur(8px)",
+            background: "#ffffff",
             overflow: "hidden",
             fontFamily: "'IBM Plex Sans', 'Segoe UI', sans-serif",
         }}>
-            {/* Section Header */}
             <div style={{
                 padding: "12px 14px",
-                background: "linear-gradient(135deg, rgba(246, 246, 248, 0.88), rgba(208, 213, 226, 0.6))",
-                borderBottom: "1px solid rgba(100,116,139,0.2)",
+                background: "linear-gradient(135deg, #f8fafc, #f1f5f9)",
+                borderBottom: "1px solid #e2e8f0",
                 display: "flex", alignItems: "center", justifyContent: "space-between",
             }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -81,113 +97,53 @@ const SurgerySection = () => {
                         <ScalpelIcon />
                     </div>
                     <div>
-                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#0d0d0e", letterSpacing: "0.04em" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#0f172a", letterSpacing: "0.04em" }}>
                             PHÁC ĐỒ PHẪU THUẬT
                         </div>
                         <div style={{ fontSize: "10px", color: "#64748b", letterSpacing: "0.03em" }}>
-                            {steps.length} bước · Surgical Protocol
+                            {surgeryPlan.surgeryStrategyType.replaceAll('_', ' ')}
                         </div>
                     </div>
                 </div>
-
-                {/* Priority selector */}
-                <div style={{ display: "flex", gap: "4px" }}>
-                    {(["Thường quy", "Ưu tiên", "Khẩn cấp"] as const).map(p => {
-                        const s = priorityStyle[p];
-                        const active = priority === p;
-                        return (
-                            <button key={p} onClick={() => setPriority(p)} style={{
-                                fontSize: "10px", fontWeight: 600, padding: "3px 9px", borderRadius: "20px", cursor: "pointer",
-                                background: active ? s.bg : "transparent",
-                                color: active ? s.color : "#475569",
-                                border: active ? `1px solid ${s.dot}40` : "1px solid rgba(100,116,139,0.2)",
-                                transition: "all 0.15s",
-                            }}>{p}</button>
-                        );
-                    })}
-                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                    Ưu tiên {surgeryPlan.priorityLevel}
+                </span>
             </div>
 
             <div style={{ padding: "14px", display: "flex", flexDirection: "column", gap: "12px" }}>
-
-                {/* Protocol overview */}
-                <div style={{
-                    display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px",
-                }}>
-                    <ProtocolField label="Phương pháp tiếp cận"
-                        value={approach}
-                        onChange={setApproach}
-                        accent="#60a5fa"
-                    />
-                    <ProtocolField label="Phương pháp vô cảm"
-                        value={anesthesia}
-                        onChange={setAnesthesia}
-                        accent="#a78bfa"
-                    />
-                    <ProtocolField label="Kháng sinh dự phòng"
-                        value={antibioticProtocol}
-                        onChange={setAntibioticProtocol}
-                        accent="#34d399"
-                    />
+                <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                    <p className="text-[12px] uppercase tracking-wide text-slate-700 font-semibold">Chỉ định và lý do</p>
+                    <p className="text-sm text-slate-700 mt-1 leading-relaxed">{surgeryPlan.strategyRationale}</p>
+                    <p className="text-xs text-amber-700 mt-2 bg-yellow-200 border border-yellow-500 rounded-md px-2 py-1">{surgeryPlan.priorityNote}</p>
                 </div>
-
-                {/* Divider */}
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(134, 179, 243, 0.2)" }} />
-                    <span style={{ fontSize: "10px", color: "#475569", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-                        Các bước phẫu thuật
-                    </span>
-                    <div style={{ flex: 1, height: "1px", background: "rgba(100,116,139,0.2)" }} />
-                </div>
-
-                {/* Steps */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    {steps.map(step => (
-                        <StepCard key={step.id} step={step} onEdit={handleEdit} onDelete={handleDelete} />
+                <div className="space-y-3">
+                    {surgeryPlan.stages.map(stage => (
+                        <StageItem key={stage.stageOrder} stage={stage} />
                     ))}
                 </div>
 
-                {/* Add button */}
-                <button onClick={handleAdd} style={{
-                    width: "100%", padding: "9px", borderRadius: "8px", cursor: "pointer",
-                    background: "rgba(37,99,235,0.08)",
-                    border: "1px dashed rgba(96,165,250,0.35)",
-                    color: "#60a5fa", fontSize: "12px", fontWeight: 600,
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "6px",
-                    transition: "all 0.2s", letterSpacing: "0.02em",
-                }}
-                    onMouseEnter={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(37,99,235,0.15)";
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(96,165,250,0.6)";
-                    }}
-                    onMouseLeave={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = "rgba(37,99,235,0.08)";
-                        (e.currentTarget as HTMLButtonElement).style.borderColor = "rgba(96,165,250,0.35)";
-                    }}
-                >
-                    <PlusIcon /> Thêm bước phẫu thuật
-                </button>
-
-                {/* Footer summary */}
                 <div style={{
                     display: "flex", justifyContent: "space-between", alignItems: "center",
                     padding: "8px 12px", borderRadius: "8px",
-                    background: "rgba(2,6,23,0.5)", border: "1px solid rgba(100,116,139,0.15)",
+                    background: "#f8fafc", border: "1px solid #e2e8f0",
                 }}>
-                    <span style={{ fontSize: "11px", color: "#475569" }}>
-                        Mức độ ưu tiên phẫu thuật:
-                        <span style={{ marginLeft: "6px", color: pr.color, fontWeight: 600 }}>
-                            <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: pr.dot, marginRight: "4px", verticalAlign: "middle" }} />
-                            {priority}
-                        </span>
+                    <span style={{ fontSize: "11px", color: "#334155" }}>
+                        Tổng thời gian điều trị ước tính: <span style={{ fontWeight: 600 }}>{surgeryPlan.estimatedTotalTreatmentTime}</span>
                     </span>
-                    <span style={{ fontSize: "11px", color: "#475569" }}>
-                        Tổng thời gian ước tính: <span style={{ color: "#94a3b8", fontWeight: 600 }}>5–7 giờ</span>
-                    </span>
+                </div>
+
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+                    <p className="text-[11px] uppercase font-semibold tracking-wide text-red-700">Nguy cơ cần theo dõi</p>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                        {surgeryPlan.risksAndComplications.map((risk) => (
+                            <span key={risk} className="text-xs px-2 py-1 rounded-full bg-white border border-red-200 text-red-700">{risk}</span>
+                        ))}
+                    </div>
+                    <p className="text-xs text-red-800 mt-2 leading-relaxed">{surgeryPlan.notes}</p>
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
 export default SurgerySection

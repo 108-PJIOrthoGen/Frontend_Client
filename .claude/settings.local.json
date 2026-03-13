@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"E:\\\\My RoadMapCoding\\\\PJI-Clinical-Decision-Support\\\\frontend\" && npx tsc --noEmit --pretty 2>&1 | head -40)",
+      "Bash(cd \"E:\\\\My RoadMapCoding\\\\PJI-Clinical-Decision-Support\\\\frontend\" && npx tsc --noEmit --pretty 2>&1 | head -30)",
+      "Bash(cd \"E:\\\\My RoadMapCoding\\\\PJI-Clinical-Decision-Support\\\\frontend\" && npx tsc --noEmit --pretty 2>&1 | head -20)"
+    ]
+  }
+}

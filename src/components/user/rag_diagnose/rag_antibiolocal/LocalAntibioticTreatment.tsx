@@ -1,356 +1,218 @@
-import { BandageIcon, DropletsIcon, SprayIcon } from '@/components/icons';
-import React, { useState } from 'react'
-import MedCard from './MedCard';
-import { PlusCircleOutlined, WarningOutlined } from '@ant-design/icons';
-import { Modal, Form, Input, Select, Button } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { Input } from 'antd';
+import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { LocalPlanData, TemplateAntibiotic } from '@/components/user/diagnose_steps/treatmentTemplateData';
 
-export const FORM_META = {
-    ointment: { label: "Thuốc mỡ", color: "emerald", bg: "bg-emerald-50", border: "border-emerald-200", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500", icon: "💚" },
-    solution: { label: "Dung dịch rửa", color: "cyan", bg: "bg-cyan-50", border: "border-cyan-200", badge: "bg-cyan-100 text-cyan-700", dot: "bg-cyan-500", icon: "💧" },
-    powder: { label: "Bột rắc", color: "amber", bg: "bg-amber-50", border: "border-amber-200", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500", icon: "🟡" },
-    cream: { label: "Kem bôi", color: "rose", bg: "bg-rose-50", border: "border-rose-200", badge: "bg-rose-100 text-rose-700", dot: "bg-rose-500", icon: "🩷" },
-    gel: { label: "Gel", color: "violet", bg: "bg-violet-50", border: "border-violet-200", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-500", icon: "💜" },
-};
-
-// Mapping dạng bào chế phù hợp cho mỗi vùng điều trị theo tiêu chuẩn lâm sàn
-const FORM_AVAILABLE_BY_ZONE = {
-    INTRA_ARTICULAR: ['ointment', 'solution'],
-    BONE: ['powder'],
-    IMPLANT: ['cream', 'gel'],
-};
-
-// ánh xạ icon cho từng vùng điều trị kháng sinh tại chỗ
-const ZoneIcon = ({ code }) => {
-    // INTRA_ARTICULAR: khoang khớp - dùng icon bandage (vết thương)
-    if (code === "INTRA_ARTICULAR") return <BandageIcon />;
-    // BONE: mô xương / khoang phẫu thuật - dùng icon drops (chất lỏng/tiêm)
-    if (code === "BONE") return <DropletsIcon />;
-    // IMPLANT: cement/spacer - dùng icon spray (phun/rắc)
-    if (code === "IMPLANT") return <SprayIcon />;
-    return <BandageIcon />;
-};
-
-// Màu sắc cho từng vùng điều trị theo tiêu chuẩn chuyên môn
-const ZONE_COLORS = {
-    // Khoang khớp - màu hồng (vùng nhạy cảm cao)
-    INTRA_ARTICULAR: { ring: "ring-rose-400", dot: "bg-rose-500", header: "bg-rose-500", light: "bg-rose-50 border-rose-200", label: "text-rose-700" },
-    // Mô xương - màu tím (vùng sâu, phẫu thuật)
-    BONE: { ring: "ring-violet-400", dot: "bg-violet-600", header: "bg-violet-600", light: "bg-violet-50 border-violet-200", label: "text-violet-700" },
-    // Implant/Cement - màu hổ phách (vật liệu ngoại lai)
-    IMPLANT: { ring: "ring-amber-400", dot: "bg-amber-600", header: "bg-amber-600", light: "bg-amber-50 border-amber-200", label: "text-amber-700" },
-};
-
-const initialTreatments = [
-    {
-        id: 1,
-        zone: "Kháng sinh trong khoang khớp (Intra-articular)",
-        zoneCode: "INTRA_ARTICULAR",
-        medications: [
-            {
-                id: 11,
-                name: "Mupirocin 2%",
-                form: "ointment",
-                dose: "Lớp mỏng ~1mm",
-                frequency: "2–3 lần/ngày",
-                duration: "7–10 ngày",
-                technique: [
-                    { code: "clean", label: "Làm sạch bằng NaCl 0.9%" },
-                    { code: "apply", label: "Bôi đều lên toàn bộ vùng tổn thương" },
-                    { code: "cover", label: "Băng gạc không thấm" },
-                ],
-                caution: "Không dùng cho niêm mạc mũi kéo dài > 10 ngày",
-                evidence: "A",
-            },
-            {
-                id: 12,
-                name: "Povidone-Iodine 10%",
-                form: "solution",
-                dose: "Đủ thấm bề mặt",
-                frequency: "1–2 lần/ngày",
-                duration: "Đến khi sạch",
-                technique: [
-                    { code: "irrigate", label: "Tưới rửa bằng syringe 20mL" },
-                    { code: "cover", label: "Gạc tẩm dung dịch che phủ" },
-                ],
-                caution: "Tránh vết thương sâu, xoang kín",
-                evidence: "B",
-            },
-        ],
-    },
-
-    {
-        id: 3,
-        zone: "Kháng sinh trong cement / spacer",
-        zoneCode: "IMPLANT",
-        medications: [
-            {
-                id: 31,
-                name: "Fusidic acid 2%",
-                form: "cream",
-                dose: "Lớp mỏng",
-                frequency: "3 lần/ngày",
-                duration: "5–7 ngày",
-                technique: [
-                    { code: "clean", label: "Lau sạch da bằng dung dịch antiseptic" },
-                    { code: "apply", label: "Xoa nhẹ nhàng, không chà mạnh" },
-                    { code: "cover", label: "Không băng kín nếu vùng nhỏ" },
-                ],
-                caution: "Tránh lạm dụng — nguy cơ kháng Staphylococcus",
-                evidence: "A",
-            },
-            {
-                id: 32,
-                name: "Metronidazole 0.75%",
-                form: "gel",
-                dose: "Lượng vừa đủ",
-                frequency: "2 lần/ngày",
-                duration: "7 ngày",
-                technique: [
-                    { code: "clean", label: "Vệ sinh da, thấm khô" },
-                    { code: "apply", label: "Bôi gel, tránh mắt và niêm mạc" },
-                ],
-                caution: "Hiệu quả với vi khuẩn kỵ khí & Demodex",
-                evidence: "B",
-            },
-        ],
-    },
-];
-const LocalAntibioticTreatment = () => {
-    const [treatments, setTreatments] = useState(initialTreatments);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedZoneId, setSelectedZoneId] = useState<number | null>(null);
-    const [form] = Form.useForm();
-
-    const handleAddMedToZone = (zoneId: number) => {
-        setSelectedZoneId(zoneId);
-        setIsModalOpen(true);
-        form.resetFields();
-    };
-
-    const handleModalOk = async () => {
-        try {
-            const values = await form.validateFields();
-
-            setTreatments(prev => {
-                return prev.map(zone => {
-                    if (zone.id === selectedZoneId) {
-                        const newMedId = Math.max(...zone.medications.map(m => m.id)) + 1;
-                        return {
-                            ...zone,
-                            medications: [
-                                ...zone.medications,
-                                {
-                                    id: newMedId,
-                                    name: values.name,
-                                    form: values.form,
-                                    dose: values.dose,
-                                    frequency: values.frequency,
-                                    duration: values.duration,
-                                    technique: [
-                                        { code: "apply", label: values.technique }
-                                    ],
-                                    caution: values.caution || "",
-                                    evidence: values.evidence || "C",
-                                }
-                            ]
-                        };
-                    }
-                    return zone;
-                });
-            });
-
-            setIsModalOpen(false);
-            form.resetFields();
-        } catch (error) {
-            console.log('Validation failed:', error);
-        }
-    };
-
-    const handleModalCancel = () => {
-        setIsModalOpen(false);
-        form.resetFields();
-    };
-
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden font-sans">
-            {/* Header */}
-            <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-sm">
-                        <DropletsIcon />
-                    </div>
-                    <div>
-                        <h3 className="text-base font-bold text-slate-900 leading-tight">Điều trị kháng sinh tại chỗ</h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Phân nhóm theo vùng & dạng bào chế</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full uppercase tracking-wide">Gợi ý AI</span>
-                </div>
-            </div>
-
-            {/* Legend row */}
-            <div className="px-4 py-2.5 border-b border-slate-100 bg-white flex items-center gap-4 flex-wrap">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dạng bào chế:</span>
-                {Object.entries(FORM_META)
-                    .filter(([key]) => Object.values(FORM_AVAILABLE_BY_ZONE).some(forms => forms.includes(key)))
-                    .map(([key, val]) => (
-                        <div key={key} className="flex items-center gap-1.5">
-                            <span className="text-sm">{val.icon}</span>
-                            <span className="text-[11px] font-medium text-slate-600">{val.label}</span>
-                        </div>
-                    ))}
-            </div>
-
-            {/* Content */}
-            <div className="p-4 space-y-6">
-                {treatments.map((zone, zi) => {
-                    const zc = ZONE_COLORS[zone.zoneCode] || ZONE_COLORS.IMPLANT;
-                    return (
-                        <div key={zone.id} className="group">
-                            {/* Zone header */}
-                            <div className={`flex items-center gap-3 mb-3`}>
-                                <div className={`w-7 h-7 rounded-full ${zc.dot} text-white flex items-center justify-center shadow-sm ring-4 ring-white`}>
-                                    <ZoneIcon code={zone.zoneCode} />
-                                </div>
-                                <div className={`flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent`} />
-                                <span className={`text-[11px] font-bold px-3 py-1 rounded-full border ${zc.light} ${zc.label} uppercase tracking-wide`}>
-                                    {zone.zone}
-                                </span>
-                                <div className={`flex-1 h-px bg-gradient-to-l from-slate-200 to-transparent`} />
-                                <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] font-semibold text-slate-500">{zone.medications.length} thuốc</span>
-                                </div>
-                            </div>
-
-                            {/* Medication cards */}
-                            <div className={`grid gap-3 ${zone.medications.length > 1 ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1"}`}>
-                                {zone.medications.map((med) => (
-                                    <MedCard key={med.id} med={med} zoneColor={zc} />
-                                ))}
-                            </div>
-
-                            {/* Add to zone */}
-                            <button
-                                onClick={() => handleAddMedToZone(zone.id)}
-                                className={`mt-2 w-full border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-xl py-2.5 text-xs text-slate-400 hover:text-slate-500 font-medium flex items-center justify-center gap-2 transition-all hover:bg-slate-50`}>
-                                <PlusCircleOutlined /> Thêm thuốc cho vùng này
-                            </button>
-                        </div>
-                    );
-                })}
-
-                {/* Add new zone */}
-                <button className="w-full border-2 border-dashed border-teal-200 hover:border-teal-400 rounded-xl py-3 text-sm text-teal-500 hover:text-teal-600 font-semibold flex items-center justify-center gap-2 transition-all hover:bg-teal-50/50">
-                    <PlusCircleOutlined /> Thêm vùng điều trị mới
-                </button>
-            </div>
-
-            {/* Footer note */}
-            <div className="px-4 pb-4">
-                <div className="flex items-start gap-2.5 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
-                    <span className="text-slate-400 mt-0.5 shrink-0"><WarningOutlined /></span>
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                        <span className="font-bold text-slate-600">Lưu ý lâm sàng:</span> Kháng sinh tại chỗ cần kết hợp với làm sạch vết thương đúng kỹ thuật. Thời gian điều trị tại chỗ không thay thế kháng sinh toàn thân trong nhiễm trùng sâu hoặc nhiễm khuẩn huyết.
-                    </p>
-                </div>
-            </div>
-            {/* Modal thêm thuốc */}
-            <Modal
-                title="Thêm thuốc kháng sinh tại chỗ"
-                open={isModalOpen}
-                onOk={handleModalOk}
-                onCancel={handleModalCancel}
-                width={600}
-                okText="Thêm"
-                cancelText="Hủy"
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    className="mt-4"
-                >
-                    <Form.Item
-                        label="Tên thuốc"
-                        name="name"
-                        rules={[{ required: true, message: 'Vui lòng nhập tên thuốc' }]}
-                    >
-                        <Input placeholder="VD: Vancomycin 1%" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Dạng bào chế"
-                        name="form"
-                        rules={[{ required: true, message: 'Vui lòng chọn dạng bào chế' }]}
-                    >
-                        <Select placeholder="Chọn dạng bào chế">
-                            {(() => {
-                                const selectedZone = treatments.find(z => z.id === selectedZoneId);
-                                const availableFormTypes = selectedZone ? FORM_AVAILABLE_BY_ZONE[selectedZone.zoneCode] : [];
-                                return availableFormTypes.map(formType => {
-                                    const formData = FORM_META[formType];
-                                    return (
-                                        <Select.Option key={formType} value={formType}>
-                                            {formData.icon} {formData.label}
-                                        </Select.Option>
-                                    );
-                                });
-                            })()}
-                        </Select>
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Liều lượng"
-                        name="dose"
-                        rules={[{ required: true, message: 'Vui lòng nhập liều lượng' }]}
-                    >
-                        <Input placeholder="VD: 1-2g/lần" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Tần suất"
-                        name="frequency"
-                        rules={[{ required: true, message: 'Vui lòng nhập tần suất' }]}
-                    >
-                        <Input placeholder="VD: 2-3 lần/ngày" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Thời gian điều trị"
-                        name="duration"
-                        rules={[{ required: true, message: 'Vui lòng nhập thời gian' }]}
-                    >
-                        <Input placeholder="VD: 7-10 ngày" />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Kỹ thuật sử dụng"
-                        name="technique"
-                    >
-                        <Input.TextArea placeholder="VD: Bôi đều lên vùng tổn thương, băng gạc vô trùng" rows={3} />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Lưu ý lâm sàn"
-                        name="caution"
-                    >
-                        <Input.TextArea placeholder="Nhập lưu ý hoặc chống chỉ định" rows={2} />
-                    </Form.Item>
-
-                    <Form.Item
-                        label="Mức bằng chứng"
-                        name="evidence"
-                    >
-                        <Select placeholder="Chọn mức bằng chứng">
-                            <Select.Option value="A">A - Bằng chứng cao</Select.Option>
-                            <Select.Option value="B">B - Bằng chứng vừa</Select.Option>
-                            <Select.Option value="C">C - Bằng chứng thấp</Select.Option>
-                        </Select>
-                    </Form.Item>
-                </Form>
-            </Modal>
-        </div>
-    );
+interface LocalAntibioticTreatmentProps {
+    localPlan: LocalPlanData;
 }
 
-export default LocalAntibioticTreatment
+const LocalAntibioticTreatment: React.FC<LocalAntibioticTreatmentProps> = ({ localPlan }) => {
+    const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics);
+    const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+    const toggleEdit = useCallback((index: number) => {
+        setEditingIndex(prev => (prev === index ? null : index));
+    }, []);
+
+    const handleFieldChange = useCallback(
+        (index: number, field: keyof TemplateAntibiotic, value: string) => {
+            setAntibiotics(prev =>
+                prev.map((a, i) => (i === index ? { ...a, [field]: value } : a))
+            );
+        },
+        []
+    );
+
+    const handleDelete = useCallback((index: number) => {
+        setAntibiotics(prev => prev.filter((_, i) => i !== index));
+        setEditingIndex(null);
+    }, []);
+
+    const handleAdd = useCallback(() => {
+        setAntibiotics(prev => [
+            ...prev,
+            { antibioticName: '', dosage: '', frequency: '', route: '', role: '', notes: '' },
+        ]);
+    }, []);
+
+    return (
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+                <div>
+                    <h3 className="text-base font-bold text-slate-900">Phác đồ kháng sinh tại chỗ</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">{localPlan.regimenName}</p>
+                </div>
+                <span className="text-[10px] uppercase tracking-wide font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded-full">
+                    {localPlan.durationDays} ngày
+                </span>
+            </div>
+
+            <div className="p-4 space-y-4">
+                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Chẩn đoán/chỉ định</p>
+                    <p className="text-sm text-slate-700 mt-1">{localPlan.indication}</p>
+                    <p className="text-xs text-slate-600 mt-2">{localPlan.durationNote}</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Thông tin spacer</p>
+                        <div className="space-y-1.5 text-xs text-blue-900">
+                            <p><span className="font-semibold">Delivery:</span> {localPlan.deliveryInfo.deliveryMethod}</p>
+                            <p><span className="font-semibold">Spacer:</span> {localPlan.deliveryInfo.spacerType}</p>
+                            <p><span className="font-semibold">Xi măng gợi ý:</span> {localPlan.deliveryInfo.cementBrandSuggestion}</p>
+                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {localPlan.deliveryInfo.mixingRatio}</p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
+                        <ul className="space-y-1">
+                            {localPlan.monitoring.map((item) => (
+                                <li key={item} className="text-xs text-amber-800">- {item}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+                {/* Antibiotics list */}
+                <div className="space-y-2">
+                    {antibiotics.map((abx, index) => {
+                        const isEditing = editingIndex === index;
+
+                        return (
+                            <div key={index} className="rounded-lg border border-slate-200 p-3 bg-white group">
+                                {isEditing ? (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-[10px] uppercase font-semibold text-slate-500">Chỉnh sửa kháng sinh</p>
+                                            <div className="flex gap-1">
+                                                <button
+                                                    title="Đóng chỉnh sửa"
+                                                    onClick={() => toggleEdit(index)}
+                                                    className="p-1 text-blue-600 bg-blue-50 rounded-md transition-colors"
+                                                >
+                                                    <EditOutlined className="text-sm" />
+                                                </button>
+                                                <button
+                                                    title="Xóa kháng sinh"
+                                                    onClick={() => handleDelete(index)}
+                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                >
+                                                    <DeleteOutlined className="text-sm" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <Input
+                                            size="small"
+                                            placeholder="Tên kháng sinh"
+                                            value={abx.antibioticName}
+                                            onChange={e => handleFieldChange(index, 'antibioticName', e.target.value)}
+                                        />
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Input
+                                                size="small"
+                                                placeholder="Đường dùng (LOCAL_CEMENT...)"
+                                                value={abx.route}
+                                                onChange={e => handleFieldChange(index, 'route', e.target.value)}
+                                            />
+                                            <Input
+                                                size="small"
+                                                placeholder="Vai trò (PRIMARY...)"
+                                                value={abx.role}
+                                                onChange={e => handleFieldChange(index, 'role', e.target.value)}
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Input
+                                                size="small"
+                                                placeholder="Liều lượng"
+                                                value={abx.dosage}
+                                                onChange={e => handleFieldChange(index, 'dosage', e.target.value)}
+                                            />
+                                            <Input
+                                                size="small"
+                                                placeholder="Tần suất"
+                                                value={abx.frequency}
+                                                onChange={e => handleFieldChange(index, 'frequency', e.target.value)}
+                                            />
+                                        </div>
+                                        <Input.TextArea
+                                            size="small"
+                                            placeholder="Ghi chú"
+                                            value={abx.notes}
+                                            onChange={e => handleFieldChange(index, 'notes', e.target.value)}
+                                            autoSize={{ minRows: 1, maxRows: 3 }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <h4 className="text-md font-semibold text-slate-900">
+                                                {abx.antibioticName || 'Tên kháng sinh'}
+                                            </h4>
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">
+                                                {abx.route || 'Đường dùng'}
+                                            </span>
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                                                {abx.role || 'Vai trò'}
+                                            </span>
+
+                                            <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    title="Chỉnh sửa kháng sinh"
+                                                    onClick={() => toggleEdit(index)}
+                                                    className="p-1 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors"
+                                                >
+                                                    <EditOutlined className="text-[12px]" />
+                                                </button>
+                                                <button
+                                                    title="Xóa kháng sinh"
+                                                    onClick={() => handleDelete(index)}
+                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                >
+                                                    <DeleteOutlined className="text-[12px]" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="text-md text-slate-700 mt-1">
+                                            Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
+                                        </p>
+                                        {abx.notes && (
+                                            <p className="text-md text-cyan-500 mt-1">Note: {abx.notes}</p>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {/* Add antibiotic button */}
+                    <div className="mt-6">
+                        <button
+                            type="button"
+                            onClick={handleAdd}
+                            className="w-full border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl py-3 flex items-center justify-center text-sm font-medium text-slate-500 hover:text-blue-600 bg-slate-50/40 transition-colors"
+                        >
+                            <PlusOutlined className="mr-2" />
+                            Thêm kháng sinh mới
+                        </button>
+                    </div>
+                </div>
+
+                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
+                    <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
+                    <ul className="space-y-1">
+                        {localPlan.contraindications.map((item) => (
+                            <li key={item} className="text-xs text-rose-800">- {item}</li>
+                        ))}
+                    </ul>
+                    <p className="text-md text-rose-900 mt-2 leading-relaxed">{localPlan.notes}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default LocalAntibioticTreatment;
