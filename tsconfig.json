@@ -34,6 +34,9 @@
       ],
       "pages/*": [
         "src/pages/*"
+      ],
+      "config/*": [
+        "src/config/*"
       ]
     },
     "allowImportingTsExtensions": true,

@@ -7,6 +7,12 @@ import Error404 from "@/pages/errors/NotFoundPage";
 import PatientTable from "@/pages/user/PatientTable";
 import ChartTesting from "@/pages/user/ChartTesting";
 import CompareResult from "@/pages/user/CompareResult";
+import LayoutApp from "@/components/common/LayoutApp";
+import AdminHome from "@/pages/admin/AdminHome";
+import UserPage from "@/pages/admin/UserTable";
+import RolePage from "@/pages/admin/RoleTable";
+import PermissionPage from "@/pages/admin/PermissionTable";
+import LayoutAdmin from "@/layouts/LayoutAdmin";
 
 const router = createBrowserRouter([
     {
@@ -38,54 +44,30 @@ const router = createBrowserRouter([
 
         ]
     },
-    // {
-    //     path: "/admin",
-    //     element: <LayoutApp><LayoutAdmin /></LayoutApp>,
-    //     errorElement: <Error404 />,
-    //     children: [
-    //         {
-    //             index: true,
-    //             element:
-    //                 <ProtectedRoute>
-    //                     <AdminHome />
-    //                 </ProtectedRoute>
-
-    //         },
-    //         {
-    //             path: "table-patients",
-    //             element:
-    //                 <ProtectedRoute>
-    //                     <PatientTable />
-    //                 </ProtectedRoute>
-
-    //         },
-
-    //         {
-    //             path: "table-users",
-    //             element:
-    //                 <ProtectedRoute>
-    //                     <UserPage />
-    //                 </ProtectedRoute>
-
-    //         },
-    //         {
-    //             path: "table-role",
-    //             element:
-    //                 <ProtectedRoute>
-    //                     <RolePage />
-    //                 </ProtectedRoute>
-
-    //         },
-    //         {
-    //             path: "table-permission",
-    //             element:
-    //                 <ProtectedRoute>
-    //                     <PermissionPage />
-    //                 </ProtectedRoute>
-
-    //         },
-    //     ]
-    // },
+    {
+        path: "/admin",
+        element: <LayoutAdmin />,
+        errorElement: <Error404 />,
+        children: [
+            {
+                index: true,
+                element: <AdminHome />
+            },
+            {
+                path: "table-users",
+                element: <UserPage />
+            },
+            {
+                path: "table-role",
+                element: <RolePage />
+            },
+            {
+                path: "table-permission",
+                element:
+                    <PermissionPage />
+            },
+        ]
+    },
     {
         path: "/login",
         element: <LoginPage />,
