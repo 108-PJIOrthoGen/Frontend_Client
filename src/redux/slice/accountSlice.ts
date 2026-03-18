@@ -6,6 +6,7 @@ export const fetchAccount = createAsyncThunk(
     'account/fetchAccount',
     async () => {
         const response = await callFetchAccountAPI();
+        console.log("errr")
         return response.data;
     }
 )
@@ -98,17 +99,13 @@ export const accountSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchAccount.pending, (state, action) => {
-            if (action.payload) {
-                state.isAuthenticated = false;
-                state.isLoading = true;
-            }
+        builder.addCase(fetchAccount.pending, (state) => {
+            state.isLoading = true;
         })
 
         builder.addCase(fetchAccount.fulfilled, (state, action) => {
             if (action.payload) {
                 state.isAuthenticated = true;
-                state.isLoading = false;
                 state.user.id = action?.payload?.user?.id;
                 state.user.email = action?.payload?.user?.email;
                 state.user.name = action?.payload?.user?.name;
@@ -126,13 +123,12 @@ export const accountSlice = createSlice({
                     state.user.role.permissions = [];
                 }
             }
+            state.isLoading = false;
         })
 
-        builder.addCase(fetchAccount.rejected, (state, action) => {
-            if (action.payload) {
-                state.isAuthenticated = false;
-                state.isLoading = false;
-            }
+        builder.addCase(fetchAccount.rejected, (state) => {
+            state.isAuthenticated = false;
+            state.isLoading = false;
         })
     },
 });

@@ -101,15 +101,15 @@ const PermissionPage = () => {
             sorter: true,
         },
         {
-            title: "CreatedAt",
+            title: "Created Time",
             dataIndex: "createdTime",
             width: 200,
             sorter: true,
             render: (text, record, index, action) => {
                 return (
                     <>
-                        {record.createdTime
-                            ? dayjs(record.createdTime).format("DD-MM-YYYY HH:mm:ss")
+                        {record.createdAt
+                            ? dayjs(record.createdAt).format("DD-MM-YYYY HH:mm:ss")
                             : ""}
                     </>
                 );
@@ -117,15 +117,15 @@ const PermissionPage = () => {
             hideInSearch: true,
         },
         {
-            title: "UpdatedAt",
+            title: "Updated Time",
             dataIndex: "updatedTime",
             width: 200,
             sorter: true,
             render: (text, record, index, action) => {
                 return (
                     <>
-                        {record.updatedTime
-                            ? dayjs(record.updatedTime).format("DD-MM-YYYY HH:mm:ss")
+                        {record.updatedAt
+                            ? dayjs(record.updatedAt).format("DD-MM-YYYY HH:mm:ss")
                             : ""}
                     </>
                 );
@@ -220,7 +220,7 @@ const PermissionPage = () => {
 
         //mặc định sort theo updated TIme
         if (Object.keys(sortBy).length === 0) {
-            temp = `${temp}&sort=updatedTime,desc`;
+            temp = `${temp}&sort=updatedAt,desc`;
         } else {
             temp = `${temp}&${sortBy}`;
         }

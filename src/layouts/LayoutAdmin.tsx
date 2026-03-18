@@ -3,7 +3,8 @@ import { useLocation, Outlet } from "react-router-dom";
 import { Layout, Drawer, Affix, Result } from "antd";
 
 import { useSelector } from "react-redux";
-import "../../public/main.scss"
+import "../../public/main.scss";
+import "../../public/responsive.scss";
 import SideNav from "@/components/admin/SideNav";
 import HeaderAdmin from "@/components/admin/HeaderAdmin";
 import FooterAdmin from "@/components/admin/FooterAdmin";

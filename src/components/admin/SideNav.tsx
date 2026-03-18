@@ -55,7 +55,7 @@ const SideNav = (props) => {
         <>
             <div className="brand">
                 <img src={`https://upload.wikimedia.org/wikipedia/vi/thumb/e/ef/Logo_%C4%90%E1%BA%A1i_h%E1%BB%8Dc_B%C3%A1ch_Khoa_H%C3%A0_N%E1%BB%99i.svg/960px-Logo_%C4%90%E1%BA%A1i_h%E1%BB%8Dc_B%C3%A1ch_Khoa_H%C3%A0_N%E1%BB%99i.svg.png`} alt="" />
-                <span>HieuPahm Dashboard</span>
+                <span>108 MCH Dashboard</span>
             </div>
             <hr />
             <Menu theme="light" mode="inline">
@@ -76,71 +76,6 @@ const SideNav = (props) => {
                     Quản lý các bảng
                 </Menu.Item>
 
-                <Menu.Item key="2">
-                    <NavLink to="/admin/table-patients" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-patients" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Quản Lý Bệnh Nhân</span>
-                    </NavLink>
-                </Menu.Item>
-                <Menu.Item key="3">
-                    <NavLink to="/admin/table-summary" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-summary" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Tổng Kết Bệnh Án</span>
-                    </NavLink>
-                </Menu.Item>
-                <Menu.Item key="3">
-                    <NavLink to="/admin/table-appointment" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-appointment" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Quản Lý Lịch Hẹn</span>
-                    </NavLink>
-                </Menu.Item>
-                <Menu.Item key="8">
-                    <NavLink to="/admin/table-prescriptions" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-prescriptions" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Quản Lý Đơn Thuốc</span>
-                    </NavLink>
-                </Menu.Item>
-                <Menu.Item key="9">
-                    <NavLink to="/admin/table-medicines" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-medicines" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Quản Lý Thuốc</span>
-                    </NavLink>
-                </Menu.Item>
                 <Menu.Item key="10">
                     <NavLink to="/admin/table-fees" className={({ isActive }) => isActive ? 'active' : ''}>
                         <span

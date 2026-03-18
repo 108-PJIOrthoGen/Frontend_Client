@@ -98,72 +98,22 @@ export const callDeletePatient = (id: string): Promise<IBackendRes<IPatient>> =>
     return instance.delete(`/api/v1/delete-patient/${id}`);
 }
 export const callCreatePatient = (user: IPatient): Promise<IBackendRes<IPatient>> => {
-    return instance.post('/api/v1/add-patient', { ...user })
+    return instance.post('/api/v1/patients', { ...user })
 }
 
 export const callUpdatePatient = (user: IPatient): Promise<IBackendRes<IPatient>> => {
-    return instance.put(`/api/v1/update-patient`, { ...user })
+    return instance.put(`/api/v1/patients/${user.id}`, { ...user })
 }
+
 /**
  * 
 Module medical Exam
  */
-export const callCreateMedicalExam = (md: IMedicalExam): Promise<IBackendRes<IMedicalExam>> => {
-    return instance.post(`/api/v1/medical-exams`, { ...md })
-}
-
-export const callFetchMexByPatientId = (id: string): Promise<IBackendRes<IMedicalExam>> => {
-    return instance.get(`/api/v1/medical-exams/patient/${id}`);
-}
-
-export const callFetchMexById = (id: string): Promise<IBackendRes<IMedicalExam>> => {
-    return instance.get(`/api/v1/medical-exams/${id}`);
-}
 
 
-export const callUpdateMedicamExam = (user: IMedicalExam): Promise<IBackendRes<IMedicalExam>> => {
-    return instance.put(`/api/v1/medical-exams`, { ...user })
-}
-
-/**
- * 
-Module clinical info & service
- */
-export const callCreateClinicalInfo = (ci: IClinicalInfo): Promise<IBackendRes<IClinicalInfo>> => {
-    return instance.post(`/api/v1/clinical-info`, { ...ci })
-}
-
-export const fetchAllClinicalSerives = (query: string): Promise<IBackendRes<IModelPaginate<IClinicalService>>> => {
-    return instance.get(`/api/v1/clinical-info/service-name?${query}`);
-}
-
-export const callFetchClinicalInfoByPatientId = (id: string): Promise<IBackendRes<IClinicalInfo>> => {
-    return instance.get(`/api/v1/clinical-info/patient/${id}`);
-}
-export const callUpdateClinicalInfo = (bl: IClinicalInfo): Promise<IBackendRes<IClinicalInfo>> => {
-    return instance.put(`/api/v1/clinical-info`, { ...bl })
-}
-export const callFetchClinicalInfoByMex = (id: string): Promise<IBackendRes<IClinicalInfo>> => {
-    return instance.get(`/api/v1/clinical-info/medical-exam/${id}`);
-}
 
 
-/**
- * 
-Module diagnose
- */
-export const callCreateDiagnose = (dig: IDiagnose): Promise<IBackendRes<IDiagnose>> => {
-    return instance.post(`/api/v1/diagnose-final`, { ...dig })
-}
-export const callFetchDiagnoseByPatientId = (id: string): Promise<IBackendRes<IDiagnose>> => {
-    return instance.get(`/api/v1/diagnose-final/patient/${id}`);
-}
-export const callUpdateDiagnose = (bl: IDiagnose): Promise<IBackendRes<IDiagnose>> => {
-    return instance.put(`/api/v1/diagnose-final`, { ...bl })
-}
-export const callFetchDiagnoseByMex = (id: string): Promise<IBackendRes<IDiagnose>> => {
-    return instance.get(`/api/v1/diagnose-final/medical-exam/${id}`);
-}
+
 
 
 

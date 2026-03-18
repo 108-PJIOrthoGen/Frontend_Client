@@ -76,11 +76,11 @@ const defaultClinical: ClinicalAssessment = {
     images: []
   },
   hematologyTests: [
-    { id: 'ht_1', name: 'Bạch cầu', result: '', normalRange: '', unit: 'Tế bào/Vi trường' },
+    { id: 'ht_1', name: 'wbc', result: '', normalRange: '', unit: 'G/L' },
     { id: 'ht_2', name: '%NEUT', result: '', normalRange: '40 - 74', unit: '%' },
     { id: 'ht_4', name: '%MONO', result: '', normalRange: '3.4 - 9', unit: '%' },
     { id: 'ht_7', name: 'Máu lắng', result: '', normalRange: '< 10', unit: 'mm' },
-    { id: 'ht_9', name: 'RBC', result: '', normalRange: '3.8 - 5.5', unit: 'g/L' },
+    { id: 'ht_9', name: 'RBC', result: '', normalRange: '3.8 - 5.5', unit: 'x10^12/L' },
     { id: 'ht_12', name: 'MCV', result: '', normalRange: '75 - 96', unit: 'fL' },
     { id: 'ht_13', name: 'MCH', result: '', normalRange: '24 - 33', unit: 'pg' },
     { id: 'ht_15', name: 'RDW-CV', result: '', normalRange: '11.5 - 14.5', unit: '%' },
@@ -167,22 +167,6 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
     const saved = localStorage.getItem('pji_treatment');
     return saved ? JSON.parse(saved) : defaultTreatment;
   });
-
-  // useEffect(() => {
-  //   localStorage.setItem('pji_demographics', JSON.stringify(demographics));
-  // }, [demographics]);
-
-  // useEffect(() => {
-  //   localStorage.setItem('pji_clinical', JSON.stringify(clinical));
-  // }, [clinical]);
-
-  // useEffect(() => {
-  //   localStorage.setItem('pji_labData', JSON.stringify(labData));
-  // }, [labData]);
-
-  // useEffect(() => {
-  //   localStorage.setItem('pji_treatment', JSON.stringify(treatment));
-  // }, [treatment]);
 
   // Removed the useEffect block because React state might not update cleanly inside it when dealing with deep nested structures like biochemistryTests.
   // Instead, the calculation will be performed in a more controlled manner.

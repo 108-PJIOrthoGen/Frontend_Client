@@ -18,7 +18,7 @@ const instance = axios.create({
 const handleRefreshToken = async (): Promise<string | null> => {
     return await mutex.runExclusive(async () => {
         try {
-            const res = await instance.get<IBackendRes<AccessTokenResponse>>('/api/v1/auth/refresh');
+            const res = await instance.get('/api/v1/auth/refresh') as unknown as IBackendRes<AccessTokenResponse>;
             if (res && res.data) return res.data.access_token;
             else return null;
         } catch (error) {

@@ -1,4 +1,10 @@
+import { callDeletePatient } from '@/apis/api';
+import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
+import MPatientCreateAndUpdate from '@/components/user/patient_table/PatientModal';
+import { ALL_PERMISSIONS } from '@/constants/permission';
+import { useAppDispatch, useAppSelector } from '@/redux/hook';
+import { fetchPatient } from '@/redux/slice/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
 import { DeleteOutlined, EditOutlined, HomeOutlined, PlusOutlined, UserOutlined, UserSwitchOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
@@ -16,25 +22,25 @@ const PatientTable = () => {
 
     const tableRef = useRef<ActionType>(null);
 
-    // const isFetching = useAppSelector((state) => state.patient.isFetching);
-    // const meta = useAppSelector((state) => state.patient.meta);
-    // const users = useAppSelector((state) => state.patient.result);
-    // const dispatch = useAppDispatch();
+    const isFetching = useAppSelector((state) => state.patient.isFetching);
+    const meta = useAppSelector((state) => state.patient.meta);
+    const users = useAppSelector((state) => state.patient.result);
+    const dispatch = useAppDispatch();
 
-    // const handleDeleteUser = async (id: string | undefined) => {
-    //     if (id) {
-    //         const res = await callDeletePatient(id);
-    //         if (+res.statusCode === 200) {
-    //             message.success("Xóa User thành công");
-    //             reloadTable();
-    //         } else {
-    //             notification.error({
-    //                 message: "Có lỗi xảy ra",
-    //                 description: res.message,
-    //             });
-    //         }
-    //     }
-    // };
+    const handleDeleteUser = async (id: string | undefined) => {
+        if (id) {
+            const res = await callDeletePatient(id);
+            if (+res.statusCode === 200) {
+                message.success("Xóa User thành công");
+                reloadTable();
+            } else {
+                notification.error({
+                    message: "Có lỗi xảy ra",
+                    description: res.message,
+                });
+            }
+        }
+    };
 
     const reloadTable = () => {
         tableRef?.current?.reload();
@@ -46,20 +52,15 @@ const PatientTable = () => {
             key: "index",
             width: 20,
             align: "center",
-            // render: (text, record, index) => {
-            //     return <>{index + 1 + (meta.page - 1) * meta.pageSize}</>;
-            // },
+            render: (text, record, index) => {
+                return <>{index + 1 + (meta.page - 1) * meta.pageSize}</>;
+            },
             hideInSearch: true,
         },
         {
-            title: "Tìm CCCD",
+            title: "CCCD",
             dataIndex: "indetityCard",
             hidden: true
-        },
-        {
-            title: "SĐT",
-            dataIndex: "phone",
-            sorter: true,
         },
         {
             title: "Họ & Tên",
@@ -69,7 +70,6 @@ const PatientTable = () => {
         {
             title: "id",
             dataIndex: "id",
-            hideInSearch: true,
             hidden: true
         },
         {
@@ -93,6 +93,11 @@ const PatientTable = () => {
             title: "Secret",
             dataIndex: "relativePhone",
             hidden: true
+        },
+        {
+            title: "Số điện thoại",
+            dataIndex: "phone",
+            sorter: true,
         },
         {
             title: "Địa chỉ",
@@ -154,37 +159,40 @@ const PatientTable = () => {
                         }}
                     />
 
-                    <UserSwitchOutlined
-                        style={{
-                            fontSize: 20,
-                            color: "blue",
-                        }}
-                        type=""
-                        onClick={() => {
-                            setOpenModalCreate(true)
-                            setDataInit(entity);
-                        }}
-                    />
+                    <Access permission={ALL_PERMISSIONS.PATIENTS.UPDATE} hideChildren>
+                        <UserSwitchOutlined
+                            style={{
+                                fontSize: 20,
+                                color: "blue",
+                            }}
+                            type=""
+                            onClick={() => {
+                                setOpenModalCreate(true)
+                                setDataInit(entity);
+                            }}
+                        />
+                    </Access>
 
 
-                    <Popconfirm
-                        placement="leftTop"
-                        title={"Xác nhận xóa user"}
-                        description={"Bạn có chắc chắn muốn xóa user này ?"}
-                        // onConfirm={() => handleDeleteUser(entity.id)}
-                        okText="Xác nhận"
-                        cancelText="Hủy"
-                    >
-                        <span style={{ cursor: "pointer", margin: "0 10px" }}>
-                            <DeleteOutlined
-                                style={{
-                                    fontSize: 20,
-                                    color: "#ff4d4f",
-                                }}
-                            />
-                        </span>
-                    </Popconfirm>
-
+                    <Access permission={ALL_PERMISSIONS.PATIENTS.DELETE} hideChildren>
+                        <Popconfirm
+                            placement="leftTop"
+                            title={"Xác nhận xóa user"}
+                            description={"Bạn có chắc chắn muốn xóa user này ?"}
+                            onConfirm={() => handleDeleteUser(entity.id)}
+                            okText="Xác nhận"
+                            cancelText="Hủy"
+                        >
+                            <span style={{ cursor: "pointer", margin: "0 10px" }}>
+                                <DeleteOutlined
+                                    style={{
+                                        fontSize: 20,
+                                        color: "#ff4d4f",
+                                    }}
+                                />
+                            </span>
+                        </Popconfirm>
+                    </Access>
                 </Space>
             ),
         },
@@ -240,8 +248,6 @@ const PatientTable = () => {
 
     return (
         <div style={{ padding: "0 10px", marginTop: "10px" }}>
-
-
             {/* DataTable Card */}
             <Card
                 style={{
@@ -293,19 +299,18 @@ const PatientTable = () => {
                     actionRef={tableRef}
                     headerTitle="Danh sách bệnh nhân"
                     rowKey="id"
-                    // loading={isFetching}
                     columns={columns}
-                    // dataSource={users}
-                    // request={async (params: any, sort: any, filter: any) => {
-                    //     const query = buildQuery(params, sort, filter);
-                    //     const res = await dispatch(fetchPatient({ query })).unwrap();
-                    //     const page = res.data as IModelPaginate<IPatient> | undefined;
-                    //     return {
-                    //         data: page?.result ?? [],
-                    //         total: page?.meta?.total ?? 0,
-                    //         success: true,
-                    //     };
-                    // }}
+                    dataSource={users}
+                    request={async (params: any, sort: any, filter: any) => {
+                        const query = buildQuery(params, sort, filter);
+                        const res = await dispatch(fetchPatient({ query })).unwrap();
+                        const page = res.data as IModelPaginate<IPatient> | undefined;
+                        return {
+                            data: page?.result ?? [],
+                            total: page?.meta?.total ?? 0,
+                            success: true,
+                        };
+                    }}
                     scroll={{ x: true }}
                     pagination={{
                         showSizeChanger: true,
@@ -340,14 +345,14 @@ const PatientTable = () => {
                     reloadTable={reloadTable}
                     dataInit={dataInit}
                     setDataInit={setDataInit}
-                />
+                /> */}
                 <MPatientCreateAndUpdate
                     openModalCreate={openModalCreate}
                     setOpenModalCreate={setOpenModalCreate}
                     reloadTable={reloadTable}
                     dataInit={dataInit}
                     setDataInit={setDataInit}
-                /> */}
+                />
             </Card>
         </div>
     );

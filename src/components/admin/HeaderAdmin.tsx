@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 
 import { NavLink, useNavigate } from "react-router-dom";
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/redux/hook';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { message } from 'antd';
@@ -70,7 +70,7 @@ const HeaderAdmin = (props: any) => {
     const { Title, Text } = Typography
     const navigate = useNavigate();
 
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const urlAvatarTemp = `https://fontawesome.com/icons/user?f=classic&s=regular`;
     const handleLogout = async () => {
         try {

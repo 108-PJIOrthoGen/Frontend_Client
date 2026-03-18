@@ -13,58 +13,64 @@ import UserPage from "@/pages/admin/UserTable";
 import RolePage from "@/pages/admin/RoleTable";
 import PermissionPage from "@/pages/admin/PermissionTable";
 import LayoutAdmin from "@/layouts/LayoutAdmin";
+import ProtectedRoute from "@/components/common/protected/RouteProtected";
 
 const router = createBrowserRouter([
     {
         path: "/",
         element: (
-            <PatientProvider>
-                <LayoutClient />
-            </PatientProvider>
+            <LayoutApp>
+                <PatientProvider>
+                    <LayoutClient />
+                </PatientProvider>
+            </LayoutApp>
+
         ), // thêm layoutApp sau
         errorElement: <Error404 />,
         children: [
             {
                 index: true,
-                element: <AiDiagnosisSuggestion />
+                element: <ProtectedRoute><AiDiagnosisSuggestion /></ProtectedRoute>
             },
             {
                 path: "table-patients",
-                element: <PatientTable />
+                element: <ProtectedRoute><PatientTable /></ProtectedRoute>
             },
 
             {
                 path: "chart-testing",
-                element: <ChartTesting />
+                element: <ProtectedRoute><ChartTesting /></ProtectedRoute>
             },
             {
                 path: "compare-result",
-                element: <CompareResult />
+                element: <ProtectedRoute><CompareResult /></ProtectedRoute>
             },
 
         ]
     },
     {
         path: "/admin",
-        element: <LayoutAdmin />,
+        element: <LayoutApp>
+            <LayoutAdmin />
+        </LayoutApp>,
         errorElement: <Error404 />,
         children: [
             {
                 index: true,
-                element: <AdminHome />
+                element: <ProtectedRoute><AdminHome /></ProtectedRoute>
             },
             {
                 path: "table-users",
-                element: <UserPage />
+                element: <ProtectedRoute><UserPage /></ProtectedRoute>
             },
             {
                 path: "table-role",
-                element: <RolePage />
+                element: <ProtectedRoute><RolePage /></ProtectedRoute>
             },
             {
                 path: "table-permission",
                 element:
-                    <PermissionPage />
+                    <ProtectedRoute><PermissionPage /></ProtectedRoute>
             },
         ]
     },

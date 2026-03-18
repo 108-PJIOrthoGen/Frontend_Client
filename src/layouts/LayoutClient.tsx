@@ -8,8 +8,8 @@ export const LayoutClient = () => {
   const { demographics } = usePatient();
   const location = useLocation();
   const navigate = useNavigate();
-  // const dispatch = useDispatch();
-  // const user = useSelector((state: any) => state.account?.user);
+  const dispatch = useDispatch();
+  const user = useSelector((state: any) => state.account?.user);
 
   const handleLogout = () => {
     // You can dispatch existing logout action here if you want

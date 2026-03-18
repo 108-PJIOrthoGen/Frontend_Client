@@ -1,15 +1,15 @@
 import Error403 from "@/pages/errors/ForbiddenPage"
-import { useSelector } from "react-redux"
+import { useAppSelector } from "@/redux/hook"
 import { Navigate, useLocation } from "react-router-dom"
+import { Spin } from "antd"
 
 
 const RoleCheck = (props) => {
     const isAdmin = window.location.pathname.startsWith("/admin")
-    const user = useSelector((state: any) => state.account.user)
+    const user = useAppSelector((state) => state.account.user)
     const userRole = user?.role?.name
-    console.log(userRole)
-    if ((isAdmin && (userRole === 'ADMIN' || userRole === 'DOCTOR' || userRole === 'NURSE' || userRole === 'RECEPTIONIST'))
-        || !isAdmin && (userRole === 'USER' || userRole === 'ADMIN' || userRole === 'DOCTOR' || userRole === 'NURSE' || userRole === 'RECEPTIONIST')) {
+    if ((isAdmin && (userRole === 'ADMIN' || userRole === 'DOCTOR' || userRole === 'NURSE'))
+        || !isAdmin && (userRole === 'USER' || userRole === 'ADMIN' || userRole === 'DOCTOR' || userRole === 'NURSE')) {
         return (<>{props.children}</>)
     } else {
         return (<Error403 />)
@@ -17,8 +17,13 @@ const RoleCheck = (props) => {
 }
 
 const ProtectedRoute = (props) => {
-    const isAuthenticated = useSelector((state: any) => state.account.isAuthenticated)
-    const location = useLocation();
+    const isAuthenticated = useAppSelector((state) => state.account.isAuthenticated)
+    const isLoading = useAppSelector((state) => state.account.isLoading)
+    console.log(isAuthenticated)
+    if (isLoading) {
+        return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>
+    }
+
     return (
         <>
             {isAuthenticated === true ?

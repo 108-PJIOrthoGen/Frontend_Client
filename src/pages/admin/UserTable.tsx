@@ -58,8 +58,8 @@ const UserPage = () => {
             hideInSearch: true,
         },
         {
-            title: "Username",
-            dataIndex: "username",
+            title: "Họ và tên",
+            dataIndex: "fullName",
             sorter: true,
         },
         {

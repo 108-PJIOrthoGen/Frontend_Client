@@ -16,7 +16,7 @@ export interface IModelPaginate<T> {
 }
 export interface IUser {
     id?: string;
-    username: string;
+    fullname?: string;
     email: string;
     password?: string;
     role?: {
@@ -42,8 +42,10 @@ export interface IPatient {
     insuranceExpired?: string;
     gender?: string;
     career?: string;
-    relativeName?: string;
-    relativePhone?: string;
+    relativeInfo?: {
+        name: string;
+        phone: string;
+    }
     ethnicity?: string;
     religion?: string;
 
@@ -194,8 +196,8 @@ export interface IPermission {
 
     createdBy?: string;
 
-    createdTime?: string;
-    updatedTime?: string;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface IRole {

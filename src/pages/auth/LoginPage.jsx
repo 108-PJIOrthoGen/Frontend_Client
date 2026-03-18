@@ -1,14 +1,14 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useDispatch } from "react-redux";
 import {
-    Layout, Menu, Button, Row, Col, Form, Input, Switch, message, notification, Typography,
+    Layout, Menu, Button, Row, Col, Form, Input, Switch, message, Modal, notification, Typography,
 } from "antd";
 import signinbg from "../../../public/bvien108.jfif";
 import { GithubOutlined, TwitterOutlined } from "@ant-design/icons";
-import { useState } from "react";
-import { runLoginAction } from "../../redux/slice/accountSlice";
-import { loginAPI } from "@/apis/api";
+import { useEffect, useState } from "react";
+import { runLoginAction, runLogoutAction } from "../../redux/slice/accountSlice";
+import { loginAPI, LogoutAPI } from "@/apis/api";
 import "../../../public/main.scss"
+import { useAppDispatch, useAppSelector } from "@/redux/hook";
 const { Title } = Typography;
 const { Header, Footer, Content } = Layout;
 
@@ -64,156 +64,184 @@ const profile = [
 
 const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
-    // const navigate = useNavigate();
-    // const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const dispatch = useAppDispatch();
+    const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const onFinish = async (values) => {
-        const { username, password } = values;
-        setIsLoading(true);
-        const res = await loginAPI(username, password);
-        setIsLoading(false);
-        if (res?.data) {
-            localStorage.setItem('access_token', res.data.access_token);
-            dispatch(runLoginAction(res.data.user))
-            message.success("Đăng nhập thành công");
-            navigate("/")
-        } else {
-            notification.error({
-                message: "Có lỗi xảy ra",
-                description: "Thông tin đăng nhập chưa chính xác!",
-            })
+    useEffect(() => {
+        if (isAuthenticated) {
+            setIsModalOpen(true);
         }
-    };
+    }, [isAuthenticated]);
 
-    return (
-        <>
-            <Layout className="layout-default layout-signin">
-                <Header style={{ display: 'flex', alignItems: 'center' }}>
-                    <div className="header-col header-brand">
-                        <h5>108 PJI Clinical Decision Support</h5>
-                    </div>
-                    <div className="header-col header-nav ">
-                        <Menu mode="horizontal" defaultSelectedKeys={["1"]}>
-                            <Menu.Item key="1">
-                                <Link to="/">
-                                    {template}
-                                </Link>
-                            </Menu.Item>
-                            <Menu.Item key="2">
-                                <Link to="/profile">
-                                    {profile}
-                                </Link>
-                            </Menu.Item>
-                        </Menu>
-                    </div>
-                    <div className="header-col header-btn">
-                        <Button type="primary">Hệ thống hỗ trợ chẩn đoán với AI</Button>
-                    </div>
-                </Header>
-                <Content className="signin">
-                    <Row gutter={[24, 0]} justify="space-around">
-                        <Col
-                            xs={{ span: 24, offset: 0 }}
-                            lg={{ span: 6, offset: 2 }}
-                            md={{ span: 12 }}
+const onFinish = async (values) => {
+    const { username, password } = values;
+    setIsLoading(true);
+    const res = await loginAPI(username, password);
+    setIsLoading(false);
+    if (res?.data) {
+        localStorage.setItem('access_token', res.data.access_token);
+        dispatch(runLoginAction(res.data.user))
+        message.success("Đăng nhập thành công");
+        navigate("/")
+    } else {
+        notification.error({
+            message: "Có lỗi xảy ra",
+            description: "Thông tin đăng nhập chưa chính xác!",
+        })
+    }
+};
+
+return (
+    <>
+        <Layout className="layout-default layout-signin">
+            <Header style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="header-col header-brand">
+                    <h5>108 PJI Clinical Decision Support</h5>
+                </div>
+                <div className="header-col header-nav ">
+                    <Menu mode="horizontal" defaultSelectedKeys={["1"]}>
+                        <Menu.Item key="1">
+                            <Link to="/">
+                                {template}
+                            </Link>
+                        </Menu.Item>
+                        <Menu.Item key="2">
+                            <Link to="/profile">
+                                {profile}
+                            </Link>
+                        </Menu.Item>
+                    </Menu>
+                </div>
+                <div className="header-col header-btn">
+                    <Button type="primary">Hệ thống hỗ trợ chẩn đoán với AI</Button>
+                </div>
+            </Header>
+            <Content className="signin">
+                <Row gutter={[24, 0]} justify="space-around">
+                    <Col
+                        xs={{ span: 24, offset: 0 }}
+                        lg={{ span: 6, offset: 2 }}
+                        md={{ span: 12 }}
+                    >
+                        <Title className="mb-15">Đăng nhập</Title>
+                        <Title className="font-regular text-muted" level={5}>
+                            Nhập thông tin tài khoản đã được cung cấp
+                        </Title>
+                        <Form
+                            onFinish={onFinish}
+                            layout="vertical"
+                            className="row-col"
+                            initialValues={{
+                                remember: true
+                            }}
                         >
-                            <Title className="mb-15">Đăng nhập</Title>
-                            <Title className="font-regular text-muted" level={5}>
-                                Nhập thông tin tài khoản đã được cung cấp
-                            </Title>
-                            <Form
-                                onFinish={onFinish}
-                                layout="vertical"
-                                className="row-col"
-                                initialValues={{
-                                    remember: true
-                                }}
+                            <Form.Item
+                                className="username"
+                                label="Email/username"
+                                name="username"
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: "Hãy nhập chính xác email!",
+                                    },
+                                ]}
                             >
-                                <Form.Item
-                                    className="username"
-                                    label="Email/username"
-                                    name="username"
-                                    rules={[
-                                        {
-                                            required: true,
-                                            message: "Hãy nhập chính xác email!",
-                                        },
-                                    ]}
-                                >
-                                    <Input placeholder="Email" />
-                                </Form.Item>
+                                <Input placeholder="Email" />
+                            </Form.Item>
 
-                                <Form.Item
-                                    className="username"
-                                    label="Password"
-                                    name="password"
-                                    rules={[
-                                        {
-                                            required: true,
-                                            message: "Không để trống mật khẩu!",
-                                        },
-                                    ]}
-                                >
-                                    <Input.Password placeholder="Password" />
-                                </Form.Item>
+                            <Form.Item
+                                className="username"
+                                label="Password"
+                                name="password"
+                                rules={[
+                                    {
+                                        required: true,
+                                        message: "Không để trống mật khẩu!",
+                                    },
+                                ]}
+                            >
+                                <Input.Password placeholder="Password" />
+                            </Form.Item>
 
-                                <Form.Item
-                                    name="remember"
-                                    className="aligin-center"
-                                    valuePropName="checked"
-                                >
-                                    <Switch defaultChecked />
-                                    Remember me
-                                </Form.Item>
+                            <Form.Item
+                                name="remember"
+                                className="aligin-center"
+                                valuePropName="checked"
+                            >
+                                <Switch defaultChecked />
+                                Remember me
+                            </Form.Item>
 
-                                <Form.Item>
-                                    <Button
-                                        type="primary"
-                                        htmlType="submit"
-                                        style={{ width: "100%" }}
-                                    >
-                                        Đăng nhập ngay
-                                    </Button>
-                                </Form.Item>
-                                <p className="font-semibold text-muted">
-                                    Tài khoản chỉ được cấp cho các bác sĩ.{" "}
-                                    Không tự đăng ký.
-                                </p>
-                            </Form>
-                        </Col>
-                        <Col
-                            className="sign-img"
-                            style={{ padding: 12 }}
-                            xs={{ span: 24 }}
-                            lg={{ span: 12 }}
-                            md={{ span: 12 }}
-                        >
-                            <img style={{ height: "300px", maxWidth: "90%" }} src={signinbg} alt="" />
-                        </Col>
-                    </Row>
-                </Content>
-                <Footer>
-                    <Menu mode="horizontal">
-                        <Menu.Item>About 108 PJI Clinical Decision Support</Menu.Item>
-                        <Menu.Item>Teams</Menu.Item>
-                        <Menu.Item>Blogs</Menu.Item>
-                    </Menu>
-                    <Menu mode="horizontal" className="menu-nav-social">
-                        <Menu.Item>
-                            <Link to="#">{<TwitterOutlined />}</Link>
-                        </Menu.Item>
-                        <Menu.Item>
-                            <Link to="#">{<GithubOutlined />}</Link>
-                        </Menu.Item>
-                    </Menu>
-                    <p className="copyright">
-                        {" "}
-                        Copyright © 2026 An production of HUST, developed by <a href="#pablo">HieuPahm-R2</a>.{" "}
-                    </p>
-                </Footer>
-            </Layout>
-        </>
-    )
+                            <Form.Item>
+                                <Button
+                                    type="primary"
+                                    htmlType="submit"
+                                    style={{ width: "100%" }}
+                                >
+                                    Đăng nhập ngay
+                                </Button>
+                            </Form.Item>
+                            <p className="font-semibold text-muted">
+                                Tài khoản chỉ được cấp cho các bác sĩ.{" "}
+                                Không tự đăng ký.
+                            </p>
+                        </Form>
+                    </Col>
+                    <Col
+                        className="sign-img"
+                        style={{ padding: 12 }}
+                        xs={{ span: 24 }}
+                        lg={{ span: 12 }}
+                        md={{ span: 12 }}
+                    >
+                        <img style={{ height: "300px", maxWidth: "90%" }} src={signinbg} alt="" />
+                    </Col>
+                </Row>
+            </Content>
+            <Footer>
+                <Menu mode="horizontal">
+                    <Menu.Item>About 108 PJI Clinical Decision Support</Menu.Item>
+                    <Menu.Item>Teams</Menu.Item>
+                    <Menu.Item>Blogs</Menu.Item>
+                </Menu>
+                <Menu mode="horizontal" className="menu-nav-social">
+                    <Menu.Item>
+                        <Link to="#">{<TwitterOutlined />}</Link>
+                    </Menu.Item>
+                    <Menu.Item>
+                        <Link to="#">{<GithubOutlined />}</Link>
+                    </Menu.Item>
+                </Menu>
+                <p className="copyright">
+                    {" "}
+                    Copyright © 2026 An production of HUST, developed by <a href="#pablo">HieuPahm-R2</a>.{" "}
+                </p>
+            </Footer>
+        </Layout>
+        <Modal
+            title="Bạn đã đăng nhập"
+            open={isModalOpen}
+            okText="Đăng xuất"
+            cancelText="Quay lại"
+            onOk={async () => {
+                const res = await LogoutAPI();
+                if (res) {
+                    dispatch(runLogoutAction({}));
+                    message.success('Đăng xuất thành công');
+                    setIsModalOpen(false);
+                }
+            }}
+            onCancel={() => {
+                setIsModalOpen(false);
+                navigate(-1);
+            }}
+        >
+            <p>Bạn sẽ đăng xuất khỏi tài khoản hiện tại, nếu tiếp tục truy cập đường dẫn này!</p>
+        </Modal>
+    </>
+)
 }
 
 export default LoginPage
