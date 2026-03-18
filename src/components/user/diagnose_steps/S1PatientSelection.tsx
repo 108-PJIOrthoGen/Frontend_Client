@@ -2,59 +2,18 @@ import React, { useState } from 'react';
 import { Button, Modal } from 'antd';
 import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import { usePatient } from '../../../context/PatientContext';
+import { PatientExamSelector } from './PatientExamSelector';
 
 interface Step1Props {
-    onNext: () => void;
-    onCreateNew: () => void;
+    onNext: () => void
 }
 
-export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, onCreateNew }) => {
+export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext }) => {
     const { setDemographics } = usePatient();
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
 
     const handleSearchClick = () => {
         setIsSearchModalVisible(true);
-    };
-
-    const handleCreateNewClick = () => {
-        // Clear demographics or set specific ID format
-        setDemographics({
-            id: 'NEW',
-            name: '',
-            mrn: '',
-            dob: '',
-            phone: '',
-            address: '',
-            height: 0,
-            weight: 0,
-            bmi: 0,
-            surgeryDate: '',
-            symptomDate: '',
-            isAcute: false,
-            implantType: 'TKA', // Or THA based on context type
-            fixationType: 'cemented',
-            implantNature: 'Primary',
-            gender: 'male',
-            comorbidities: {
-                diabetes: false,
-                smoking: false,
-                immunosuppression: false,
-                priorInfection: false,
-                malnutrition: false,
-                liverDisease: false,
-            },
-            medicalHistory: '',
-            pastMedicalHistory: '',
-            relatedCharacteristics: {
-                allergy: { checked: false, note: '' },
-                drugs: { checked: false, note: '' },
-                alcohol: { checked: false, note: '' },
-                smoking: { checked: false, note: '' },
-                other: { checked: false, note: '' }
-            },
-            surgicalHistory: []
-        });
-        onCreateNew();
     };
 
     const handleSearchDone = () => {
@@ -96,7 +55,7 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, onCreateNe
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 mb-3">Tạo hồ sơ mới cho bệnh nhân</h3>
                     <p className="text-slate-500 text-sm mb-8 flex-1">Bệnh nhân lần đầu thăm khám hoặc chưa có thông tin trên hệ thống PJI.</p>
-                    <Button type="primary" size="large" className="w-full h-12 bg-green-500 hover:!bg-green-600 border-none" onClick={handleCreateNewClick}>
+                    <Button type="primary" size="large" className="w-full h-12 bg-green-500 hover:!bg-green-600 border-none">
                         Tiếp tục quy trình
                     </Button>
                 </div>
@@ -104,24 +63,13 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, onCreateNe
 
             {/* Modal for Searching Patient */}
             <Modal
+                width={500}
                 title="Tra cứu hồ sơ bệnh nhân"
                 open={isSearchModalVisible}
                 onCancel={() => setIsSearchModalVisible(false)}
                 footer={null}
             >
-                <div className="flex flex-col gap-4 pt-4">
-                    <div>
-                        <label className="text-sm font-medium text-slate-700 block mb-1.5">Nhập mã bệnh nhân, SĐT hoặc CCCD</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                className="flex-1 h-10 px-3 border border-slate-300 rounded-lg focus:ring-primary focus:border-primary outline-none"
-                                placeholder="VD: 0987654321"
-                            />
-                            <Button type="primary" className="h-10 px-5" onClick={handleSearchDone}>Tìm kiếm</Button>
-                        </div>
-                    </div>
-                </div>
+                <PatientExamSelector onNext={handleSearchDone} />
             </Modal>
         </div>
     );

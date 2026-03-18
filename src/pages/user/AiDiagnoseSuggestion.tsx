@@ -1,68 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { Steps, Button, Breadcrumb } from 'antd';
-import { Step1PatientSelection } from '../../components/user/diagnose_steps/S1PatientSelection';
-import { PatientIntake } from '../../components/user/diagnose_steps/S1PatientIntake';
-import { MedicalHistoryPage } from '../../components/user/diagnose_steps/MedicalHistory';
-import { ClinicalAssessmentPage } from '../../components/user/diagnose_steps/ClinicalAssessment';
-import { Step4Antibiogram } from '../../components/user/diagnose_steps/S4Antibiogram';
-import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S6TreatmentPlan';
+import { Steps, Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
-import MedicalExamination from '@/components/user/diagnose_steps/S2MedicalExamination';
+import { PatientExamSelector } from '../../components/user/diagnose_steps/PatientExamSelector';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/S5AssessmentPji';
+import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S6TreatmentPlan';
+import { Step1PatientSelection } from '@/components/user/diagnose_steps/S1PatientSelection';
 
 const AiDiagnosisSuggestion = () => {
     const [currentStep, setCurrentStep] = useState(() => {
         const saved = localStorage.getItem('pji_currentStep');
         return saved ? parseInt(saved, 10) : 0;
     });
-    const [isCreatingNewPatient, setIsCreatingNewPatient] = useState(() => {
-        const saved = localStorage.getItem('pji_isCreatingNewPatient');
-        return saved ? JSON.parse(saved) : false;
-    });
 
     useEffect(() => {
         localStorage.setItem('pji_currentStep', currentStep.toString());
     }, [currentStep]);
-
-    useEffect(() => {
-        localStorage.setItem('pji_isCreatingNewPatient', JSON.stringify(isCreatingNewPatient));
-    }, [isCreatingNewPatient]);
 
     const next = () => setCurrentStep(prev => prev + 1);
     const prev = () => setCurrentStep(prev => prev - 1);
 
     const steps = [
         {
-            title: 'Tạo hồ sơ bệnh án',
-            content: isCreatingNewPatient ? (
-                <div className="h-full flex flex-col relative w-full">
-                    <PatientIntake
-                        onNext={() => { setIsCreatingNewPatient(false); next(); }}
-                        onCancel={() => setIsCreatingNewPatient(false)}
-                    />
-                </div>
-            ) : (
-                <Step1PatientSelection
-                    onNext={next}
-                    onCreateNew={() => setIsCreatingNewPatient(true)}
-                />
-            ),
-        },
-        {
-            title: 'Quản lý người bệnh',
-            content: <MedicalExamination onNext={next} onPrev={prev} />,
-        },
-        {
-            title: 'Nhập dữ liệu bệnh án',
-            content: <MedicalHistoryPage onNext={next} onPrev={prev} />,
-        },
-        {
-            title: 'Lâm sàng & cận lâm sàng',
-            content: <ClinicalAssessmentPage onNext={next} onPrev={prev} />,
-        },
-        {
-            title: 'Bảng kháng sinh đồ',
-            content: <Step4Antibiogram onNext={next} onPrev={prev} />,
+            title: 'Chọn bệnh nhân & bệnh án',
+            content: <Step1PatientSelection onNext={next} />,
         },
         {
             title: 'Đánh giá nguy cơ PJI',
@@ -113,3 +73,4 @@ const AiDiagnosisSuggestion = () => {
 };
 
 export default AiDiagnosisSuggestion;
+

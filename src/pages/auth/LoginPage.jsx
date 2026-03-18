@@ -5,7 +5,7 @@ import {
 import signinbg from "../../../public/bvien108.jfif";
 import { GithubOutlined, TwitterOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
-import { runLoginAction, runLogoutAction } from "../../redux/slice/accountSlice";
+import { fetchAccount, runLoginAction, runLogoutAction } from "../../redux/slice/accountSlice";
 import { loginAPI, LogoutAPI } from "@/apis/api";
 import "../../../public/main.scss"
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
@@ -70,8 +70,17 @@ const LoginPage = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
+        // If we landed on /login but there's a token in localStorage,
+        // try to auto-recover (e.g., interceptor refreshed token before redirect)
+        if (!isAuthenticated && localStorage.getItem('access_token')) {
+            dispatch(fetchAccount());
+        }
+    }, []);
+
+    useEffect(() => {
         if (isAuthenticated) {
-            setIsModalOpen(true);
+            // Auto-redirect back instead of showing modal
+            navigate("/", { replace: true });
         }
     }, [isAuthenticated]);
 

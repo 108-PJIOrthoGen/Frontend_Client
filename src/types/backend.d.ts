@@ -176,6 +176,21 @@ export interface IMedicalExamRes {
     patientId?: number;
     department?: string;
 }
+
+export interface IMedicalExamFull {
+    id?: string;
+    arrivalTime?: string;
+    dischargeTime?: string;
+    department?: string;
+    admissionMethod?: string;
+    referralSource?: string;
+    treatmentDays?: number;
+    treatmentResult?: string;
+    status?: string;
+    patient?: IPatient;
+    createdAt?: string;
+    updatedAt?: string;
+}
 export interface IAppointment {
     id?: string;
     full_name?: string;

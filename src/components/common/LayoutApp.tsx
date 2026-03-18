@@ -1,5 +1,5 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
-import { setRefreshTokenAction } from "@/redux/slice/accountSlice";
+import { fetchAccount, setRefreshTokenAction } from "@/redux/slice/accountSlice";
 import { message } from "antd";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,15 +14,14 @@ const LayoutApp = (props: IProps) => {
     const dispatch = useAppDispatch();
 
     useEffect(() => {
-        console.log('[LayoutApp] useEffect fired - isRefreshToken:', isRefreshToken, 'error:', errorRefreshToken)
         if (isRefreshToken === true) {
-            console.log('[LayoutApp] refresh token error -> navigating to /login')
-            localStorage.removeItem('access_token')
-            message.error(errorRefreshToken)
-            dispatch(setRefreshTokenAction({ status: false, message: "yêu cầu đăng nhập!" }))
-            navigate("/login");
+            localStorage.removeItem('access_token');
+            message.error(errorRefreshToken);
+            dispatch(setRefreshTokenAction({ status: false, message: "" }));
+            navigate("/login", { replace: true });
         }
     }, [isRefreshToken]);
+
     return (
         <>
             {props.children}

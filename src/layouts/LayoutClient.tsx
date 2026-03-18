@@ -1,8 +1,10 @@
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, MenuProps, Avatar, Image } from 'antd';
+import { Dropdown, MenuProps, Avatar, Image, message } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { usePatient } from '../context/PatientContext';
+import { LogoutAPI } from '@/apis/api';
+import { runLogoutAction } from '@/redux/slice/accountSlice';
 
 export const LayoutClient = () => {
   const { demographics } = usePatient();
@@ -11,8 +13,11 @@ export const LayoutClient = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.account?.user);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // You can dispatch existing logout action here if you want
+    await LogoutAPI();
+    dispatch(runLogoutAction(null));
+    message.success("Đăng xuất thành công");
     navigate('/login');
   };
 
@@ -111,7 +116,7 @@ export const LayoutClient = () => {
               <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-lg font-bold text-slate-900 truncate">
-                  {'Phạm Trung Hiếu'}
+                  {user?.name}
                 </span>
                 <span className="text-xs font-medium text-slate-500 truncate">
                   {'Bác sĩ chuyên khoa'}

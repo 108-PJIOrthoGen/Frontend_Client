@@ -4,9 +4,10 @@ import { usePatient } from '../../../context/PatientContext';
 interface ClinicalAssessmentProps {
   onNext?: () => void;
   onPrev?: () => void;
+  mode?: 'wizard' | 'standalone';
 }
 
-export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev }) => {
+export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard' }) => {
   const { demographics, setDemographics, clinical, setClinical } = usePatient();
 
   // Logic: ICM 2018 Scoring
@@ -93,28 +94,29 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
 
   return (
     <>
-      <header className="flex-shrink-0 bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10">
-        <div>
-          <div className="flex items-center gap-3">
-
-            <span className="text-slate-800 text-md font-mono bg-slate-100 px-2 py-0.5 rounded">Dữ liệu xét nghiệm</span>
-          </div>
-          <button className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400">
-            <span className="material-symbols-outlined text-md">accessibility_new</span>
-            Import nhanh
-          </button>
-        </div>
-        <div className="flex items-center gap-3 z-10">
-          <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
-            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
-          </button>
-          <div className="flex gap-3">
-            <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3  font-bold text-white hover:bg-cyan-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-              Tiếp tục
+      {mode === 'wizard' && (
+        <header className="flex-shrink-0 bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10">
+          <div>
+            <div className="flex items-center gap-3">
+              <span className="text-slate-800 text-md font-mono bg-slate-100 px-2 py-0.5 rounded">Dữ liệu xét nghiệm</span>
+            </div>
+            <button className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400">
+              <span className="material-symbols-outlined text-md">accessibility_new</span>
+              Import nhanh
             </button>
           </div>
-        </div>
-      </header>
+          <div className="flex items-center gap-3 z-10">
+            <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
+            </button>
+            <div className="flex gap-3">
+              <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3  font-bold text-white hover:bg-cyan-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </header>
+      )}
 
       <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
         <div className="max-w-7xl mx-auto h-full">

@@ -3,9 +3,10 @@ import React, { useState } from 'react';
 interface MedicalExaminationProps {
     onNext?: () => void;
     onPrev?: () => void;
+    mode?: 'wizard' | 'standalone';
 }
 
-export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, onPrev }) => {
+export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, onPrev, mode = 'wizard' }) => {
     const [formData, setFormData] = useState({
         arrivalTime: '',
         dischargeTime: '',
@@ -109,16 +110,18 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
             </div>
 
             {/* Fixed Footer with buttons */}
-            <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 p-4 px-8 flex items-center justify-between z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <button onClick={onPrev} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-100 hover:bg-red-200">
-                    <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
-                </button>
-                <div className="flex gap-3">
-                    <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                        Tiếp tục <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+            {mode === 'wizard' && (
+                <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 p-4 px-8 flex items-center justify-between z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                    <button onClick={onPrev} className="px-6 py-3 font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-100 hover:bg-red-200">
+                        <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
                     </button>
+                    <div className="flex gap-3">
+                        <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+                            Tiếp tục <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
         </>
     );
 };

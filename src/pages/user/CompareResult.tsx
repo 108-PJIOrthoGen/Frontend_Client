@@ -9,7 +9,7 @@ const CompareResult: React.FC = () => {
             <div className="bg-white text-black p-4 px-7 flex items-center justify-between">
                 <div>
                     <div className="text-xl font-bold">PJI Clinical Decision Support</div>
-                    <div className="text-[13px] text-slate-700">Mockup UI lịch sử gợi ý và AI vs Phác đồ đã xác nhận</div>
+                    <div className="text-[13px] text-slate-700">Mockup lịch sử gợi ý và AI vs Phác đồ đã xác nhận</div>
                 </div>
 
                 <div className="max-w-[350px] text-[11px] text-[#607086] italic text-right leading-relaxed">

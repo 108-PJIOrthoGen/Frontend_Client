@@ -2,11 +2,12 @@ import { callDeletePatient } from '@/apis/api';
 import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
 import MPatientCreateAndUpdate from '@/components/user/patient_table/PatientModal';
+import ManageMedicalDrawer from '@/components/user/patient_table/ManageMedicalDrawer';
 import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { fetchPatient } from '@/redux/slice/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
-import { DeleteOutlined, EditOutlined, HomeOutlined, PlusOutlined, UserOutlined, UserSwitchOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, PlusOutlined, UserOutlined, UserSwitchOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Breadcrumb, Button, Card, message, notification, Popconfirm, Space } from "antd";
 import dayjs from "dayjs";
@@ -18,7 +19,7 @@ const PatientTable = () => {
     const [openModal, setOpenModal] = useState<boolean>(false);
     const [dataInit, setDataInit] = useState<IPatient | null>(null);
     const [openModalCreate, setOpenModalCreate] = useState<boolean>(false);
-    const [openModalMex, setOpenModalMex] = useState<boolean>(false);
+    const [openMedicalDrawer, setOpenMedicalDrawer] = useState<boolean>(false);
 
     const tableRef = useRef<ActionType>(null);
 
@@ -147,27 +148,27 @@ const PatientTable = () => {
             width: 50,
             render: (_value, entity, _index, _action) => (
                 <Space>
-                    <EditOutlined
+                    <FolderOpenOutlined
                         style={{
                             fontSize: 20,
-                            color: "#ffa500",
+                            color: "#1890ff",
                         }}
-                        type=""
+                        title="Quản lý bệnh án"
                         onClick={() => {
-                            setOpenModal(true);
                             setDataInit(entity);
+                            setOpenMedicalDrawer(true);
                         }}
                     />
 
                     <Access permission={ALL_PERMISSIONS.PATIENTS.UPDATE} hideChildren>
-                        <UserSwitchOutlined
+                        <EditOutlined
                             style={{
                                 fontSize: 20,
-                                color: "blue",
+                                color: "#ffa500",
                             }}
-                            type=""
+                            title="Chỉnh sửa bệnh nhân"
                             onClick={() => {
-                                setOpenModalCreate(true)
+                                setOpenModalCreate(true);
                                 setDataInit(entity);
                             }}
                         />
@@ -326,7 +327,6 @@ const PatientTable = () => {
                     rowSelection={false}
                     toolBarRender={(_action, _rows): any => {
                         return (
-
                             <Button
                                 icon={<PlusOutlined />}
                                 type="primary"
@@ -338,20 +338,20 @@ const PatientTable = () => {
                         );
                     }}
                 />
-                {/* <ManageMedical
-                    openModal={openModal}
-                    setOpenModal={setOpenModal}
-                    setOpenModalCreate={setOpenModalCreate}
-                    reloadTable={reloadTable}
-                    dataInit={dataInit}
-                    setDataInit={setDataInit}
-                /> */}
                 <MPatientCreateAndUpdate
                     openModalCreate={openModalCreate}
                     setOpenModalCreate={setOpenModalCreate}
                     reloadTable={reloadTable}
                     dataInit={dataInit}
                     setDataInit={setDataInit}
+                />
+                <ManageMedicalDrawer
+                    open={openMedicalDrawer}
+                    onClose={() => {
+                        setOpenMedicalDrawer(false);
+                        setDataInit(null);
+                    }}
+                    patient={dataInit}
                 />
             </Card>
         </div>

@@ -1,5 +1,5 @@
 import instance from './axios.custom';
-import { IBackendRes, IClinicalInfo, IClinicalService, IDiagnose, IMedicalExam, IModelPaginate, IPatient, IPermission, IRadiology, IRole, IUser, IVitalSign, IPayment } from '@/types/backend';
+import { IBackendRes, IClinicalInfo, IClinicalService, IDiagnose, IMedicalExam, IMedicalExamFull, IModelPaginate, IPatient, IPermission, IRadiology, IRole, IUser, IVitalSign, IPayment } from '@/types/backend';
 
 export const callUploadImage = (file: any, folder: string) => {
     const bodyFormData = new FormData();
@@ -106,9 +106,24 @@ export const callUpdatePatient = (user: IPatient): Promise<IBackendRes<IPatient>
 }
 
 /**
- * 
+ *
 Module medical Exam
  */
+export const callFetchMedicalExamByPatient = (patientId: string, query: string): Promise<IBackendRes<IModelPaginate<IMedicalExamFull>>> => {
+    return instance.get(`/api/v1/patients/${patientId}/medical-exams?${query}`);
+}
+
+export const callCreateMedicalExam = (patientId: string, data: Partial<IMedicalExamFull>): Promise<IBackendRes<IMedicalExamFull>> => {
+    return instance.post(`/api/v1/patients/${patientId}/medical-exams`, { ...data });
+}
+
+export const callUpdateMedicalExam = (examId: string, data: Partial<IMedicalExamFull>): Promise<IBackendRes<IMedicalExamFull>> => {
+    return instance.put(`/api/v1/medical-exams/${examId}`, { ...data });
+}
+
+export const callDeleteMedicalExam = (examId: string): Promise<IBackendRes<IMedicalExamFull>> => {
+    return instance.delete(`/api/v1/medical-exams/${examId}`);
+}
 
 
 
