@@ -1,14 +1,75 @@
-import React from 'react';
-import { usePatient } from '../../../context/PatientContext';
+import React, { useEffect } from 'react';
+import { useDemographics } from '@/redux/hook';
+import { IMedicalHistory, ISurgery } from '@/types/backend';
+import { Demographics } from '@/types/types';
 
 interface MedicalHistoryProps {
     onNext?: () => void;
     onPrev?: () => void;
     mode?: 'wizard' | 'standalone';
+    medicalHistoryData?: IMedicalHistory | null;
+    surgeriesData?: ISurgery[];
 }
 
-export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPrev, mode = 'wizard' }) => {
-    const { demographics, setDemographics } = usePatient();
+export function mapMedicalHistoryToDemo(mh: IMedicalHistory, surgeries: ISurgery[]): Partial<Demographics> {
+    return {
+        medicalHistory: mh.process ?? '',
+        pastMedicalHistory: mh.medicalHistory ?? '',
+        relatedCharacteristics: {
+            allergy: { checked: mh.isAllergy ?? false, note: mh.allergyNote ?? '' },
+            drugs: { checked: mh.isDrug ?? false, note: mh.drugNote ?? '' },
+            alcohol: { checked: mh.isAlcohol ?? false, note: mh.alcoholNote ?? '' },
+            smoking: { checked: mh.isSmoking ?? false, note: mh.smokingNote ?? '' },
+            other: { checked: mh.isOther ?? false, note: mh.otherNote ?? '' },
+        },
+        surgicalHistory: surgeries.length > 0
+            ? surgeries.map((s, i) => ({
+                id: s.id ?? String(i + 1),
+                surgeryDate: s.surgeryDate ?? '',
+                procedure: s.surgeryType ?? '',
+                notes: s.findings ?? '',
+            }))
+            : [{ id: '1', surgeryDate: '', procedure: '', notes: '' }],
+    };
+}
+
+export function demoToMedicalHistoryRequest(d: Demographics): Omit<IMedicalHistory, 'id' | 'createdAt' | 'updatedAt'> {
+    return {
+        process: d.medicalHistory,
+        medicalHistory: d.pastMedicalHistory,
+        isAllergy: d.relatedCharacteristics.allergy.checked,
+        allergyNote: d.relatedCharacteristics.allergy.note,
+        isDrug: d.relatedCharacteristics.drugs.checked,
+        drugNote: d.relatedCharacteristics.drugs.note,
+        isAlcohol: d.relatedCharacteristics.alcohol.checked,
+        alcoholNote: d.relatedCharacteristics.alcohol.note,
+        isSmoking: d.relatedCharacteristics.smoking.checked,
+        smokingNote: d.relatedCharacteristics.smoking.note,
+        isOther: d.relatedCharacteristics.other.checked,
+        otherNote: d.relatedCharacteristics.other.note,
+    };
+}
+
+export function demoToSurgeryRequests(d: Demographics): Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'>[] {
+    return d.surgicalHistory
+        .filter(s => s.surgeryDate || s.procedure || s.notes)
+        .map(s => ({
+            surgeryDate: s.surgeryDate || undefined,
+            surgeryType: s.procedure || undefined,
+            findings: s.notes || undefined,
+        }));
+}
+
+export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPrev, mode = 'wizard', medicalHistoryData, surgeriesData }) => {
+    const { demographics, setDemographics } = useDemographics();
+
+    // When data is loaded from API, populate demographics
+    useEffect(() => {
+        if (medicalHistoryData) {
+            const mapped = mapMedicalHistoryToDemo(medicalHistoryData, surgeriesData ?? []);
+            setDemographics(prev => ({ ...prev, ...mapped }));
+        }
+    }, [medicalHistoryData, surgeriesData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;

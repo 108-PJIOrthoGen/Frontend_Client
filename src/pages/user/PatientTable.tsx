@@ -31,7 +31,7 @@ const PatientTable = () => {
     const handleDeleteUser = async (id: string | undefined) => {
         if (id) {
             const res = await callDeletePatient(id);
-            if (+res.statusCode === 200) {
+            if (+res.status === 200) {
                 message.success("Xóa User thành công");
                 reloadTable();
             } else {

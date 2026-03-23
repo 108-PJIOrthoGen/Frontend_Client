@@ -11,6 +11,8 @@ import {
     SURGERY_PLAN,
     SYSTEMIC_PLAN,
 } from './treatmentTemplateData';
+import { clearCurrentCase } from '@/redux/slice/patientSlice';
+import { useDispatch } from 'react-redux';
 
 interface Step5Props {
     onPrev: () => void;
@@ -24,11 +26,10 @@ interface Message {
 }
 
 export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
-    const { setTreatment } = usePatient();
 
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const dispatch = useDispatch();
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -49,9 +50,10 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const backToHomepage = () => {
         // Xóa tất cả dữ liệu bệnh nhân trong localStorage
         localStorage.clear();
+        dispatch(clearCurrentCase());
 
         // Quay lại step 1 (gọi onPrev 4 lần từ step 5)
-        for (let i = 0; i < 5; i++) {
+        for (let i = 0; i < 2; i++) {
             onPrev();
         }
     };

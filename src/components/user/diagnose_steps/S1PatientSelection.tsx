@@ -1,35 +1,31 @@
 import React, { useState } from 'react';
 import { Button, Modal } from 'antd';
 import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
-import { usePatient } from '../../../context/PatientContext';
 import { PatientExamSelector } from './PatientExamSelector';
+import { IPatient } from '@/types/backend';
+import { useNavigate } from 'react-router-dom';
 
 interface Step1Props {
     onNext: () => void
 }
 
 export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext }) => {
-    const { setDemographics } = usePatient();
+
+    const navigate = useNavigate();
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
+    const [searchValue, setSearchValue] = useState('');
+    const [patients, setPatients] = useState<IPatient[]>([]);
 
     const handleSearchClick = () => {
         setIsSearchModalVisible(true);
     };
 
-    const handleSearchDone = () => {
-        setIsSearchModalVisible(false);
-        // Set mock data for demographics
-        setDemographics(prev => ({
-            ...prev,
-            id: 'D25123',
-            name: 'Nguyen Van A',
-            mrn: 'MRN12345',
-            dob: '1980-01-01',
-            implantType: 'TKA', // Or THA
-            implantNature: 'Revision'
-        }));
-        onNext();
-    };
+
+    const onClose = () => {
+        setIsSearchModalVisible(false)
+        setSearchValue('')
+        setPatients([])
+    }
 
     return (
         <div className="flex-1 bg-white p-8 h-full items-center">
@@ -55,21 +51,21 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext }) => {
                     </div>
                     <h3 className="text-lg font-bold text-slate-800 mb-3">Tạo hồ sơ mới cho bệnh nhân</h3>
                     <p className="text-slate-500 text-sm mb-8 flex-1">Bệnh nhân lần đầu thăm khám hoặc chưa có thông tin trên hệ thống PJI.</p>
-                    <Button type="primary" size="large" className="w-full h-12 bg-green-500 hover:!bg-green-600 border-none">
-                        Tiếp tục quy trình
+                    <Button type="primary" size="large" onClick={() => navigate("/table-patients")} className="w-full h-12 bg-green-500 hover:!bg-green-600 border-none">
+                        Đi tới tạo hồ sơ
                     </Button>
                 </div>
             </div>
 
             {/* Modal for Searching Patient */}
             <Modal
-                width={500}
+                width={600}
                 title="Tra cứu hồ sơ bệnh nhân"
                 open={isSearchModalVisible}
-                onCancel={() => setIsSearchModalVisible(false)}
+                onCancel={onClose}
                 footer={null}
             >
-                <PatientExamSelector onNext={handleSearchDone} />
+                <PatientExamSelector onNext={onNext} setSearchValue={setSearchValue} searchValue={searchValue} setPatients={setPatients} patients={patients} />
             </Modal>
         </div>
     );

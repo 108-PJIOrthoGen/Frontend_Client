@@ -1,55 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { PatientDemographics, ClinicalAssessment, LabResult, TreatmentPlan } from '../types/types';
+import { ClinicalAssessment, LabResult, TreatmentPlan } from '../types/types';
 
 interface PatientContextType {
-  demographics: PatientDemographics;
-  setDemographics: React.Dispatch<React.SetStateAction<PatientDemographics>>;
   clinical: ClinicalAssessment;
   setClinical: React.Dispatch<React.SetStateAction<ClinicalAssessment>>;
+  resetClinical: () => void;
   labData: LabResult[];
   updateLabData: (day: string, field: keyof LabResult, value: number) => void;
   treatment: TreatmentPlan;
   setTreatment: React.Dispatch<React.SetStateAction<TreatmentPlan>>;
 }
 
-const defaultDemographics: PatientDemographics = {
-  id: '1293',
-  name: 'Nguyễn Văn A',
-  mrn: '482910',
-  dob: '1965-10-12',
-  gender: 'male',
-  phone: '',
-  address: '',
-  height: 175,
-  weight: 70,
-  bmi: 22.9,
-  surgeryDate: new Date().toISOString().split('T')[0],
-  symptomDate: new Date().toISOString().split('T')[0],
-  isAcute: false,
-  implantType: 'TKA',
-  fixationType: 'cemented',
-  implantNature: 'Primary',
-  comorbidities: {
-    diabetes: false,
-    smoking: false,
-    immunosuppression: false,
-    priorInfection: false,
-    malnutrition: false,
-    liverDisease: false,
-  },
-  medicalHistory: '',
-  pastMedicalHistory: '',
-  relatedCharacteristics: {
-    allergy: { checked: false, note: '' },
-    drugs: { checked: false, note: '' },
-    alcohol: { checked: false, note: '' },
-    smoking: { checked: false, note: '' },
-    other: { checked: false, note: '' },
-  },
-  surgicalHistory: [
-    { id: '1', surgeryDate: '', procedure: '', notes: '' }
-  ],
-};
+
 
 const defaultClinical: ClinicalAssessment = {
   major: { sinusTract: false, twoPositiveCultures: false },
@@ -151,10 +113,7 @@ const defaultTreatment: TreatmentPlan = {
 const PatientContext = createContext<PatientContextType | undefined>(undefined);
 
 export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [demographics, setDemographics] = useState<PatientDemographics>(() => {
-    const saved = localStorage.getItem('pji_demographics');
-    return saved ? JSON.parse(saved) : defaultDemographics;
-  });
+
   const [clinical, setClinical] = useState<ClinicalAssessment>(() => {
     const saved = localStorage.getItem('pji_clinical');
     return saved ? JSON.parse(saved) : defaultClinical;
@@ -171,14 +130,18 @@ export const PatientProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Removed the useEffect block because React state might not update cleanly inside it when dealing with deep nested structures like biochemistryTests.
   // Instead, the calculation will be performed in a more controlled manner.
 
+  const resetClinical = () => {
+    setClinical(defaultClinical);
+    localStorage.removeItem('pji_clinical');
+  };
+
   const updateLabData = (day: string, field: keyof LabResult, value: number) => {
     setLabData(prev => prev.map(item => item.day === day ? { ...item, [field]: value } : item));
   };
 
   return (
     <PatientContext.Provider value={{
-      demographics, setDemographics,
-      clinical, setClinical,
+      clinical, setClinical, resetClinical,
       labData, updateLabData,
       treatment, setTreatment
     }}>

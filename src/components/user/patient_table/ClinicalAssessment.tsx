@@ -1,14 +1,97 @@
 import React, { useEffect } from 'react';
 import { usePatient } from '../../../context/PatientContext';
+import { useDemographics } from '@/redux/hook';
+import { ILabResult, IClinicalRecord } from '@/types/backend';
+import { ClinicalAssessment } from '@/types/types';
 
 interface ClinicalAssessmentProps {
   onNext?: () => void;
   onPrev?: () => void;
   mode?: 'wizard' | 'standalone';
+  labResults?: ILabResult[];
+  clinicalRecord?: IClinicalRecord | null;
 }
 
-export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard' }) => {
-  const { demographics, setDemographics, clinical, setClinical } = usePatient();
+/** Map API ILabResult into the form's TestItem arrays */
+export function mapLabResultToClinical(lab: ILabResult): Partial<ClinicalAssessment> {
+  const setVal = (tests: ClinicalAssessment['hematologyTests'], name: string, value?: number) => {
+    return tests.map(t => t.name.toLowerCase() === name.toLowerCase()
+      ? { ...t, result: value != null ? String(value) : '' }
+      : t
+    );
+  };
+
+  return {
+    hematologyTests: (prev: ClinicalAssessment['hematologyTests']) => {
+      let tests = [...prev];
+      if (lab.wbcBlood?.value != null) tests = setVal(tests, 'wbc', lab.wbcBlood.value);
+      if (lab.neut?.value != null) tests = setVal(tests, '%NEUT', lab.neut.value);
+      if (lab.mono?.value != null) tests = setVal(tests, '%MONO', lab.mono.value);
+      if (lab.esr?.value != null) tests = setVal(tests, 'Máu lắng', lab.esr.value);
+      if (lab.rbc?.value != null) tests = setVal(tests, 'RBC', lab.rbc.value);
+      if (lab.mcv?.value != null) tests = setVal(tests, 'MCV', lab.mcv.value);
+      if (lab.mch?.value != null) tests = setVal(tests, 'MCH', lab.mch.value);
+      if (lab.rdw?.value != null) tests = setVal(tests, 'RDW-CV', lab.rdw.value);
+      if (lab.ig?.value != null) tests = setVal(tests, 'IG%', lab.ig.value);
+      return tests;
+    },
+    fluidAnalysis: (prev: ClinicalAssessment['fluidAnalysis']) => {
+      let tests = [...prev];
+      if (lab.synovialWbc?.value != null) tests = setVal(tests, 'Bạch cầu (Dịch)', lab.synovialWbc.value);
+      if (lab.crp?.value != null) tests = setVal(tests, 'Định lượng CRP (Dịch)', lab.crp.value);
+      if (lab.synovialPmn?.value != null) tests = setVal(tests, '%PMN (Dịch)', lab.synovialPmn.value);
+      return tests;
+    },
+  } as any;
+}
+
+export function mapClinicalRecordToClinical(cr: IClinicalRecord): Partial<ClinicalAssessment> {
+  return {
+    symptoms: {
+      fever: cr.fever ?? false,
+      sinusTract: cr.sinusTract ?? false,
+      erythema: cr.erythema ?? false,
+      pain: cr.pain ?? false,
+      swelling: cr.swelling ?? false,
+      drainage: false,
+      purulence: false,
+    },
+  };
+}
+
+export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard', labResults, clinicalRecord }) => {
+  const { demographics, setDemographics } = useDemographics();
+  const { clinical, setClinical } = usePatient();
+
+  // Populate form from API data
+  useEffect(() => {
+    if (clinicalRecord) {
+      const mapped = mapClinicalRecordToClinical(clinicalRecord);
+      setClinical(prev => ({ ...prev, ...mapped }));
+      // Set symptomDate from clinical record
+      if (clinicalRecord.illnessOnsetDate) {
+        setDemographics(prev => ({ ...prev, symptomDate: clinicalRecord.illnessOnsetDate! }));
+      }
+    }
+  }, [clinicalRecord]);
+
+  useEffect(() => {
+    if (labResults && labResults.length > 0) {
+      const lab = labResults[0]; // Use the latest lab result
+      setClinical(prev => {
+        const mapped = mapLabResultToClinical(lab);
+        return {
+          ...prev,
+          hematologyTests: typeof mapped.hematologyTests === 'function'
+            ? (mapped.hematologyTests as any)(prev.hematologyTests)
+            : prev.hematologyTests,
+          fluidAnalysis: typeof mapped.fluidAnalysis === 'function'
+            ? (mapped.fluidAnalysis as any)(prev.fluidAnalysis)
+            : prev.fluidAnalysis,
+        };
+      });
+    }
+  }, [labResults]);
 
   // Logic: ICM 2018 Scoring
   useEffect(() => {
@@ -25,40 +108,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
     }
   }, [demographics.surgeryDate, demographics.symptomDate, demographics.isAcute, setDemographics]);
 
-  const [isAILoading, setIsAILoading] = React.useState(false);
-
-  const handleAIPredict = () => {
-    setIsAILoading(true);
-    // Simulate sending data to AI and receiving response
-    setTimeout(() => {
-      setClinical(prev => ({
-        ...prev,
-        diagnosis: {
-          score: 85,
-          probability: 85,
-          status: 'Infected',
-          reasoning: [
-            'Dựa trên dữ liệu cấy khuẩn và các xét nghiệm sinh hóa, mô hình AI đánh giá nguy cơ cao.',
-            'Các chỉ số lâm sàng và tiền sử bệnh nhân chỉ ra khả năng nhiễm trùng khớp nhân tạo.'
-          ]
-        }
-      }));
-      setIsAILoading(false);
-    }, 1500);
-  };
-
-  const getStatusColor = (status: string) => {
-    if (status === 'Infected') return 'text-danger';
-    if (status === 'Inconclusive') return 'text-warning';
-    return 'text-success';
-  };
-
-
-  const getStatusTextDetailed = (status: string) => {
-    if (status === 'Infected') return 'Nguy cơ cao PJI';
-    if (status === 'Inconclusive') return 'Chưa xác định';
-    return 'Không nhiễm trùng';
-  }
 
 
   const getTestStatus = (result: string, normalRange: string) => {

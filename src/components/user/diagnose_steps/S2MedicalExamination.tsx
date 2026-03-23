@@ -1,29 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { IEpisode } from '@/types/backend';
+
+export interface EpisodeFormData {
+    arrivalTime: string;
+    dischargeTime: string;
+    department: string;
+    admissionMethod: string;
+    reason: string;
+    referralSource: string;
+    treatmentDays: string;
+    treatmentResult: string;
+    status: string;
+}
+
+const emptyFormData: EpisodeFormData = {
+    arrivalTime: '',
+    dischargeTime: '',
+    department: '',
+    admissionMethod: '',
+    reason: '',
+    referralSource: '',
+    treatmentDays: '',
+    treatmentResult: '',
+    status: '',
+};
+
+function episodeToFormData(ep: IEpisode): EpisodeFormData {
+    return {
+        arrivalTime: ep.admissionDate ?? '',
+        dischargeTime: ep.dischargeDate ?? '',
+        department: ep.department ?? '',
+        admissionMethod: ep.direct ?? '',
+        reason: ep.reason ?? '',
+        referralSource: ep.referralSource ?? '',
+        treatmentDays: ep.treatmentDays != null ? String(ep.treatmentDays) : '',
+        treatmentResult: ep.result ?? '',
+        status: ep.status ?? '',
+    };
+}
+
+export function formDataToEpisodeRequest(form: EpisodeFormData) {
+    return {
+        admissionDate: form.arrivalTime || undefined,
+        dischargeDate: form.dischargeTime || undefined,
+        department: form.department || undefined,
+        direct: form.admissionMethod || undefined,
+        reason: form.reason || undefined,
+        referralSource: form.referralSource || undefined,
+        treatmentDays: form.treatmentDays ? Number(form.treatmentDays) : undefined,
+        result: form.treatmentResult || undefined,
+        status: form.status || undefined,
+    };
+}
 
 interface MedicalExaminationProps {
     onNext?: () => void;
     onPrev?: () => void;
     mode?: 'wizard' | 'standalone';
+    episodeData?: IEpisode | null;
+    onFormChange?: (data: EpisodeFormData) => void;
 }
 
-export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, onPrev, mode = 'wizard' }) => {
-    const [formData, setFormData] = useState({
-        arrivalTime: '',
-        dischargeTime: '',
-        department: '',
-        admissionMethod: '',
-        referralSource: '',
-        treatmentDays: '',
-        treatmentResult: '',
-        transferredTo: '',
-    });
+export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, onPrev, mode = 'wizard', episodeData, onFormChange }) => {
+    const [formData, setFormData] = useState<EpisodeFormData>(
+        episodeData ? episodeToFormData(episodeData) : emptyFormData
+    );
+
+    useEffect(() => {
+        console.log('episodeData', episodeData);
+        setFormData(episodeData ? episodeToFormData(episodeData) : emptyFormData);
+    }, [episodeData]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+        setFormData(prev => {
+            const next = { ...prev, [name]: value };
+            onFormChange?.(next);
+            return next;
+        });
     };
 
     return (
@@ -41,26 +95,22 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Thời gian vào viện <span className="text-red-500">*</span></span>
-                                <input name="arrivalTime" value={formData.arrivalTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="datetime-local" />
+                                <input name="arrivalTime" value={formData.arrivalTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="date" />
                             </label>
 
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Thời gian ra viện <span className="text-red-500">*</span></span>
-                                <input name="dischargeTime" value={formData.dischargeTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="datetime-local" />
+                                <input name="dischargeTime" value={formData.dischargeTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="date" />
                             </label>
                             <label className="flex flex-col col-span-2">
                                 <span className="text-sm font-medium text-slate-700">Lý do vào viện</span>
-                                <input name="referralSource" value={formData.referralSource} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: Bị đau và hạn chế..." type="text" />
+                                <input name="reason" value={formData.reason} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: Bị đau và hạn chế..." type="text" />
                             </label>
 
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Khoa tiếp nhận <span className="text-red-500">*</span></span>
-                                <select name="department" value={formData.department} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
-                                    <option value="" disabled>-- Khoa tiếp nhận --</option>
-                                    <option value="B1C">B1-C</option>
-                                    <option value="B2C">B2-C</option>
-                                    <option value="B3C">B3-C</option>
-                                </select>
+                                <input name="department" value={formData.department} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: Bị đau và hạn chế..." type="text" />
+
                             </label>
 
                             <label className="flex flex-col gap-1.5">
@@ -85,19 +135,13 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
 
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Kết quả điều trị <span className="text-red-500">*</span></span>
-                                <select name="treatmentResult" value={formData.treatmentResult} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
-                                    <option value="" disabled>-- Kết quả điều trị --</option>
-                                    <option value="good">Khỏi</option>
-                                    <option value="normal">Đỡ, giảm nhẹ</option>
-                                    <option value="bad">Không thay đổi</option>
-                                    <option value="worse">Nặng hơn</option>
-                                    <option value="die">Tử vong</option>
-                                </select>
+
+                                <input name="treatmentResult" value={formData.treatmentResult} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" placeholder="VD: Done" type="text" />
                             </label>
 
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ <span className="text-red-500">*</span></span>
-                                <select name="treatmentResult" value={formData.treatmentResult} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
+                                <select name="status" value={formData.status} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
                                     <option value="" disabled>-- Trạng thái hồ sơ --</option>
                                     <option value="normal">Đang điều trị</option>
                                     <option value="bad">Hoàn thành</option>

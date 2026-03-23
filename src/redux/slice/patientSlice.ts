@@ -1,6 +1,12 @@
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { callFetchPatient } from '@/apis/api';
-import { IModelPaginate, IPatient } from '@/types/backend';
+import { IModelPaginate, IPatient, IEpisode } from '@/types/backend';
+import { Demographics } from '@/types/types';
+
+interface ICurrentCase {
+    patient: IPatient;
+    episode: IEpisode;
+}
 
 interface IState {
     isFetching: boolean;
@@ -10,7 +16,9 @@ interface IState {
         pages: number;
         total: number;
     },
-    result: IPatient[]
+    result: IPatient[];
+    currentCase: ICurrentCase | null;
+    demographics: Demographics;
 }
 // First, create the thunk
 export const fetchPatient = createAsyncThunk(
@@ -21,6 +29,44 @@ export const fetchPatient = createAsyncThunk(
     }
 )
 
+const defaultCharacteristic = { checked: false, note: '' };
+
+const defaultDemographics: Demographics = {
+    medicalHistory: '',
+    pastMedicalHistory: '',
+    surgeryDate: '',
+    symptomDate: '',
+    isAcute: false,
+    dob: '',
+    gender: '',
+    relatedCharacteristics: {
+        allergy: { ...defaultCharacteristic },
+        drugs: { ...defaultCharacteristic },
+        alcohol: { ...defaultCharacteristic },
+        smoking: { ...defaultCharacteristic },
+        other: { ...defaultCharacteristic },
+    },
+    surgicalHistory: [{ id: '1', surgeryDate: '', procedure: '', notes: '' }],
+};
+
+const loadDemographics = (): Demographics => {
+    try {
+        const saved = localStorage.getItem('pji_demographics');
+        return saved ? JSON.parse(saved) : defaultDemographics;
+    } catch {
+        return defaultDemographics;
+    }
+};
+
+const loadCurrentCase = (): ICurrentCase | null => {
+    try {
+        const saved = localStorage.getItem('pji_currentCase');
+        return saved ? JSON.parse(saved) : null;
+    } catch {
+        return null;
+    }
+};
+
 const initialState: IState = {
     isFetching: true,
     meta: {
@@ -29,7 +75,9 @@ const initialState: IState = {
         pages: 0,
         total: 0
     },
-    result: []
+    result: [],
+    currentCase: loadCurrentCase(),
+    demographics: loadDemographics(),
 };
 
 
@@ -37,11 +85,25 @@ export const patientSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        // Use the PayloadAction type to declare the contents of `action.payload`
         setActiveMenu: (state, action) => {
             // state.activeMenu = action.payload;
         },
-
+        setCurrentCase: (state, action: PayloadAction<ICurrentCase>) => {
+            state.currentCase = action.payload;
+            localStorage.setItem('pji_currentCase', JSON.stringify(action.payload));
+        },
+        clearCurrentCase: (state) => {
+            state.currentCase = null;
+            localStorage.removeItem('pji_currentCase');
+        },
+        setDemographics: (state, action: PayloadAction<Demographics>) => {
+            state.demographics = action.payload;
+            localStorage.setItem('pji_demographics', JSON.stringify(action.payload));
+        },
+        resetDemographics: (state) => {
+            state.demographics = defaultDemographics;
+            localStorage.removeItem('pji_demographics');
+        },
     },
     extraReducers: (builder) => {
         // Add reducers for additional action types here, and handle loading state as needed
@@ -73,6 +135,10 @@ export const patientSlice = createSlice({
 
 export const {
     setActiveMenu,
+    setCurrentCase,
+    clearCurrentCase,
+    setDemographics,
+    resetDemographics,
 } = patientSlice.actions;
 
 export default patientSlice.reducer;

@@ -1,54 +1,54 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button, Input, Table, message, Tag, Empty } from 'antd';
-import { SearchOutlined, CheckCircleOutlined } from '@ant-design/icons';
-import { callFetchPatient, callFetchMedicalExamByPatient } from '@/apis/api';
-import { IPatient, IMedicalExamFull } from '@/types/backend';
+import { SearchOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons';
+import { callFetchPatient, callFetchEpisodesByPatient } from '@/apis/api';
+import { IPatient, IEpisode } from '@/types/backend';
 import dayjs from 'dayjs';
 import { sfLike } from 'spring-filter-query-builder';
-import queryString from 'query-string';
+import { useAppDispatch } from '@/redux/hook';
+import { setCurrentCase } from '@/redux/slice/patientSlice';
 
 interface PatientExamSelectorProps {
     onNext: () => void;
+    searchValue: string;
+    setSearchValue: (v: string) => void;
+    patients: IPatient[];
+    setPatients: (v: IPatient[]) => void;
 }
 
-export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext }) => {
-    const [searchValue, setSearchValue] = useState('');
-    const [patients, setPatients] = useState<IPatient[]>([]);
+export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext, searchValue, setSearchValue, patients, setPatients }) => {
+    const dispatch = useAppDispatch();
+
     const [searchLoading, setSearchLoading] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState<IPatient | null>(null);
 
-    const [exams, setExams] = useState<IMedicalExamFull[]>([]);
+    const [exams, setExams] = useState<IEpisode[]>([]);
     const [examsLoading, setExamsLoading] = useState(false);
-    const [selectedExam, setSelectedExam] = useState<IMedicalExamFull | null>(null);
+    const [selectedExam, setSelectedExam] = useState<IEpisode | null>(null);
 
-    const handleSearch = async () => {
-        if (!searchValue.trim()) {
-            message.warning('Vui lòng nhập từ khóa tìm kiếm');
-            return;
-        }
-        setSearchLoading(true);
-        setSelectedPatient(null);
-        setSelectedExam(null);
-        setExams([]);
-        try {
-            const q: any = {
-                page: 0,
-                size: 20,
-                filter: `${sfLike('fullName', searchValue)}`,
-            };
-            const query = queryString.stringify(q);
-            const res = await callFetchPatient(query);
-            if (res?.data?.result) {
-                setPatients(res.data.result);
-            } else {
-                setPatients([]);
+    useEffect(() => {
+        const fetchFilms = async () => {
+            setSearchLoading(true);
+            let queryString = `page=0&size=5&`;
+            if (searchValue) {
+                queryString += `filter=${sfLike('identityCard', searchValue)}`
+                const res = await callFetchPatient(queryString);
+                if (res && res.data) {
+                    setPatients(res.data.result);
+                }
             }
-        } catch {
-            message.error('Lỗi khi tìm kiếm bệnh nhân');
-        } finally {
             setSearchLoading(false);
         }
-    };
+        fetchFilms();
+    }, [searchValue]);
+
+    const handleChangeVal = (e: { target: { value: string; } }) => {
+        setSearchValue(e.target.value)
+        if (e.target.value === '') {
+            setSearchValue('')
+            setPatients([])
+        }
+    }
 
     const handleSelectPatient = async (patient: IPatient) => {
         setSelectedPatient(patient);
@@ -57,7 +57,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
 
         setExamsLoading(true);
         try {
-            const res = await callFetchMedicalExamByPatient(patient.id, 'page=0&size=50&sort=createdAt,desc');
+            const res = await callFetchEpisodesByPatient(patient.id, 'page=0&size=50&sort=createdAt,desc');
             if (res?.data?.result) {
                 setExams(res.data.result);
             } else {
@@ -70,7 +70,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         }
     };
 
-    const handleSelectExam = (exam: IMedicalExamFull) => {
+    const handleSelectExam = (exam: IEpisode) => {
         setSelectedExam(exam);
     };
 
@@ -86,6 +86,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         // Store selection in localStorage for downstream steps
         localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
         localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
+        dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
         onNext();
     };
 
@@ -101,9 +102,9 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             key: 'patientCode',
         },
         {
-            title: 'SĐT',
-            dataIndex: 'phone',
-            key: 'phone',
+            title: 'Số CCCD',
+            dataIndex: 'identityCard',
+            key: 'identityCard',
         },
         {
             title: 'Ngày sinh',
@@ -116,15 +117,9 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     const examColumns = [
         {
             title: 'Ngày vào viện',
-            dataIndex: 'arrivalTime',
-            key: 'arrivalTime',
+            dataIndex: 'admissionDate',
+            key: 'admissionDate',
             render: (val: string) => val ? dayjs(val).format('DD/MM/YYYY HH:mm') : '—',
-        },
-        {
-            title: 'Khoa',
-            dataIndex: 'department',
-            key: 'department',
-            render: (val: string) => val || '—',
         },
         {
             title: 'Trạng thái',
@@ -137,13 +132,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                     default: return <Tag>{val || 'N/A'}</Tag>;
                 }
             },
-        },
-        {
-            title: 'Ngày tạo',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            render: (val: string) => val ? dayjs(val).format('DD/MM/YYYY') : '—',
-        },
+        }
     ];
 
     return (
@@ -153,20 +142,15 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                 <section>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Chọn bệnh nhân & bệnh án</h2>
                     <p className="text-slate-500 text-sm mb-6">Tìm kiếm bệnh nhân, sau đó chọn bệnh án để tiến hành chẩn đoán AI</p>
-
                     <div className="flex gap-3">
                         <Input
                             size="large"
-                            placeholder="Nhập tên, mã bệnh nhân hoặc SĐT..."
+                            placeholder="Nhập số CCCD của bệnh nhân"
                             value={searchValue}
-                            onChange={(e) => setSearchValue(e.target.value)}
-                            onPressEnter={handleSearch}
+                            onChange={handleChangeVal}
                             prefix={<SearchOutlined className="text-slate-400" />}
                             className="flex-1"
                         />
-                        <Button type="primary" size="large" onClick={handleSearch} loading={searchLoading}>
-                            Tìm kiếm
-                        </Button>
                     </div>
                 </section>
 
@@ -237,7 +221,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                         <div className="flex items-center gap-3">
                             <CheckCircleOutlined className="text-green-500 text-xl" />
                             <span className="text-green-900 font-semibold">
-                                Bệnh án đã chọn: #{selectedExam.id} — Ngày: {selectedExam.arrivalTime ? dayjs(selectedExam.arrivalTime).format('DD/MM/YYYY') : 'N/A'}
+                                Bệnh án đã chọn: #{selectedExam.id} — Ngày: {selectedExam.admissionDate ? dayjs(selectedExam.admissionDate).format('DD/MM/YYYY') : 'N/A'}
                             </span>
                         </div>
                         <Button type="primary" size="large" onClick={handleContinue}>

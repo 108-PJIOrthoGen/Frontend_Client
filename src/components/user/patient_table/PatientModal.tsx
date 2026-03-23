@@ -1,8 +1,9 @@
 import { callCreatePatient, callUpdatePatient } from '@/apis/api';
 import { IPatient } from '@/types/backend';
 import { ModalForm } from '@ant-design/pro-components';
-import { Col, DatePicker, DatePickerProps, Divider, Form, Input, message, Modal, notification, Row, Select } from 'antd';
+import { Col, DatePicker, DatePickerProps, Divider, Form, Input, message, notification, Row, Select } from 'antd';
 import dayjs from 'dayjs';
+import locale from 'antd/es/date-picker/locale/en_US';
 import { useEffect, useState } from 'react';
 
 interface IProps {
@@ -62,8 +63,8 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             //create
             const user = {
                 ...values,
-                dateOfBirth: values.dateOfBirth.format("YYYY-MM-DD"),
-                insuranceExpired: values.insuranceExpired.format("YYYY-MM-DD")
+                dateOfBirth: values.dateOfBirth.format("DD-MM-YYYY"),
+                insuranceExpired: values.insuranceExpired.format("DD-MM-YYYY")
             }
             const res = await callCreatePatient(user);
             if (res.data) {
@@ -131,7 +132,7 @@ const MPatientCreateAndUpdate = (props: IProps) => {
                                 name="dateOfBirth"
                                 rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
                             >
-                                <DatePicker format={"DD/MM/YYYY"} onChange={onChangeDate} needConfirm />
+                                <DatePicker locale={locale} format={"DD/MM/YYYY"} placeholder='Ngày sinh' onChange={onChangeDate} needConfirm />
                             </Form.Item>
                         </Col>
 
@@ -192,7 +193,7 @@ const MPatientCreateAndUpdate = (props: IProps) => {
                                 name="insuranceExpired"
                                 rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
                             >
-                                <DatePicker format={"DD/MM/YYYY"} onChange={onChangeDate} needConfirm />
+                                <DatePicker locale={locale} format={"DD/MM/YYYY"} placeholder='Ngày hết hạn' onChange={onChangeDate} needConfirm />
                             </Form.Item>
                         </Col>
                         <Col span={6}>
@@ -205,8 +206,8 @@ const MPatientCreateAndUpdate = (props: IProps) => {
                                 <Select
                                     // onChange={onChange}
                                     options={[
-                                        { value: 'MALE', label: <span>Nam</span> },
-                                        { value: 'FEMALE', label: <span>Nữ</span> },
+                                        { value: 'male', label: <span>Nam</span> },
+                                        { value: 'female', label: <span>Nữ</span> },
                                     ]}
                                 />
                             </Form.Item>

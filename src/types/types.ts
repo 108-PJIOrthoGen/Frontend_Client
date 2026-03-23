@@ -1,44 +1,4 @@
-export interface PatientDemographics {
-  id: string;
-  name: string;
-  mrn: string;
-  dob: string;
-  gender: string;
-  phone: string;
-  address: string;
-  height: number;
-  weight: number;
-  bmi: number;
-  surgeryDate: string;
-  symptomDate: string;
-  isAcute: boolean;
-  implantType: 'THA' | 'TKA';
-  fixationType: string;
-  implantNature: 'Primary' | 'Revision';
-  comorbidities: {
-    diabetes: boolean;
-    smoking: boolean;
-    immunosuppression: boolean;
-    priorInfection: boolean;
-    malnutrition: boolean;
-    liverDisease: boolean;
-  };
-  medicalHistory: string;
-  pastMedicalHistory: string;
-  relatedCharacteristics: {
-    allergy: { checked: boolean; note: string };
-    drugs: { checked: boolean; note: string };
-    alcohol: { checked: boolean; note: string };
-    smoking: { checked: boolean; note: string };
-    other: { checked: boolean; note: string };
-  };
-  surgicalHistory: {
-    id: string;
-    surgeryDate: string;
-    procedure: string;
-    notes: string;
-  }[];
-}
+
 
 export interface CultureSample {
   id: string;
@@ -96,12 +56,6 @@ export interface ClinicalAssessment {
 
   fluidAnalysis: TestItem[];  // For Cấy khuẩn and Nhuộm Gram only
   cultureSamples: CultureSample[];
-  diagnosis: {
-    score: number;
-    probability: number;
-    status: 'Infected' | 'Inconclusive' | 'Not Infected';
-    reasoning: string[];
-  };
 }
 
 export interface LabResult {
@@ -124,6 +78,36 @@ export interface TreatmentPlan {
   citation: string;
   confidence: number;
 }
+export interface SurgicalHistoryRow {
+  id: string;
+  surgeryDate: string;
+  procedure: string;
+  notes: string;
+}
+
+export interface RelatedCharacteristic {
+  checked: boolean;
+  note: string;
+}
+
+export interface Demographics {
+  medicalHistory: string;
+  pastMedicalHistory: string;
+  surgeryDate: string;
+  symptomDate: string;
+  isAcute: boolean;
+  dob: string;
+  gender: string;
+  relatedCharacteristics: {
+    allergy: RelatedCharacteristic;
+    drugs: RelatedCharacteristic;
+    alcohol: RelatedCharacteristic;
+    smoking: RelatedCharacteristic;
+    other: RelatedCharacteristic;
+  };
+  surgicalHistory: SurgicalHistoryRow[];
+}
+
 export type RiskLevel = "Thấp" | "Trung bình" | "Cao";
 export type SurgeryStatus = "Đề xuất" | "Bắt buộc" | "Tùy chọn";
 export interface SurgeryStep {

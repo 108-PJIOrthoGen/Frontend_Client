@@ -1,21 +1,49 @@
-import React, { useState } from 'react';
-import { Button } from 'antd';
-import { SaveOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { ICultureResult, ISensitivityResult } from '@/types/backend';
+
+export interface AntibioticRow {
+    name: string;
+    mic: string;
+    interpretation: string;
+    notes: string;
+}
 
 interface Step4Props {
     onNext?: () => void;
     onPrev?: () => void;
     mode?: 'wizard' | 'standalone';
+    cultureResults?: ICultureResult[];
+    sensitivityMap?: Record<string, ISensitivityResult[]>;
+    onAntibioticsChange?: (rows: AntibioticRow[]) => void;
 }
 
-export const Step4Antibiogram: React.FC<Step4Props> = ({ onNext, onPrev, mode = 'wizard' }) => {
-    // Mock data for Antibiogram
-    const initialAntibiotics = [
+export const Step4Antibiogram: React.FC<Step4Props> = ({ onNext, onPrev, mode = 'wizard', cultureResults, sensitivityMap, onAntibioticsChange }) => {
+    const initialAntibiotics: AntibioticRow[] = [
         { name: '', mic: '', interpretation: '', notes: '' },
-
     ];
 
-    const [antibiotics, setAntibiotics] = useState(initialAntibiotics);
+    const [antibiotics, setAntibiotics] = useState<AntibioticRow[]>(initialAntibiotics);
+    const [activeCulture, setActiveCulture] = useState<ICultureResult | null>(null);
+
+    // Populate from API data
+    useEffect(() => {
+        if (cultureResults && cultureResults.length > 0) {
+            setActiveCulture(cultureResults[0]);
+            const firstCultureId = cultureResults[0].id;
+            if (firstCultureId && sensitivityMap?.[firstCultureId]) {
+                const rows = sensitivityMap[firstCultureId].map(s => ({
+                    name: s.antibioticName ?? '',
+                    mic: s.micValue ?? '',
+                    interpretation: s.sensitivityCode ?? '',
+                    notes: '',
+                }));
+                setAntibiotics(rows.length > 0 ? rows : initialAntibiotics);
+            }
+        } else {
+            setActiveCulture(null);
+            setAntibiotics(initialAntibiotics);
+        }
+    }, [cultureResults, sensitivityMap]);
 
     const getInterpretationColor = (val: string) => {
         if (val === 'R') return 'bg-red-100 text-red-700 border-red-200';
@@ -23,6 +51,11 @@ export const Step4Antibiogram: React.FC<Step4Props> = ({ onNext, onPrev, mode = 
         if (val === 'I') return 'bg-yellow-100 text-yellow-700 border-yellow-200';
         return 'bg-slate-100 text-slate-700 border-slate-200';
     };
+
+    // Notify parent of changes
+    useEffect(() => {
+        onAntibioticsChange?.(antibiotics);
+    }, [antibiotics]);
 
     return (
         <div className="flex flex-col h-full bg-slate-50 relative pb-24">
@@ -50,8 +83,15 @@ export const Step4Antibiogram: React.FC<Step4Props> = ({ onNext, onPrev, mode = 
                     <section className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                         <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
                             <div>
-                                <h3 className="font-bold text-slate-800 text-base">Vi khuẩn phân lập: <span className="text-red-600">Staphylococcus aureus</span> (MRSA)</h3>
-                                <p className="text-xs text-slate-500 mt-1">Mẫu cấy: Dịch khớp gối - Ngày cấy: 2026-02-25</p>
+                                <h3 className="font-bold text-slate-800 text-base">
+                                    Vi khuẩn phân lập: {activeCulture?.name
+                                        ? <span className="text-red-600">{activeCulture.name}</span>
+                                        : <span className="text-slate-400">Chưa có dữ liệu</span>
+                                    }
+                                </h3>
+                                <p className="text-xs text-slate-500 mt-1">
+                                    Mẫu cấy: {activeCulture?.sampleType || '—'} - Ngày cấy: {activeCulture?.createdAt?.slice(0, 10) || '—'}
+                                </p>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
                                 <div className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-100 border border-green-200"></span>S (Susceptible)</div>

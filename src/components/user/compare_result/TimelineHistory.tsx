@@ -1,138 +1,158 @@
 import React from 'react';
+import { IAiRecommendationRun } from '@/types/backend';
+import dayjs from 'dayjs';
 
-const TimelineHistory: React.FC = () => {
+interface TimelineHistoryProps {
+    runs: IAiRecommendationRun[];
+    selectedRunId: string | null;
+    onSelectRun: (runId: string) => void;
+}
+
+const MAX_RECOMMENDED_RUNS = 3;
+
+const TimelineHistory: React.FC<TimelineHistoryProps> = ({ runs, selectedRunId, onSelectRun }) => {
+
+    const getRunStatusConfig = (run: IAiRecommendationRun, index: number) => {
+        const isLatest = index === 0;
+        const isSelected = run.id === selectedRunId;
+
+        switch (run.status) {
+            case 'completed':
+                if (isLatest) return {
+                    dotBorder: 'border-blue-600',
+                    cardBorder: isSelected ? 'border-blue-300 shadow-[0_4px_12px_rgba(37,99,235,0.1)]' : 'border-[#dbe3ef]',
+                    cardBg: isSelected ? 'bg-blue-50/50' : 'bg-[#fbfdff]',
+                    badge: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Mới nhất' },
+                    titleColor: isSelected ? 'text-blue-900' : 'text-[#1b2430]',
+                    timeColor: isSelected ? 'text-blue-500 font-medium' : 'text-[#607086]',
+                };
+                return {
+                    dotBorder: 'border-slate-400',
+                    cardBorder: isSelected ? 'border-blue-300 shadow-[0_4px_12px_rgba(37,99,235,0.1)]' : 'border-[#dbe3ef]',
+                    cardBg: isSelected ? 'bg-blue-50/50' : 'bg-[#fbfdff]',
+                    badge: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Hoàn thành' },
+                    titleColor: 'text-[#1b2430]',
+                    timeColor: 'text-[#607086]',
+                };
+            case 'failed':
+                return {
+                    dotBorder: 'border-red-500',
+                    cardBorder: isSelected ? 'border-red-300' : 'border-red-200',
+                    cardBg: 'bg-red-50/30',
+                    badge: { bg: 'bg-red-100', text: 'text-red-700', label: 'Thất bại' },
+                    titleColor: 'text-red-800',
+                    timeColor: 'text-red-400',
+                };
+            case 'processing':
+            case 'pending':
+                return {
+                    dotBorder: 'border-amber-500',
+                    cardBorder: 'border-amber-200',
+                    cardBg: 'bg-amber-50/30',
+                    badge: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Đang xử lý' },
+                    titleColor: 'text-amber-800',
+                    timeColor: 'text-amber-400',
+                };
+            default:
+                return {
+                    dotBorder: 'border-slate-300',
+                    cardBorder: isSelected ? 'border-blue-300' : 'border-[#dbe3ef]',
+                    cardBg: 'bg-[#fbfdff]',
+                    badge: { bg: 'bg-slate-100', text: 'text-slate-600', label: run.status || 'N/A' },
+                    titleColor: 'text-[#1b2430]',
+                    timeColor: 'text-[#607086]',
+                };
+        }
+    };
+
     return (
         <div className="bg-white border border-[#dbe3ef] rounded-[18px] shadow-[0_10px_30px_rgba(16,24,40,0.08)] h-fit">
+            {/* Header */}
             <div className="p-[18px_20px] border-b border-[#dbe3ef] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-bold">Lịch sử gợi ý & quyết định điều trị</h2>
-                <div className="text-[13px] text-[#607086]">Timeline </div>
+                <h2 className="m-0 text-lg font-bold">Lịch sử gợi ý AI</h2>
+                <div className="flex items-center gap-2">
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${runs.length > MAX_RECOMMENDED_RUNS
+                        ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                        {runs.length} lần chạy
+                    </span>
+                </div>
             </div>
+
+            {/* Timeline */}
             <div className="p-[18px_20px]">
                 <div className="relative pl-[18px] before:absolute before:left-[7px] before:top-[8px] before:bottom-[8px] before:w-[2px] before:bg-[#d6e0ef]">
-                    <div className="relative pl-[18px] mb-[18px] last:mb-0">
-                        <div className="absolute left-[-1px] top-[6px] w-4 h-4 rounded-full bg-white border-4 border-blue-600 z-10"></div>
-                        <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fbfdff]">
-                            <div className="flex justify-between gap-2.5 items-start mb-2.5">
-                                <div>
-                                    <h3 className="m-0 text-[15px] font-bold">AI gợi ý lần 1</h3>
-                                    <span className="text-[11px] font-bold py-1 px-2.5 rounded-full inline-block bg-[#e8f0ff] text-[#1d4ed8] mt-1">AI Recommendation</span>
+                    {runs.map((run, index) => {
+                        const config = getRunStatusConfig(run, index);
+                        const runNumber = runs.length - index;
+                        const isSelected = run.id === selectedRunId;
+                        const isClickable = run.status === 'completed' && run.id;
+
+                        return (
+                            <div key={run.id || index} className="relative pl-[18px] mb-[18px] last:mb-0">
+                                {/* Timeline dot */}
+                                <div className={`absolute left-[-1px] top-[6px] w-4 h-4 rounded-full bg-white border-4 ${config.dotBorder} z-10 ${isSelected ? 'scale-125' : ''} transition-transform`}></div>
+
+                                {/* Card */}
+                                <div
+                                    className={`border ${config.cardBorder} rounded-2xl p-[14px] ${config.cardBg} ${isClickable ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${isSelected ? 'ring-2 ring-blue-200' : ''}`}
+                                    onClick={() => isClickable && onSelectRun(run.id!)}
+                                >
+                                    {/* Header row */}
+                                    <div className="flex justify-between gap-2.5 items-start mb-2.5">
+                                        <div>
+                                            <h3 className={`m-0 text-[15px] font-bold ${config.titleColor}`}>
+                                                AI gợi ý lần {runNumber}
+                                            </h3>
+                                            <span className={`text-[11px] font-bold py-1 px-2.5 rounded-full inline-block ${config.badge.bg} ${config.badge.text} mt-1`}>
+                                                {config.badge.label}
+                                            </span>
+                                        </div>
+                                        <div className={`text-xs ${config.timeColor} whitespace-nowrap`}>
+                                            {run.createdAt ? dayjs(run.createdAt).format('HH:mm • DD/MM/YYYY') : '—'}
+                                        </div>
+                                    </div>
+
+                                    {/* Run info */}
+                                    <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
+                                        <div className="text-[#607086]">Trạng thái</div>
+                                        <div className={`font-medium ${run.status === 'completed' ? 'text-emerald-600' : run.status === 'failed' ? 'text-red-600' : 'text-amber-600'}`}>
+                                            {run.status === 'completed' ? 'Hoàn thành' : run.status === 'failed' ? 'Thất bại' : run.status === 'processing' ? 'Đang xử lý' : run.status || '—'}
+                                        </div>
+                                    </div>
+
+                                    {run.updatedAt && run.createdAt && (
+                                        <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
+                                            <div className="text-[#607086]">Thời gian xử lý</div>
+                                            <div className="font-medium text-[#1b2430]">
+                                                {dayjs(run.updatedAt).diff(dayjs(run.createdAt), 'second')}s
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Action buttons */}
+                                    {isClickable && (
+                                        <div className="flex gap-2 flex-wrap mt-3">
+                                            <div className={`py-1.5 px-2.5 border rounded-[10px] text-xs font-semibold transition-colors ${isSelected
+                                                ? 'border-blue-300 bg-blue-50 text-blue-700'
+                                                : 'border-[#dbe3ef] bg-white hover:bg-slate-50 text-[#1b2430]'
+                                                }`}>
+                                                {isSelected ? 'Đang xem' : 'Xem chi tiết'}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="text-xs text-[#607086] whitespace-nowrap">09:10 • 11/03/2026</div>
                             </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Phác đồ chính</div>
-                                <div className="font-medium text-[#1b2430]">Cefazolin 2g q8h IV</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Mức nghi ngờ PJI</div>
-                                <div className="font-medium text-[#b45309]">Cao</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Độ đầy đủ dữ liệu</div>
-                                <div className="font-medium text-[#1b2430]">68%</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Tình trạng</div>
-                                <div className="font-medium text-[#1b2430]">Chưa review</div>
-                            </div>
-                            <div className="flex gap-2 flex-wrap mt-3">
-                                <div className="py-1.5 px-2.5 border border-[#dbe3ef] rounded-[10px] bg-white text-xs font-semibold cursor-pointer hover:bg-slate-50">Xem chi tiết</div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative pl-[18px] mb-[18px] last:mb-0">
-                        <div className="absolute left-[-1px] top-[6px] w-4 h-4 rounded-full bg-white border-4 border-blue-600 z-10"></div>
-                        <div className="border border-blue-200 shadow-[0_4px_12px_rgba(37,99,235,0.08)] rounded-2xl p-[14px] bg-[#f8faff]">
-                            <div className="flex justify-between gap-2.5 items-start mb-2.5">
-                                <div>
-                                    <h3 className="m-0 text-[15px] font-bold text-blue-900">AI gợi ý lần 2</h3>
-                                    <span className="text-[11px] font-bold py-1 px-2.5 rounded-full inline-block bg-blue-100 text-blue-700 mt-1">AI Recommendation (Current)</span>
-                                </div>
-                                <div className="text-xs text-blue-500 whitespace-nowrap font-medium">11:42 • 11/03/2026</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Phác đồ chính</div>
-                                <div className="font-medium text-[#1b2430]">Vancomycin 15 mg/kg q24h IV</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Mức nghi ngờ PJI</div>
-                                <div className="font-medium text-[#b45309]">Cao</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Điểm đáng chú ý</div>
-                                <div className="font-medium text-[#1b2430]">Có kết quả cấy dịch khớp: MRSA</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Tình trạng</div>
-                                <div className="font-medium text-[#0f766e]">Đang được review</div>
-                            </div>
-                            <div className="flex gap-2 flex-wrap mt-3">
-                                <div className="py-1.5 px-2.5 border border-[#dbe3ef] rounded-[10px] bg-white text-xs font-semibold cursor-pointer hover:bg-slate-50">Xem chi tiết</div>
-
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative pl-[18px] mb-[18px] last:mb-0">
-                        <div className="absolute left-[-1px] top-[6px] w-4 h-4 rounded-full bg-white border-4 border-[#b45309] z-10"></div>
-                        <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fbfdff]">
-                            <div className="flex justify-between gap-2.5 items-start mb-2.5">
-                                <div>
-                                    <h3 className="m-0 text-[15px] font-bold">Bác sĩ chỉnh sửa</h3>
-                                    <span className="text-[11px] font-bold py-1 px-2.5 rounded-full inline-block bg-[#fff2e2] text-[#b45309] mt-1">Doctor Review</span>
-                                </div>
-                                <div className="text-xs text-[#607086] whitespace-nowrap">12:05 • 11/03/2026</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Hành động</div>
-                                <div className="font-medium text-[#b45309]">Modified</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Nội dung sửa</div>
-                                <div className="font-medium text-[#1b2430]">Giảm khoảng cách liều theo eGFR</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Lý do</div>
-                                <div className="font-medium text-[#1b2430]">Chức năng thận giảm, cần hạn chế độc tính</div>
-                            </div>
-
-                        </div>
-                    </div>
-
-                    <div className="relative pl-[18px] mb-[18px] last:mb-0">
-                        <div className="absolute left-[-1px] top-[6px] w-4 h-4 rounded-full bg-white border-4 border-[#0f766e] z-10"></div>
-                        <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fbfdff]">
-                            <div className="flex justify-between gap-2.5 items-start mb-2.5">
-                                <div>
-                                    <h3 className="m-0 text-[15px] font-bold">Phác đồ cuối đã xác nhận</h3>
-                                    <span className="text-[11px] font-bold py-1 px-2.5 rounded-full inline-block bg-[#e7f8ef] text-[#0f766e] mt-1">Final Plan</span>
-                                </div>
-                                <div className="text-xs text-[#607086] whitespace-nowrap">12:15 • 11/03/2026</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Phác đồ hiện hành</div>
-                                <div className="font-medium text-[#1b2430]">Vancomycin 15 mg/kg q24h IV</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Người xác nhận</div>
-                                <div className="font-medium text-[#1b2430]">BS. Hương</div>
-                            </div>
-                            <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
-                                <div className="text-[#607086]">Theo dõi thêm</div>
-                                <div className="font-medium text-[#1b2430]">Creatinine mỗi 48 giờ</div>
-                            </div>
-                            <div className="flex gap-2 flex-wrap mt-3">
-                                <div className="py-1.5 px-2.5 border border-[#dbe3ef] rounded-[10px] bg-white text-xs font-semibold cursor-pointer hover:bg-slate-50">Xem bản xác nhận</div>
-                                <div className="py-1.5 px-2.5 border border-[#dbe3ef] rounded-[10px] bg-white text-xs font-semibold cursor-pointer hover:bg-slate-50">In hội chẩn</div>
-                            </div>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
-                <div className="mt-2.5 text-[11px] text-[#607086] italic text-center border-t border-slate-100 pt-3">
-                    Chú ý: Số lần gợi ý tạo phác đồ không nên vượt quá 3 lần để tránh gây nhiễu cho trong quá trình đưa ra quyết định cuối cùng của bác sĩ.
-                </div>
+
+                {/* Footer note */}
+                {runs.length >= MAX_RECOMMENDED_RUNS && (
+                    <div className="mt-3 text-[11px] text-amber-600 italic text-center border-t border-slate-100 pt-3 bg-amber-50/50 -mx-[20px] -mb-[18px] px-[20px] pb-3 rounded-b-[18px]">
+                        Đã đạt {MAX_RECOMMENDED_RUNS} lần gợi ý. Khuyến nghị không tạo thêm để tránh gây nhiễu quyết định lâm sàng.
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -1,45 +1,222 @@
-import React from 'react';
-import { Drawer, Tabs, Button, message } from 'antd';
+import React, { useEffect, useState, useRef } from 'react';
+import { Drawer, Tabs, Button, Spin, message, notification } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
-import { MedicalExamination } from '../diagnose_steps/S2MedicalExamination';
-import { MedicalHistoryPage } from '../diagnose_steps/MedicalHistory';
-import { ClinicalAssessmentPage } from '../diagnose_steps/ClinicalAssessment';
-import { Step4Antibiogram } from '../diagnose_steps/S4Antibiogram';
-import { IMedicalExamFull } from '@/types/backend';
+import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest } from '../diagnose_steps/S2MedicalExamination';
+import { MedicalHistoryPage, demoToMedicalHistoryRequest, demoToSurgeryRequests } from './MedicalHistory';
+import { ClinicalAssessmentPage } from './ClinicalAssessment';
+import { Step4Antibiogram, AntibioticRow } from '../diagnose_steps/S4Antibiogram';
+import {
+    IEpisode,
+    ILabResult,
+    IClinicalRecord,
+    ICultureResult,
+    ISensitivityResult,
+    IMedicalHistory,
+    ISurgery,
+} from '@/types/backend';
+import {
+    callCreateEpisode,
+    callUpdateEpisode,
+    callFetchLabResultsByEpisode,
+    callFetchClinicalRecordsByEpisode,
+    callFetchCultureResultsByEpisode,
+    callFetchSensitivityResultsByCulture,
+    callFetchMedicalHistory,
+    callFetchSurgeriesByEpisode,
+    callCreateMedicalHistory,
+    callUpdateMedicalHistory,
+    callCreateSurgery,
+} from '@/apis/api';
+import { useDemographics, useAppDispatch } from '@/redux/hook';
+import { resetDemographics } from '@/redux/slice/patientSlice';
+import { usePatient } from '@/context/PatientContext';
 
 interface MedicalExamDetailProps {
     open: boolean;
     onClose: () => void;
-    examData: IMedicalExamFull | null;
+    examData: IEpisode | null;
+    patientId?: string;
 }
 
-const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData }) => {
+const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId }) => {
+    const [loading, setLoading] = useState(false);
 
-    const handleSave = () => {
-        // TODO: call API to save exam data
-        message.success('Lưu bệnh án thành công!');
+    // Fetched data for tabs
+    const [labResults, setLabResults] = useState<ILabResult[]>([]);
+    const [clinicalRecord, setClinicalRecord] = useState<IClinicalRecord | null>(null);
+    const [cultureResults, setCultureResults] = useState<ICultureResult[]>([]);
+    const [sensitivityMap, setSensitivityMap] = useState<Record<string, ISensitivityResult[]>>({});
+    const [medicalHistory, setMedicalHistory] = useState<IMedicalHistory | null>(null);
+    const [surgeries, setSurgeries] = useState<ISurgery[]>([]);
+
+    // Form data refs for saving
+    const episodeFormRef = useRef<EpisodeFormData | null>(null);
+    const antibioticsRef = useRef<AntibioticRow[]>([]);
+    const { demographics } = useDemographics();
+    const { resetClinical } = usePatient();
+    const dispatch = useAppDispatch();
+
+    // Fetch all data when opening an existing episode
+    useEffect(() => {
+        if (!open) return;
+
+        if (examData?.id) {
+            fetchAllData(examData.id);
+        } else {
+            // New episode — reset all
+            resetData();
+        }
+    }, [open, examData?.id]);
+
+    const resetData = () => {
+        setLabResults([]);
+        setClinicalRecord(null);
+        setCultureResults([]);
+        setSensitivityMap({});
+        setMedicalHistory(null);
+        setSurgeries([]);
+        dispatch(resetDemographics());
+        resetClinical();
+    };
+
+    const fetchAllData = async (episodeId: string) => {
+        setLoading(true);
+        try {
+            const [labRes, clinicalRes, cultureRes, mhRes, surgeryRes] = await Promise.all([
+                callFetchLabResultsByEpisode(episodeId, 'page=0&size=10&sort=updatedAt,desc'),
+                callFetchClinicalRecordsByEpisode(episodeId, 'page=0&size=1&sort=updatedAt,desc'),
+                callFetchCultureResultsByEpisode(episodeId, 'page=0&size=50'),
+                callFetchMedicalHistory(episodeId).catch(() => null),
+                callFetchSurgeriesByEpisode(episodeId, 'page=0&size=50&sort=surgeryDate,asc'),
+            ]);
+
+            const labs = labRes?.data?.result ?? [];
+            setLabResults(labs);
+
+            const records = clinicalRes?.data?.result ?? [];
+            setClinicalRecord(records.length > 0 ? records[0] : null);
+
+            const cultures = cultureRes?.data?.result ?? [];
+            setCultureResults(cultures);
+
+            // Fetch sensitivity results for each culture
+            const sensMap: Record<string, ISensitivityResult[]> = {};
+            await Promise.all(
+                cultures.map(async (c) => {
+                    if (!c.id) return;
+                    try {
+                        const sensRes = await callFetchSensitivityResultsByCulture(c.id, 'page=0&size=100');
+                        sensMap[c.id] = sensRes?.data?.result ?? [];
+                    } catch { /* ignore */ }
+                })
+            );
+            setSensitivityMap(sensMap);
+
+            setMedicalHistory(mhRes?.data ?? null);
+            setSurgeries(surgeryRes?.data?.result ?? []);
+        } catch {
+            message.error('Không thể tải dữ liệu bệnh án');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSave = async () => {
+        try {
+            let episodeId = examData?.id;
+
+            // 1. Save/create episode
+            const episodePayload = episodeFormRef.current
+                ? formDataToEpisodeRequest(episodeFormRef.current)
+                : {};
+
+            const resolvedPatientId = patientId ? Number(patientId) : examData?.patientId;
+
+            if (episodeId) {
+                const res = await callUpdateEpisode(episodeId, { ...episodePayload, patientId: resolvedPatientId ? Number(resolvedPatientId) : undefined });
+                if (!res.data) {
+                    notification.error({ message: 'Có lỗi xảy ra', description: res.message });
+                    return;
+                }
+            } else {
+                const res = await callCreateEpisode({
+                    ...episodePayload,
+                    patientId: resolvedPatientId ? Number(resolvedPatientId) : undefined,
+                });
+                if (res.data?.id) {
+                    episodeId = res.data.id;
+                } else {
+                    notification.error({ message: 'Có lỗi xảy ra', description: res.message });
+                    return;
+                }
+            }
+
+            // 2. Save medical history
+            const mhPayload = demoToMedicalHistoryRequest(demographics);
+            if (medicalHistory?.id) {
+                await callUpdateMedicalHistory(episodeId!, mhPayload);
+            } else {
+                await callCreateMedicalHistory(episodeId!, mhPayload);
+            }
+
+            // 3. Save surgeries
+            const surgeryPayloads = demoToSurgeryRequests(demographics);
+            for (const sp of surgeryPayloads) {
+                await callCreateSurgery({ ...sp, episodeId: Number(episodeId) });
+            }
+
+            message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
+            onClose();
+        } catch {
+            message.error('Không thể lưu bệnh án');
+        }
     };
 
     const tabItems = [
         {
             key: '1',
             label: 'Quản lý bệnh án',
-            children: <MedicalExamination mode="standalone" />,
+            children: (
+                <MedicalExamination
+                    mode="standalone"
+                    episodeData={examData}
+                    onFormChange={(data) => { episodeFormRef.current = data; }}
+                />
+            ),
         },
         {
             key: '2',
             label: 'Tiền sử bệnh',
-            children: <MedicalHistoryPage mode="standalone" />,
+            children: (
+                <MedicalHistoryPage
+                    mode="standalone"
+                    medicalHistoryData={medicalHistory}
+                    surgeriesData={surgeries}
+                />
+            ),
         },
         {
             key: '3',
             label: 'Lâm sàng & CLS',
-            children: <ClinicalAssessmentPage mode="standalone" />,
+            children: (
+                <ClinicalAssessmentPage
+                    mode="standalone"
+                    labResults={labResults}
+                    clinicalRecord={clinicalRecord}
+                />
+            ),
         },
         {
             key: '4',
             label: 'Kháng sinh đồ',
-            children: <Step4Antibiogram mode="standalone" />,
+            children: (
+                <Step4Antibiogram
+                    mode="standalone"
+                    cultureResults={cultureResults}
+                    sensitivityMap={sensitivityMap}
+                    onAntibioticsChange={(rows) => { antibioticsRef.current = rows; }}
+                />
+            ),
         },
     ];
 
@@ -54,21 +231,28 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             open={open}
             onClose={onClose}
             width="85%"
+            destroyOnClose
             footer={
                 <div className="flex justify-end gap-3 py-2">
                     <Button onClick={onClose}>Đóng</Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave}>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={loading}>
                         Lưu bệnh án
                     </Button>
                 </div>
             }
         >
-            <Tabs
-                defaultActiveKey="1"
-                items={tabItems}
-                type="card"
-                className="medical-exam-tabs"
-            />
+            {loading ? (
+                <div className="flex items-center justify-center h-64">
+                    <Spin size="large" tip="Đang tải dữ liệu bệnh án..." />
+                </div>
+            ) : (
+                <Tabs
+                    defaultActiveKey="1"
+                    items={tabItems}
+                    type="card"
+                    className="medical-exam-tabs"
+                />
+            )}
         </Drawer>
     );
 };

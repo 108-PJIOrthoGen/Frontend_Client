@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Drawer, Table, Button, Tag, message, Space } from 'antd';
 import { PlusOutlined, FolderOpenOutlined } from '@ant-design/icons';
-import { IPatient, IMedicalExamFull } from '@/types/backend';
-import { callFetchMedicalExamByPatient } from '@/apis/api';
+import { IPatient, IEpisode } from '@/types/backend';
+import { callFetchEpisodesByPatient } from '@/apis/api';
 import dayjs from 'dayjs';
 import MedicalExamDetail from './MedicalExamDetail';
 
@@ -13,18 +13,18 @@ interface ManageMedicalDrawerProps {
 }
 
 const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose, patient }) => {
-    const [exams, setExams] = useState<IMedicalExamFull[]>([]);
+    const [episodes, setEpisodes] = useState<IEpisode[]>([]);
     const [loading, setLoading] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
-    const [selectedExam, setSelectedExam] = useState<IMedicalExamFull | null>(null);
+    const [selectedEpisode, setSelectedEpisode] = useState<IEpisode | null>(null);
 
-    const fetchExams = async () => {
+    const fetchEpisodes = async () => {
         if (!patient?.id) return;
         setLoading(true);
         try {
-            const res = await callFetchMedicalExamByPatient(patient.id, 'page=0&size=50&sort=createdAt,desc');
+            const res = await callFetchEpisodesByPatient(patient.id, 'page=0&size=50&sort=createdAt,desc');
             if (res?.data?.result) {
-                setExams(res.data.result);
+                setEpisodes(res.data.result);
             }
         } catch {
             message.error('Không thể tải danh sách bệnh án');
@@ -35,22 +35,22 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
 
     useEffect(() => {
         if (open && patient?.id) {
-            fetchExams();
+            fetchEpisodes();
         }
         if (!open) {
-            setExams([]);
+            setEpisodes([]);
         }
     }, [open, patient?.id]);
 
-    const handleOpenDetail = (exam: IMedicalExamFull | null) => {
-        setSelectedExam(exam);
+    const handleOpenDetail = (episode: IEpisode | null) => {
+        setSelectedEpisode(episode);
         setDetailOpen(true);
     };
 
     const handleCloseDetail = () => {
         setDetailOpen(false);
-        setSelectedExam(null);
-        fetchExams();
+        setSelectedEpisode(null);
+        fetchEpisodes();
     };
 
     const getStatusTag = (status?: string) => {
@@ -72,9 +72,9 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
         },
         {
             title: 'Ngày vào viện',
-            dataIndex: 'arrivalTime',
-            key: 'arrivalTime',
-            render: (val: string) => val ? dayjs(val).format('DD/MM/YYYY HH:mm') : '—',
+            dataIndex: 'admissionDate',
+            key: 'admissionDate',
+            render: (val: string) => val ? dayjs(val).format('DD/MM/YYYY') : '—',
         },
         {
             title: 'Khoa',
@@ -84,8 +84,8 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
         },
         {
             title: 'Kết quả điều trị',
-            dataIndex: 'treatmentResult',
-            key: 'treatmentResult',
+            dataIndex: 'result',
+            key: 'result',
             render: (val: string) => {
                 const map: Record<string, string> = {
                     good: 'Khỏi',
@@ -113,13 +113,13 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
             title: 'Thao tác',
             key: 'action',
             width: 100,
-            render: (_: any, record: IMedicalExamFull) => (
+            render: (_: any, record: IEpisode) => (
                 <Button
                     type="link"
                     icon={<FolderOpenOutlined />}
                     onClick={() => handleOpenDetail(record)}
                 >
-                    Xem
+                    Xem chi tiết
                 </Button>
             ),
         },
@@ -171,7 +171,7 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
 
                 {/* Medical Exams Table */}
                 <Table
-                    dataSource={exams}
+                    dataSource={episodes}
                     columns={columns}
                     rowKey="id"
                     loading={loading}
@@ -188,7 +188,8 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
             <MedicalExamDetail
                 open={detailOpen}
                 onClose={handleCloseDetail}
-                examData={selectedExam}
+                examData={selectedEpisode}
+                patientId={patient?.id}
             />
         </>
     );

@@ -2,16 +2,16 @@ import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Dropdown, MenuProps, Avatar, Image, message } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
-import { usePatient } from '../context/PatientContext';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
+import { RootState } from '@/redux/store';
 
 export const LayoutClient = () => {
-  const { demographics } = usePatient();
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.account?.user);
+  const currentCase = useSelector((state: RootState) => state.patient.currentCase);
 
   const handleLogout = async () => {
     // You can dispatch existing logout action here if you want
@@ -70,15 +70,39 @@ export const LayoutClient = () => {
           </div>
 
           {/* Current Case */}
-          <div className="mx-4 mb-6 mt-2 rounded-xl bg-slate-50 border border-slate-100 p-4">
+          <div className={`mx-4 mb-6 mt-2 rounded-xl p-4 ${
+            currentCase
+              ? 'bg-green-50 border border-green-200'
+              : 'bg-slate-50 border border-slate-100'
+          }`}>
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-xs">
-                {demographics.name.split(' ').map(n => n[0]).join('')}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
+                currentCase
+                  ? 'bg-green-200 text-green-700'
+                  : 'bg-slate-200 text-slate-500'
+              }`}>
+                {currentCase
+                  ? currentCase.patient.fullName?.split(' ').map(n => n[0]).join('') || '?'
+                  : <span className="material-symbols-outlined text-lg">person_off</span>
+                }
               </div>
               <div className="flex flex-col">
-                <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Ca bệnh hiện tại</span>
-                <h2 className="text-slate-900 text-sm font-bold">Ca số #{demographics.id}</h2>
-                <p className="text-primary text-xs font-medium mt-1">Đang chẩn đoán</p>
+                <span className={`text-xs uppercase tracking-wider font-semibold ${
+                  currentCase ? 'text-green-600' : 'text-slate-500'
+                }`}>Ca bệnh hiện tại</span>
+                {currentCase ? (
+                  <>
+                    <h2 className="text-green-900 text-sm font-bold">{currentCase.patient.fullName}</h2>
+                    <p className="text-green-600 text-xs font-medium mt-1">
+                      Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="text-slate-900 text-sm font-bold">Chưa chọn ca bệnh</h2>
+                    <p className="text-slate-400 text-xs font-medium mt-1">Vui lòng chọn bệnh nhân</p>
+                  </>
+                )}
               </div>
             </div>
           </div>

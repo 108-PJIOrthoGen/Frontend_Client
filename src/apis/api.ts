@@ -1,5 +1,10 @@
 import instance from './axios.custom';
-import { IBackendRes, IClinicalInfo, IClinicalService, IDiagnose, IMedicalExam, IMedicalExamFull, IModelPaginate, IPatient, IPermission, IRadiology, IRole, IUser, IVitalSign, IPayment } from '@/types/backend';
+import {
+    IBackendRes, IModelPaginate, IPatient, IPermission, IRole, IUser,
+    IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
+    IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
+    IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail
+} from '@/types/backend';
 
 export const callUploadImage = (file: any, folder: string) => {
     const bodyFormData = new FormData();
@@ -95,7 +100,7 @@ export const callFetchPatient = (query: string): Promise<IBackendRes<IModelPagin
     return instance.get(`/api/v1/patients?${query}`);
 }
 export const callDeletePatient = (id: string): Promise<IBackendRes<IPatient>> => {
-    return instance.delete(`/api/v1/delete-patient/${id}`);
+    return instance.delete(`/api/v1/patients/${id}`);
 }
 export const callCreatePatient = (user: IPatient): Promise<IBackendRes<IPatient>> => {
     return instance.post('/api/v1/patients', { ...user })
@@ -107,27 +112,231 @@ export const callUpdatePatient = (user: IPatient): Promise<IBackendRes<IPatient>
 
 /**
  *
-Module medical Exam
+Module Episode (formerly Medical Exam)
  */
-export const callFetchMedicalExamByPatient = (patientId: string, query: string): Promise<IBackendRes<IModelPaginate<IMedicalExamFull>>> => {
-    return instance.get(`/api/v1/patients/${patientId}/medical-exams?${query}`);
+export const callCreateEpisode = (data: IEpisodeRequest): Promise<IBackendRes<IEpisode>> => {
+    return instance.post('/api/v1/episodes', { ...data });
 }
 
-export const callCreateMedicalExam = (patientId: string, data: Partial<IMedicalExamFull>): Promise<IBackendRes<IMedicalExamFull>> => {
-    return instance.post(`/api/v1/patients/${patientId}/medical-exams`, { ...data });
+export const callUpdateEpisode = (id: string, data: IEpisodeRequest): Promise<IBackendRes<IEpisode>> => {
+    return instance.put(`/api/v1/episodes/${id}`, { ...data });
 }
 
-export const callUpdateMedicalExam = (examId: string, data: Partial<IMedicalExamFull>): Promise<IBackendRes<IMedicalExamFull>> => {
-    return instance.put(`/api/v1/medical-exams/${examId}`, { ...data });
+export const callFetchEpisodeById = (id: string): Promise<IBackendRes<IEpisode>> => {
+    return instance.get(`/api/v1/episodes/${id}`);
 }
 
-export const callDeleteMedicalExam = (examId: string): Promise<IBackendRes<IMedicalExamFull>> => {
-    return instance.delete(`/api/v1/medical-exams/${examId}`);
+export const callDeleteEpisode = (id: string): Promise<IBackendRes<IEpisode>> => {
+    return instance.delete(`/api/v1/episodes/${id}`);
 }
 
+export const callFetchEpisodes = (query: string): Promise<IBackendRes<IModelPaginate<IEpisode>>> => {
+    return instance.get(`/api/v1/episodes?${query}`);
+}
 
+export const callFetchEpisodesByPatient = (patientId: string, query: string): Promise<IBackendRes<IModelPaginate<IEpisode>>> => {
+    return instance.get(`/api/v1/patients/${patientId}/episodes?${query}`);
+}
 
+/**
+ *
+Module ClinicalRecord
+ */
+export const callCreateClinicalRecord = (data: IClinicalRecord): Promise<IBackendRes<IClinicalRecord>> => {
+    return instance.post('/api/v1/clinical-records', { ...data });
+}
 
+export const callUpdateClinicalRecord = (id: string, data: IClinicalRecord): Promise<IBackendRes<IClinicalRecord>> => {
+    return instance.put(`/api/v1/clinical-records/${id}`, { ...data });
+}
+
+export const callFetchClinicalRecordById = (id: string): Promise<IBackendRes<IClinicalRecord>> => {
+    return instance.get(`/api/v1/clinical-records/${id}`);
+}
+
+export const callDeleteClinicalRecord = (id: string): Promise<IBackendRes<IClinicalRecord>> => {
+    return instance.delete(`/api/v1/clinical-records/${id}`);
+}
+
+export const callFetchClinicalRecordsByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IClinicalRecord>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/clinical-records?${query}`);
+}
+
+/**
+ *
+Module LabResult
+ */
+export const callCreateLabResult = (data: ILabResult): Promise<IBackendRes<ILabResult>> => {
+    return instance.post('/api/v1/lab-results', { ...data });
+}
+
+export const callUpdateLabResult = (id: string, data: ILabResult): Promise<IBackendRes<ILabResult>> => {
+    return instance.put(`/api/v1/lab-results/${id}`, { ...data });
+}
+
+export const callFetchLabResultById = (id: string): Promise<IBackendRes<ILabResult>> => {
+    return instance.get(`/api/v1/lab-results/${id}`);
+}
+
+export const callDeleteLabResult = (id: string): Promise<IBackendRes<ILabResult>> => {
+    return instance.delete(`/api/v1/lab-results/${id}`);
+}
+
+export const callFetchLabResultsByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<ILabResult>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/lab-results?${query}`);
+}
+
+/**
+ *
+Module CultureResult
+ */
+export const callCreateCultureResult = (data: ICultureResult): Promise<IBackendRes<ICultureResult>> => {
+    return instance.post('/api/v1/culture-results', { ...data });
+}
+
+export const callUpdateCultureResult = (id: string, data: ICultureResult): Promise<IBackendRes<ICultureResult>> => {
+    return instance.put(`/api/v1/culture-results/${id}`, { ...data });
+}
+
+export const callFetchCultureResultById = (id: string): Promise<IBackendRes<ICultureResult>> => {
+    return instance.get(`/api/v1/culture-results/${id}`);
+}
+
+export const callDeleteCultureResult = (id: string): Promise<IBackendRes<ICultureResult>> => {
+    return instance.delete(`/api/v1/culture-results/${id}`);
+}
+
+export const callFetchCultureResultsByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<ICultureResult>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/culture-results?${query}`);
+}
+
+/**
+ *
+Module ImageResult
+ */
+export const callCreateImageResult = (data: IImageResult): Promise<IBackendRes<IImageResult>> => {
+    return instance.post('/api/v1/image-results', { ...data });
+}
+
+export const callUpdateImageResult = (id: string, data: IImageResult): Promise<IBackendRes<IImageResult>> => {
+    return instance.put(`/api/v1/image-results/${id}`, { ...data });
+}
+
+export const callFetchImageResultById = (id: string): Promise<IBackendRes<IImageResult>> => {
+    return instance.get(`/api/v1/image-results/${id}`);
+}
+
+export const callDeleteImageResult = (id: string): Promise<IBackendRes<IImageResult>> => {
+    return instance.delete(`/api/v1/image-results/${id}`);
+}
+
+export const callFetchImageResultsByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IImageResult>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/image-results?${query}`);
+}
+
+/**
+ *
+Module SensitivityResult
+ */
+export const callCreateSensitivityResult = (data: ISensitivityResult): Promise<IBackendRes<ISensitivityResult>> => {
+    return instance.post('/api/v1/sensitivity-results', { ...data });
+}
+
+export const callUpdateSensitivityResult = (id: string, data: ISensitivityResult): Promise<IBackendRes<ISensitivityResult>> => {
+    return instance.put(`/api/v1/sensitivity-results/${id}`, { ...data });
+}
+
+export const callFetchSensitivityResultById = (id: string): Promise<IBackendRes<ISensitivityResult>> => {
+    return instance.get(`/api/v1/sensitivity-results/${id}`);
+}
+
+export const callDeleteSensitivityResult = (id: string): Promise<IBackendRes<ISensitivityResult>> => {
+    return instance.delete(`/api/v1/sensitivity-results/${id}`);
+}
+
+export const callFetchSensitivityResultsByCulture = (cultureId: string, query: string): Promise<IBackendRes<IModelPaginate<ISensitivityResult>>> => {
+    return instance.get(`/api/v1/culture-results/${cultureId}/sensitivity-results?${query}`);
+}
+
+/**
+ *
+Module MedicalHistory
+ */
+export const callCreateMedicalHistory = (episodeId: string, data: IMedicalHistory): Promise<IBackendRes<IMedicalHistory>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/medical-history`, { ...data });
+}
+
+export const callUpdateMedicalHistory = (episodeId: string, data: IMedicalHistory): Promise<IBackendRes<IMedicalHistory>> => {
+    return instance.put(`/api/v1/episodes/${episodeId}/medical-history`, { ...data });
+}
+
+export const callFetchMedicalHistory = (episodeId: string): Promise<IBackendRes<IMedicalHistory>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/medical-history`);
+}
+
+/**
+ *
+Module Surgery
+ */
+export const callCreateSurgery = (data: ISurgery): Promise<IBackendRes<ISurgery>> => {
+    return instance.post('/api/v1/surgeries', { ...data });
+}
+
+export const callUpdateSurgery = (id: string, data: ISurgery): Promise<IBackendRes<ISurgery>> => {
+    return instance.put(`/api/v1/surgeries/${id}`, { ...data });
+}
+
+export const callFetchSurgeryById = (id: string): Promise<IBackendRes<ISurgery>> => {
+    return instance.get(`/api/v1/surgeries/${id}`);
+}
+
+export const callDeleteSurgery = (id: string): Promise<IBackendRes<ISurgery>> => {
+    return instance.delete(`/api/v1/surgeries/${id}`);
+}
+
+export const callFetchSurgeriesByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<ISurgery>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/surgeries?${query}`);
+}
+
+/**
+ *
+Module AiChat
+ */
+export const callCreateAiChatSession = (data: Partial<IAiChatSession>): Promise<IBackendRes<IAiChatSession>> => {
+    return instance.post('/api/v1/ai-chat/sessions', { ...data });
+}
+
+export const callSendAiChatMessage = (sessionId: string, data: { content: string; useEpisodeContext?: boolean; useRunContext?: boolean; useChatHistory?: boolean }): Promise<IBackendRes<IAiChatMessage>> => {
+    return instance.post(`/api/v1/ai-chat/sessions/${sessionId}/messages`, { ...data });
+}
+
+export const callFetchAiChatMessages = (sessionId: string, query: string): Promise<IBackendRes<IModelPaginate<IAiChatMessage>>> => {
+    return instance.get(`/api/v1/ai-chat/sessions/${sessionId}/messages?${query}`);
+}
+
+export const callFetchAiChatSessionsByEpisode = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IAiChatSession>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/ai-chat/sessions?${query}`);
+}
+
+/**
+ *
+Module AiRecommendation
+ */
+export const callGenerateAiRecommendation = (episodeId: string): Promise<IBackendRes<any>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/ai-recommendations/generate`);
+}
+
+export const callFetchAiRecommendationRuns = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IAiRecommendationRun>>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/ai-recommendations/runs?${query}`);
+}
+
+export const callFetchAiRecommendationRunDetail = (runId: string): Promise<IBackendRes<IAiRecommendationRunDetail>> => {
+    return instance.get(`/api/v1/ai-recommendations/runs/${runId}`);
+}
+
+export const callRetryAiRecommendationRun = (runId: string): Promise<IBackendRes<any>> => {
+    return instance.post(`/api/v1/ai-recommendations/runs/${runId}/retry`);
+}
 
 
 
