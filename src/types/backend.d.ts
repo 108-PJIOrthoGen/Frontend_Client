@@ -231,6 +231,7 @@ export interface IMedicalHistory {
     id?: string;
     episodeId?: number;
     medicalHistory?: string;
+    antibioticHistory?: string;
     process?: string;
     isAllergy?: boolean;
     allergyNote?: string;

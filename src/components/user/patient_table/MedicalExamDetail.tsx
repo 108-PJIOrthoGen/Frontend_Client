@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Drawer, Tabs, Button, Spin, message, notification } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
-import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest } from '../diagnose_steps/S2MedicalExamination';
+import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './S2MedicalExamination';
 import { MedicalHistoryPage, demoToMedicalHistoryRequest, demoToSurgeryRequests } from './MedicalHistory';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
 import { Step4Antibiogram, AntibioticRow } from '../diagnose_steps/S4Antibiogram';
@@ -26,6 +26,8 @@ import {
     callCreateMedicalHistory,
     callUpdateMedicalHistory,
     callCreateSurgery,
+    callUpdateSurgery,
+    callDeleteSurgery,
 } from '@/apis/api';
 import { useDemographics, useAppDispatch } from '@/redux/hook';
 import { resetDemographics } from '@/redux/slice/patientSlice';
@@ -55,6 +57,15 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const { demographics } = useDemographics();
     const { resetClinical } = usePatient();
     const dispatch = useAppDispatch();
+
+    // Initialize form ref with existing data
+    useEffect(() => {
+        if (open && examData) {
+            episodeFormRef.current = episodeToFormData(examData);
+        } else {
+            episodeFormRef.current = null;
+        }
+    }, [open, examData]);
 
     // Fetch all data when opening an existing episode
     useEffect(() => {
@@ -159,11 +170,39 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 await callCreateMedicalHistory(episodeId!, mhPayload);
             }
 
-            // 3. Save surgeries
-            const surgeryPayloads = demoToSurgeryRequests(demographics);
-            for (const sp of surgeryPayloads) {
-                await callCreateSurgery({ ...sp, episodeId: Number(episodeId) });
-            }
+            // 3. Save surgeries (Sync logic)
+            const formSurgeries = demographics.surgicalHistory.filter(s => s.surgeryDate || s.procedure || s.notes);
+            const dbSurgeries = surgeries;
+
+            const formIds = new Set(formSurgeries.map(s => s.id));
+            const dbIds = new Set(dbSurgeries.map(s => s.id));
+
+            const toDelete = dbSurgeries.filter(s => !formIds.has(s.id));
+            const toUpdate = formSurgeries.filter(s => dbIds.has(s.id));
+            const toCreate = formSurgeries.filter(s => !dbIds.has(s.id));
+
+            const deletePromises = toDelete.map(s => callDeleteSurgery(s.id!));
+
+            const updatePromises = toUpdate.map(s => {
+                const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'> = {
+                    surgeryDate: s.surgeryDate || undefined,
+                    surgeryType: s.procedure || undefined,
+                    findings: s.notes || undefined,
+                };
+                return callUpdateSurgery(s.id!, payload);
+            });
+
+            const createPromises = toCreate.map(s => {
+                const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt' | 'episodeId'> = {
+                    surgeryDate: s.surgeryDate || undefined,
+                    surgeryType: s.procedure || undefined,
+                    findings: s.notes || undefined,
+                };
+                return callCreateSurgery({ ...payload, episodeId: Number(episodeId) });
+            });
+
+            await Promise.all([...deletePromises, ...updatePromises, ...createPromises]);
+
 
             message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
             onClose();

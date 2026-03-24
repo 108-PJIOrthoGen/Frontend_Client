@@ -15,6 +15,7 @@ export function mapMedicalHistoryToDemo(mh: IMedicalHistory, surgeries: ISurgery
     return {
         medicalHistory: mh.process ?? '',
         pastMedicalHistory: mh.medicalHistory ?? '',
+        antibioticHistory: mh.antibioticHistory ?? '',
         relatedCharacteristics: {
             allergy: { checked: mh.isAllergy ?? false, note: mh.allergyNote ?? '' },
             drugs: { checked: mh.isDrug ?? false, note: mh.drugNote ?? '' },
@@ -37,6 +38,7 @@ export function demoToMedicalHistoryRequest(d: Demographics): Omit<IMedicalHisto
     return {
         process: d.medicalHistory,
         medicalHistory: d.pastMedicalHistory,
+        antibioticHistory: d.antibioticHistory,
         isAllergy: d.relatedCharacteristics.allergy.checked,
         allergyNote: d.relatedCharacteristics.allergy.note,
         isDrug: d.relatedCharacteristics.drugs.checked,
@@ -197,8 +199,8 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Tiền sử điều trị kháng sinh</span>
                                 <textarea
-                                    name="pastMedicalHistory"
-                                    value={demographics.pastMedicalHistory}
+                                    name="antibioticHistory"
+                                    value={demographics.antibioticHistory}
                                     onChange={handleInputChange}
                                     className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
                                     placeholder="Các loại kháng sinh dùng trước đây..."

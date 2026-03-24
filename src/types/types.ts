@@ -93,6 +93,7 @@ export interface RelatedCharacteristic {
 export interface Demographics {
   medicalHistory: string;
   pastMedicalHistory: string;
+  antibioticHistory: string;
   surgeryDate: string;
   symptomDate: string;
   isAcute: boolean;

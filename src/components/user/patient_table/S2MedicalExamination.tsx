@@ -25,7 +25,7 @@ const emptyFormData: EpisodeFormData = {
     status: '',
 };
 
-function episodeToFormData(ep: IEpisode): EpisodeFormData {
+export function episodeToFormData(ep: IEpisode): EpisodeFormData {
     return {
         arrivalTime: ep.admissionDate ?? '',
         dischargeTime: ep.dischargeDate ?? '',
@@ -117,9 +117,9 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                                 <span className="text-sm font-medium text-slate-700">Trực tiếp vào <span className="text-red-500">*</span></span>
                                 <select name="admissionMethod" value={formData.admissionMethod} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
                                     <option value="" disabled>-- Vào theo hình thức --</option>
-                                    <option value="CC">Cấp cứu</option>
-                                    <option value="KKB">Khám bệnh</option>
-                                    <option value="KDT">Khám theo yêu cầu</option>
+                                    <option value="cc">Cấp cứu</option>
+                                    <option value="kkb">Khám bệnh</option>
+                                    <option value="kdt">Khám theo yêu cầu</option>
                                 </select>
                             </label>
 
