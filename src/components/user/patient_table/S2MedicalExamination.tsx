@@ -67,7 +67,6 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
     );
 
     useEffect(() => {
-        console.log('episodeData', episodeData);
         setFormData(episodeData ? episodeToFormData(episodeData) : emptyFormData);
     }, [episodeData]);
 

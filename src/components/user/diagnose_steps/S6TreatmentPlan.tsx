@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Button, Input, Drawer, Spin, Modal, Result } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
-import { usePatient } from '../../../context/PatientContext';
+
 import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
 import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';

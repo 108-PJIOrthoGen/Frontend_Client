@@ -25,7 +25,7 @@ export function mapMedicalHistoryToDemo(mh: IMedicalHistory, surgeries: ISurgery
         },
         surgicalHistory: surgeries.length > 0
             ? surgeries.map((s, i) => ({
-                id: s.id ?? String(i + 1),
+                id: String(s.id ?? (i + 1)),
                 surgeryDate: s.surgeryDate ?? '',
                 procedure: s.surgeryType ?? '',
                 notes: s.findings ?? '',
@@ -67,8 +67,9 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
 
     // When data is loaded from API, populate demographics
     useEffect(() => {
-        if (medicalHistoryData) {
-            const mapped = mapMedicalHistoryToDemo(medicalHistoryData, surgeriesData ?? []);
+        if (medicalHistoryData || (surgeriesData && surgeriesData.length > 0)) {
+            const emptyMh: IMedicalHistory = {};
+            const mapped = mapMedicalHistoryToDemo(medicalHistoryData ?? emptyMh, surgeriesData ?? []);
             setDemographics(prev => ({ ...prev, ...mapped }));
         }
     }, [medicalHistoryData, surgeriesData]);
@@ -102,16 +103,6 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
             surgicalHistory: prev.surgicalHistory.map(row =>
                 row.id === id ? { ...row, [field]: value } : row
             )
-        }));
-    };
-
-    const addSurgicalHistoryRow = () => {
-        setDemographics(prev => ({
-            ...prev,
-            surgicalHistory: [
-                ...prev.surgicalHistory,
-                { id: Date.now().toString(), surgeryDate: '', procedure: '', notes: '' }
-            ]
         }));
     };
 
@@ -151,16 +142,6 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhập thông tin bệnh án</h1>
                         <p className="text-slate-500 text-sm mt-1">Lưu trữ thông tin về tiền sử bệnh & điều trị </p>
-                    </div>
-                    <div className="flex items-center gap-3 z-10">
-                        <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
-                            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
-                        </button>
-                        <div className="flex gap-3">
-                            <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3  font-bold text-white hover:bg-cyan-400 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                                Tiếp tục
-                            </button>
-                        </div>
                     </div>
                 </header>
             )}
@@ -285,11 +266,10 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                                 <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200 bg-slate-50">{index + 1}</td>
                                                 <td className="p-0 border-r border-slate-200">
                                                     <input
-                                                        type="text"
+                                                        type="date"
                                                         value={row.surgeryDate}
                                                         onChange={(e) => handleSurgicalHistoryChange(row.id, 'surgeryDate', e.target.value)}
                                                         className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
-                                                        placeholder="dd/mm/yyyy"
                                                     />
                                                 </td>
                                                 <td className="p-0 border-r border-slate-200">
@@ -330,12 +310,6 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                         ))}
                                     </tbody>
                                 </table>
-                            </div>
-                            <div className="mt-3 flex justify-center">
-                                <button onClick={addSurgicalHistoryRow} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors">
-                                    <span className="material-symbols-outlined text-[16px]">add</span>
-                                    Thêm hàng
-                                </button>
                             </div>
                         </div>
                     </section>

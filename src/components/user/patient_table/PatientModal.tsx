@@ -82,7 +82,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
 
     }
     const onChangeDate: DatePickerProps['onChange'] = (date, dateString) => {
-        console.log(date, dateString);
     };
     return (
         <>

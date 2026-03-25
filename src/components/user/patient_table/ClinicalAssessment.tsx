@@ -1,8 +1,8 @@
-import React, { useEffect } from 'react';
-import { usePatient } from '../../../context/PatientContext';
-import { useDemographics } from '@/redux/hook';
-import { ILabResult, IClinicalRecord } from '@/types/backend';
+import React, { useEffect, useState } from 'react';
+import { useDemographics, useClinical } from '@/redux/hook';
+import { ILabResult, IClinicalRecord, ICultureResult, IImageResult } from '@/types/backend';
 import { ClinicalAssessment } from '@/types/types';
+import { callUploadImage } from '@/apis/api';
 
 interface ClinicalAssessmentProps {
   onNext?: () => void;
@@ -10,6 +10,8 @@ interface ClinicalAssessmentProps {
   mode?: 'wizard' | 'standalone';
   labResults?: ILabResult[];
   clinicalRecord?: IClinicalRecord | null;
+  cultureResults?: ICultureResult[];
+  imageResults?: IImageResult[];
 }
 
 /** Map API ILabResult into the form's TestItem arrays */
@@ -42,6 +44,33 @@ export function mapLabResultToClinical(lab: ILabResult): Partial<ClinicalAssessm
       if (lab.synovialPmn?.value != null) tests = setVal(tests, '%PMN (Dịch)', lab.synovialPmn.value);
       return tests;
     },
+    biochemistryTests: (prev: ClinicalAssessment['biochemistryTests']) => {
+      let tests = [...prev];
+      if (lab.biochemicalData) {
+        const mapping: Record<string, string> = {
+          'glucose': 'bc_4',
+          'ure': 'bc_5',
+          'creatinine': 'bc_6',
+          'eGFR': 'ht_20',
+          'albumin': 'bc_7',
+          'alb': 'bc_7',
+          'ast': 'bc_8',
+          'alt': 'bc_9',
+          'natri': 'bc_10',
+          'kali': 'bc_11',
+          'clo': 'bc_12',
+          'hba1c': 'bc_13'
+        };
+        Object.entries(lab.biochemicalData).forEach(([key, val]) => {
+          const metricId = mapping[key] || key;
+          const numVal = (val as any)?.value;
+          if (numVal != null) {
+            tests = tests.map(t => t.id === metricId ? { ...t, result: String(numVal) } : t);
+          }
+        });
+      }
+      return tests;
+    },
   } as any;
 }
 
@@ -53,21 +82,44 @@ export function mapClinicalRecordToClinical(cr: IClinicalRecord): Partial<Clinic
       erythema: cr.erythema ?? false,
       pain: cr.pain ?? false,
       swelling: cr.swelling ?? false,
-      drainage: false,
-      purulence: false,
+      hematogenousSuspected: cr.hematogenousSuspected ?? false,
+      pmmaAllergy: cr.pmmaAllergy ?? false,
+    },
+    examination: {
+      date_on_illness: cr.illnessOnsetDate ?? '',
+      whole_body: '',
+      vessel: '',
+      temperature: '',
+      blood_press: cr.bloodPressure ?? '',
+      breath: '',
+      bmi: cr.bmi ?? '',
+      suspectedInfectionType: cr.suspectedInfectionType ?? '',
+      softTissue: cr.softTissue ?? '',
+      implantStability: cr.implantStability ?? '',
+      prosthesisJoint: cr.prosthesisJoint ?? '',
+      daysSinceIndexArthroplasty: cr.daysSinceIndexArthroplasty ?? '',
+      notations: cr.notations ?? '',
+      hematogenousSuspected: cr.hematogenousSuspected ?? false,
+      pmmaAllergy: cr.pmmaAllergy ?? false,
     },
   };
 }
 
-export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard', labResults, clinicalRecord }) => {
+export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard', labResults, clinicalRecord, cultureResults, imageResults }) => {
   const { demographics, setDemographics } = useDemographics();
-  const { clinical, setClinical } = usePatient();
+  const { clinical, setClinical } = useClinical();
+  const [uploading, setUploading] = useState(false);
 
   // Populate form from API data
   useEffect(() => {
     if (clinicalRecord) {
       const mapped = mapClinicalRecordToClinical(clinicalRecord);
-      setClinical(prev => ({ ...prev, ...mapped }));
+      setClinical(prev => ({
+        ...prev,
+        ...mapped,
+        symptoms: { ...prev.symptoms, ...mapped.symptoms },
+        examination: { ...prev.examination, ...mapped.examination },
+      }));
       // Set symptomDate from clinical record
       if (clinicalRecord.illnessOnsetDate) {
         setDemographics(prev => ({ ...prev, symptomDate: clinicalRecord.illnessOnsetDate! }));
@@ -88,10 +140,67 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
           fluidAnalysis: typeof mapped.fluidAnalysis === 'function'
             ? (mapped.fluidAnalysis as any)(prev.fluidAnalysis)
             : prev.fluidAnalysis,
+          biochemistryTests: typeof mapped.biochemistryTests === 'function'
+            ? (mapped.biochemistryTests as any)(prev.biochemistryTests)
+            : prev.biochemistryTests,
         };
       });
     }
   }, [labResults]);
+
+  useEffect(() => {
+    if (cultureResults && cultureResults.length > 0) {
+      setClinical(prev => {
+        const newSamples = cultureResults.map((c, idx) => ({
+          id: c.id?.toString() || Math.random().toString(36).substr(2, 9),
+          sampleNumber: idx + 1,
+          bacteriaName: c.name || '',
+          incubation_days: c.incubationDays ?? ('' as any),
+          result: (c.result as any) || '',
+          notes: c.notes || '',
+          used_antibiotic_before: false,
+          days_off_antibiotic: '' as any,
+          gram_type: c.gramType || '',
+        }));
+        return {
+          ...prev,
+          cultureSamples: newSamples
+        };
+      });
+    }
+  }, [cultureResults]);
+
+  useEffect(() => {
+    if (imageResults && imageResults.length > 0) {
+      setClinical(prev => {
+        const newImages = imageResults.map(img => {
+          let url = img.fileMetadata || '';
+          let name = 'Hình ảnh';
+          if (img.fileMetadata && img.fileMetadata.startsWith('{')) {
+            try {
+              const meta = JSON.parse(img.fileMetadata);
+              url = meta.url || meta.fileName || url;
+              name = meta.name || meta.originalName || name;
+            } catch { }
+          }
+          return {
+            id: img.id?.toString() || Math.random().toString(36).substr(2, 9),
+            url: url,
+            type: (img.type as any) || 'X-ray',
+            name: name,
+          };
+        });
+        return {
+          ...prev,
+          imaging: {
+            ...prev.imaging,
+            images: newImages,
+            description: imageResults[0]?.findings || prev.imaging?.description || ''
+          }
+        };
+      });
+    }
+  }, [imageResults]);
 
   // Logic: ICM 2018 Scoring
   useEffect(() => {
@@ -107,7 +216,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
       }
     }
   }, [demographics.surgeryDate, demographics.symptomDate, demographics.isAcute, setDemographics]);
-
 
 
   const getTestStatus = (result: string, normalRange: string) => {
@@ -154,16 +262,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
               Import nhanh
             </button>
           </div>
-          <div className="flex items-center gap-3 z-10">
-            <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
-              <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
-            </button>
-            <div className="flex gap-3">
-              <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3  font-bold text-white hover:bg-cyan-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                Tiếp tục
-              </button>
-            </div>
-          </div>
         </header>
       )}
 
@@ -200,15 +298,17 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                           ...prev,
                           symptoms: {
                             ...prev.symptoms,
-                            [item.key]: !prev.symptoms[item.key as keyof typeof clinical.symptoms]
+                            [item.key]: !prev.symptoms[item.key as keyof typeof prev.symptoms]
                           }
                         }))}
+
                         className="w-5 h-5 rounded border-slate-300 accent-primary"
                       />
                       <span className="text-sm font-medium text-slate-700">{item.label}</span>
                     </label>
                   ))}
                 </div>
+
               </section>
 
               {/* 0.2 Clinical Examination */}
@@ -249,6 +349,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                     <input
                       type="text"
                       placeholder="Ví dụ: cấp tính sau phẫu thuật"
+                      value={clinical.examination?.suspectedInfectionType || ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, suspectedInfectionType: e.target.value } as any }))}
                       className="w-full rounded-lg border-slate-300 h-11 px-3 border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </label>
@@ -258,24 +360,32 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                     <input
                       type="text"
                       placeholder="Ví dụ:"
+                      value={clinical.examination?.softTissue || ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, softTissue: e.target.value } as any }))}
                       className="w-full rounded-lg border-slate-300 h-11 px-3 border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </label>
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium text-slate-700">Độ ổn định cấy ghép</span>
-                    <select id="countries" className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border">
-                      <option disabled selected>Chọn tình trạng</option>
-                      <option value="BHYT">Ổn định</option>
-                      <option value="DICHVU">Lỏng lẻo</option>
-                      <option value="FREE">Hơi lỏng lẻo</option>
-                      <option value="OTHER">Chưa rõ</option>
+                    <select
+                      value={clinical.examination?.implantStability || ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, implantStability: e.target.value } as any }))}
+                      className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border"
+                    >
+                      <option value="" disabled>Chọn tình trạng</option>
+                      <option value="stable">Ổn định</option>
+                      <option value="loose">Lỏng lẻo</option>
+                      <option value="slightly_loose">Hơi lỏng lẻo</option>
+                      <option value="unknown">Chưa rõ</option>
                     </select>
                   </label>
                   <label className="flex flex-col gap-1.5">
-                    <span className="text-sm font-medium text-slate-700">số ngày từ lần thay khớp đầu</span>
+                    <span className="text-sm font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>
                     <input
                       type="number"
                       placeholder="Ví dụ: 70"
+                      value={clinical.examination?.daysSinceIndexArthroplasty !== undefined ? clinical.examination.daysSinceIndexArthroplasty : ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, daysSinceIndexArthroplasty: e.target.value ? Number(e.target.value) : '' } as any }))}
                       className="w-full rounded-lg border-slate-300 h-11 px-3 border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </label>
@@ -284,6 +394,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                     <input
                       type="text"
                       placeholder="Ví du: Miêu tả về vị trí khớp, có phải mổ lại không, phương pháp cố định..."
+                      value={clinical.examination?.prosthesisJoint || ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, prosthesisJoint: e.target.value } as any }))}
                       className="w-full rounded-lg border-slate-300 h-11 px-3 border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     />
                   </label>
@@ -293,17 +405,15 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                     <input
                       type="text"
                       placeholder="Ví dụ: Tỉnh táo, tiếp xúc tốt..."
-                      value={clinical.examination?.whole_body || ''}
-                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, whole_body: e.target.value } as any }))}
+                      value={clinical.examination?.notations || ''}
+                      onChange={(e) => setClinical(prev => ({ ...prev, examination: { ...prev.examination, notations: e.target.value } as any }))}
                       className="w-full rounded-lg border-slate-300 h-11 px-3 border"
                     />
                   </label>
                 </div>
               </section>
 
-              {/* 1. Major Criteria REMOVED */}
-
-              {/* 2. PJI Diagnostic Tests */}
+              {/* 3. PJI Diagnostic Tests */}
               <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
@@ -340,8 +450,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                 type="text"
                                 value={test.result}
                                 onChange={(e) => {
-                                  const newTests = [...clinical.hematologyTests];
-                                  newTests[index].result = e.target.value;
+                                  const newTests = clinical.hematologyTests.map((t, i) =>
+                                    i === index ? { ...t, result: e.target.value } : t
+                                  );
                                   setClinical(prev => ({ ...prev, hematologyTests: newTests }));
                                 }}
                                 className="w-full h-full px-4 py-2 border-none bg-transparent focus:ring-inset focus:ring-2 focus:ring-primary outline-none"
@@ -394,18 +505,16 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                 type="text"
                                 value={test.result}
                                 onChange={(e) => {
-                                  let newTests = [...clinical.biochemistryTests];
                                   const newValue = e.target.value;
-                                  newTests[index].result = newValue;
-                                  console.log('newTests', newTests);
+                                  let newTests = clinical.biochemistryTests.map((t, i) =>
+                                    i === index ? { ...t, result: newValue } : t
+                                  );
                                   // If the user is modifying Creatinine (bc_6), auto-calculate eGFR (ht_20)
                                   if (test.id === 'bc_6') {
                                     const egfrIndex = newTests.findIndex(t => t.id === 'ht_20');
-                                    console.log('egfrIndex', egfrIndex);
                                     if (egfrIndex !== -1) {
-                                      if (!newValue || isNaN(Number(newValue))) {
-                                        newTests[egfrIndex].result = '';
-                                      } else {
+                                      let egfrResult = '';
+                                      if (newValue && !isNaN(Number(newValue))) {
                                         let age = 0;
                                         if (demographics.dob) {
                                           const dobDate = new Date(demographics.dob);
@@ -432,9 +541,12 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                           let egfr = 142 * Math.pow(minVal, alpha) * Math.pow(maxVal, -1.200) * Math.pow(0.9938, age);
                                           if (isFemale) egfr = egfr * 1.012;
 
-                                          newTests[egfrIndex].result = Math.round(egfr).toString();
+                                          egfrResult = Math.round(egfr).toString();
                                         }
                                       }
+                                      newTests = newTests.map((t, i) =>
+                                        i === egfrIndex ? { ...t, result: egfrResult } : t
+                                      );
                                     }
                                   }
 
@@ -482,36 +594,13 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {clinical.fluidAnalysis?.map((test, index) => (
+                        {clinical.fluidAnalysis?.map((test, index) => {
+                          if (test.name === 'Nhuộm Gram') return null;
+                          return (
                           <tr key={test.id} className="hover:bg-slate-50/50">
                             <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">{test.name}</td>
                             <td className="px-4 py-2 border-r border-slate-200 p-0">
-                              {test.name === 'Nhuộm Gram' ? (
-                                <div className="flex flex-wrap gap-1 p-2">
-                                  {['Gram Dương', 'Gram Âm', 'Âm tính'].map((opt) => (
-                                    <label key={opt} className="inline-flex items-center gap-1 cursor-pointer bg-slate-100 px-2 py-1 rounded border border-slate-200 hover:bg-white transition-colors">
-                                      <input
-                                        type="checkbox"
-                                        checked={test.result.includes(opt)}
-                                        onChange={(e) => {
-                                          const current = test.result ? test.result.split(', ').filter(Boolean) : [];
-                                          let newResult;
-                                          if (e.target.checked) {
-                                            newResult = [...current, opt].join(', ');
-                                          } else {
-                                            newResult = current.filter(x => x !== opt).join(', ');
-                                          }
-                                          const newTests = [...(clinical.fluidAnalysis || [])];
-                                          newTests[index].result = newResult;
-                                          setClinical(prev => ({ ...prev, fluidAnalysis: newTests }));
-                                        }}
-                                        className="w-3 h-3 accent-primary rounded-sm"
-                                      />
-                                      <span className="text-xs font-medium">{opt}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              ) : test.name === 'Cấy khuẩn' ? (
+                              {test.name === 'Cấy khuẩn' ? (
                                 <div className="p-4 space-y-4">
                                   {clinical.cultureSamples?.map((sample, sampleIdx) => (
                                     <div key={sample.id || sampleIdx} className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm flex flex-col gap-4">
@@ -565,6 +654,24 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                             placeholder="Nhập tên vi khuẩn..."
                                             className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                                           />
+                                        </div>
+
+                                        <div className="flex flex-col gap-1.5">
+                                          <label className="text-xs font-semibold text-slate-700">Nhuộm Gram</label>
+                                          <select
+                                            value={sample.gram_type || ''}
+                                            onChange={(e) => {
+                                              const newSamples = [...clinical.cultureSamples];
+                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], gram_type: e.target.value };
+                                              setClinical(prev => ({ ...prev, cultureSamples: newSamples }));
+                                            }}
+                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                          >
+                                            <option value="">-- Chọn loại --</option>
+                                            <option value="Gram Dương">Gram Dương</option>
+                                            <option value="Gram Âm">Gram Âm</option>
+                                            <option value="Chưa rõ">Chưa rõ</option>
+                                          </select>
                                         </div>
 
                                         <div className="flex flex-col gap-1.5">
@@ -644,7 +751,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                         used_antibiotic_before: false,
                                         days_off_antibiotic: '' as '',
                                         notes: '',
-                                        result: '' as any
+                                        result: '' as any,
+                                        gram_type: ''
                                       };
                                       setClinical(prev => ({
                                         ...prev,
@@ -662,8 +770,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                                   type="text"
                                   value={test.result}
                                   onChange={(e) => {
-                                    const newTests = [...(clinical.fluidAnalysis || [])];
-                                    newTests[index].result = e.target.value;
+                                    const newTests = (clinical.fluidAnalysis || []).map((t, i) =>
+                                      i === index ? { ...t, result: e.target.value } : t
+                                    );
                                     setClinical(prev => ({ ...prev, fluidAnalysis: newTests }));
                                   }}
                                   className="w-full h-full px-4 py-2 border-none bg-transparent focus:ring-inset focus:ring-2 focus:ring-primary outline-none"
@@ -673,7 +782,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                             <td className="px-4 py-2 border-r border-slate-200 text-slate-700">{test.normalRange}</td>
                             <td className="px-4 py-2 text-slate-500 bg-slate-50/30">{test.unit}</td>
                           </tr>
-                        ))}
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -734,35 +844,65 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                         </div>
                       ))}
 
-                      <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors aspect-square">
-                        <span className="material-symbols-outlined text-slate-400 text-3xl mb-1">add_photo_alternate</span>
-                        <span className="text-xs text-slate-500 font-medium">Thêm ảnh mới</span>
+                      <label className={`flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors aspect-square ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <span className="material-symbols-outlined text-slate-400 text-3xl mb-1">{uploading ? 'hourglass_top' : 'add_photo_alternate'}</span>
+                        <span className="text-xs text-slate-500 font-medium">{uploading ? 'Đang tải...' : 'Thêm ảnh mới'}</span>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*,.dcm"
                           className="hidden"
-                          onChange={(e) => {
+                          disabled={uploading}
+                          onChange={async (e) => {
                             if (e.target.files && e.target.files[0]) {
                               const file = e.target.files[0];
-                              const type = prompt('Chọn loại hình ảnh (X-quang, CT, Siêu âm):', 'X-quang');
-                              if (type) {
-                                const validTypes = ['X-quang', 'CT', 'Siêu âm'];
-                                const selectedType = validTypes.includes(type) ? type as any : 'Other';
-                                const newImage = {
-                                  id: Math.random().toString(36).substr(2, 9),
-                                  url: URL.createObjectURL(file), // Note: Using ObjectURL for demo
-                                  type: selectedType,
-                                  name: file.name
-                                };
-                                setClinical(prev => ({
-                                  ...prev,
-                                  imaging: {
-                                    ...prev.imaging,
-                                    images: [...prev.imaging.images, newImage]
-                                  }
-                                }));
+
+                              if (file.size > 3 * 1024 * 1024) {
+                                alert('Ảnh không được vượt quá 3MB');
+                                e.target.value = '';
+                                return;
                               }
-                              e.target.value = ''; // Reset input
+
+                              const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/dicom'];
+                              if (!validImageTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.dcm')) {
+                                alert('Vui lòng chọn đúng định dạng ảnh y tế (JPG, PNG, WEBP, DICOM)');
+                                e.target.value = '';
+                                return;
+                              }
+
+                              const type = prompt('Chọn loại hình ảnh (X-ray, CT, Ultrasound):', 'X-ray');
+                              if (type) {
+                                const validTypes = ['X-ray', 'CT', 'Ultrasound'];
+                                const selectedType = validTypes.includes(type) ? type as 'X-ray' | 'CT' | 'Ultrasound' : 'X-ray';
+
+                                const previewUrl = URL.createObjectURL(file);
+
+                                setUploading(true);
+                                try {
+                                  const res = await callUploadImage(file, 'clinical-images');
+                                  const uploadedFileName = (res as any)?.fileName || (res as any)?.data?.fileName;
+                                  if (uploadedFileName) {
+                                    const newImage = {
+                                      id: Math.random().toString(36).substr(2, 9),
+                                      url: uploadedFileName,
+                                      previewUrl: previewUrl,
+                                      type: selectedType,
+                                      name: file.name
+                                    };
+                                    setClinical(prev => ({
+                                      ...prev,
+                                      imaging: {
+                                        ...prev.imaging,
+                                        images: [...prev.imaging.images, newImage]
+                                      }
+                                    }));
+                                  }
+                                } catch {
+                                  alert('Không thể tải ảnh lên. Vui lòng thử lại.');
+                                } finally {
+                                  setUploading(false);
+                                }
+                              }
+                              e.target.value = '';
                             }
                           }}
                         />

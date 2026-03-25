@@ -71,7 +71,6 @@ export interface IPermission {
     module?: string;
 
     createdBy?: string;
-
     createdAt?: string;
     updatedAt?: string;
 }

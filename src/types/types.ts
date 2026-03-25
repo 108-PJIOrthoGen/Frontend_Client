@@ -1,5 +1,3 @@
-
-
 export interface CultureSample {
   id: string;
   sampleNumber: number;
@@ -7,6 +5,7 @@ export interface CultureSample {
   incubation_days: number | '';
   used_antibiotic_before: boolean;
   days_off_antibiotic: number | '';
+  gram_type: string;
   notes: string;
   result: 'POSITIVE' | 'NEGATIVE' | 'CONTAMINATED' | 'PENDING' | '';
 }
@@ -32,6 +31,14 @@ export interface ClinicalAssessment {
     blood_press: string;
     breath: number | '';
     bmi: number | '';
+    suspectedInfectionType?: string;
+    softTissue?: string;
+    implantStability?: string;
+    prosthesisJoint?: string;
+    daysSinceIndexArthroplasty?: number | '';
+    notations?: string;
+    hematogenousSuspected?: boolean;
+    pmmaAllergy?: boolean;
   };
   symptoms: {
     fever: boolean;
@@ -39,8 +46,8 @@ export interface ClinicalAssessment {
     erythema: boolean;
     pain: boolean;
     swelling: boolean;
-    drainage: boolean;
-    purulence: boolean;
+    hematogenousSuspected: boolean;
+    pmmaAllergy: boolean;
   };
   imaging: {
     description: string;
@@ -53,18 +60,10 @@ export interface ClinicalAssessment {
   };
   hematologyTests: TestItem[];
   biochemistryTests: TestItem[];
-
   fluidAnalysis: TestItem[];  // For Cấy khuẩn and Nhuộm Gram only
   cultureSamples: CultureSample[];
 }
 
-export interface LabResult {
-  day: string; // 'Pre-Op' | 'Day 1' | 'Day 3' | 'Day 7'
-  wbc: number | null;
-  neu: number | null;
-  esr: number | null;
-  crp: number | null;
-}
 
 export interface TreatmentPlan {
   pathogen: string;
@@ -117,7 +116,6 @@ export interface SurgeryStep {
   name: string;
   description: string;
   duration: string;
-  timing: string;
   surgeon: string;
   notes: string;
   risk: RiskLevel;
