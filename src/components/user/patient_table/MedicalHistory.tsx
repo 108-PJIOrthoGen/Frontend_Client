@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
-import { useDemographics } from '@/redux/hook';
+import { useClinicForm } from '@/redux/hook';
 import { IMedicalHistory, ISurgery } from '@/types/backend';
-import { Demographics } from '@/types/types';
 
 interface MedicalHistoryProps {
     onNext?: () => void;
@@ -11,129 +10,94 @@ interface MedicalHistoryProps {
     surgeriesData?: ISurgery[];
 }
 
-export function mapMedicalHistoryToDemo(mh: IMedicalHistory, surgeries: ISurgery[]): Partial<Demographics> {
-    return {
-        medicalHistory: mh.process ?? '',
-        pastMedicalHistory: mh.medicalHistory ?? '',
-        antibioticHistory: mh.antibioticHistory ?? '',
-        relatedCharacteristics: {
-            allergy: { checked: mh.isAllergy ?? false, note: mh.allergyNote ?? '' },
-            drugs: { checked: mh.isDrug ?? false, note: mh.drugNote ?? '' },
-            alcohol: { checked: mh.isAlcohol ?? false, note: mh.alcoholNote ?? '' },
-            smoking: { checked: mh.isSmoking ?? false, note: mh.smokingNote ?? '' },
-            other: { checked: mh.isOther ?? false, note: mh.otherNote ?? '' },
-        },
-        surgicalHistory: surgeries.length > 0
-            ? surgeries.map((s, i) => ({
-                id: String(s.id ?? (i + 1)),
-                surgeryDate: s.surgeryDate ?? '',
-                procedure: s.surgeryType ?? '',
-                notes: s.findings ?? '',
-            }))
-            : [{ id: '1', surgeryDate: '', procedure: '', notes: '' }],
-    };
-}
-
-export function demoToMedicalHistoryRequest(d: Demographics): Omit<IMedicalHistory, 'id' | 'createdAt' | 'updatedAt'> {
-    return {
-        process: d.medicalHistory,
-        medicalHistory: d.pastMedicalHistory,
-        antibioticHistory: d.antibioticHistory,
-        isAllergy: d.relatedCharacteristics.allergy.checked,
-        allergyNote: d.relatedCharacteristics.allergy.note,
-        isDrug: d.relatedCharacteristics.drugs.checked,
-        drugNote: d.relatedCharacteristics.drugs.note,
-        isAlcohol: d.relatedCharacteristics.alcohol.checked,
-        alcoholNote: d.relatedCharacteristics.alcohol.note,
-        isSmoking: d.relatedCharacteristics.smoking.checked,
-        smokingNote: d.relatedCharacteristics.smoking.note,
-        isOther: d.relatedCharacteristics.other.checked,
-        otherNote: d.relatedCharacteristics.other.note,
-    };
-}
-
-export function demoToSurgeryRequests(d: Demographics): Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'>[] {
-    return d.surgicalHistory
-        .filter(s => s.surgeryDate || s.procedure || s.notes)
-        .map(s => ({
-            surgeryDate: s.surgeryDate || undefined,
-            surgeryType: s.procedure || undefined,
-            findings: s.notes || undefined,
-        }));
-}
-
 export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPrev, mode = 'wizard', medicalHistoryData, surgeriesData }) => {
-    const { demographics, setDemographics } = useDemographics();
+    const { form, setForm } = useClinicForm();
 
-    // When data is loaded from API, populate demographics
+    // When data is loaded from API, populate form directly with backend types
     useEffect(() => {
         if (medicalHistoryData || (surgeriesData && surgeriesData.length > 0)) {
-            const emptyMh: IMedicalHistory = {};
-            const mapped = mapMedicalHistoryToDemo(medicalHistoryData ?? emptyMh, surgeriesData ?? []);
-            setDemographics(prev => ({ ...prev, ...mapped }));
+            const mh = medicalHistoryData ?? {};
+            setForm(prev => ({
+                ...prev,
+                medicalHistory: {
+                    ...prev.medicalHistory,
+                    process: mh.process ?? '',
+                    medicalHistory: mh.medicalHistory ?? '',
+                    antibioticHistory: mh.antibioticHistory ?? '',
+                    isAllergy: mh.isAllergy ?? false,
+                    allergyNote: mh.allergyNote ?? '',
+                    isDrug: mh.isDrug ?? false,
+                    drugNote: mh.drugNote ?? '',
+                    isAlcohol: mh.isAlcohol ?? false,
+                    alcoholNote: mh.alcoholNote ?? '',
+                    isSmoking: mh.isSmoking ?? false,
+                    smokingNote: mh.smokingNote ?? '',
+                    isOther: mh.isOther ?? false,
+                    otherNote: mh.otherNote ?? '',
+                },
+                surgeries: surgeriesData && surgeriesData.length > 0
+                    ? surgeriesData.map(s => ({
+                        ...s,
+                        id: s.id ?? undefined,
+                        _tempId: String(s.id ?? Date.now()),
+                    }))
+                    : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+            }));
         }
     }, [medicalHistoryData, surgeriesData]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-        const { name, value, type } = e.target;
-        setDemographics(prev => ({
+    const handleMedicalHistoryChange = (field: keyof IMedicalHistory, value: string) => {
+        setForm(prev => ({
             ...prev,
-            [name]: type === 'number' ? parseFloat(value) : value
+            medicalHistory: { ...prev.medicalHistory, [field]: value }
         }));
     };
 
-    /* Risk Factors removed */
-
-    const handleCharacteristicChange = (key: keyof typeof demographics.relatedCharacteristics, field: 'checked' | 'note', value: any) => {
-        setDemographics(prev => ({
+    const handleCharacteristicToggle = (checkedField: keyof IMedicalHistory, noteField: keyof IMedicalHistory, checked: boolean) => {
+        setForm(prev => ({
             ...prev,
-            relatedCharacteristics: {
-                ...prev.relatedCharacteristics,
-                [key]: {
-                    ...prev.relatedCharacteristics[key],
-                    [field]: value
-                }
-            }
+            medicalHistory: { ...prev.medicalHistory, [checkedField]: checked }
         }));
     };
 
-    const handleSurgicalHistoryChange = (id: string, field: 'surgeryDate' | 'procedure' | 'notes', value: string) => {
-        setDemographics(prev => ({
+    const handleCharacteristicNote = (noteField: keyof IMedicalHistory, value: string) => {
+        setForm(prev => ({
             ...prev,
-            surgicalHistory: prev.surgicalHistory.map(row =>
-                row.id === id ? { ...row, [field]: value } : row
+            medicalHistory: { ...prev.medicalHistory, [noteField]: value }
+        }));
+    };
+
+    const handleSurgeryChange = (index: number, field: keyof ISurgery, value: string) => {
+        setForm(prev => ({
+            ...prev,
+            surgeries: prev.surgeries.map((s, i) =>
+                i === index ? { ...s, [field]: value } : s
             )
         }));
     };
 
     const handleRemoveRow = (index: number) => {
-        setDemographics(prev => ({
+        setForm(prev => ({
             ...prev,
-            surgicalHistory: prev.surgicalHistory.filter((_, i) => i !== index)
+            surgeries: prev.surgeries.filter((_, i) => i !== index)
         }));
     };
 
     const handleInsertRow = (index: number) => {
-        setDemographics(prev => {
-            const newHistory = [...prev.surgicalHistory];
-            newHistory.splice(index + 1, 0, { id: Date.now().toString(), surgeryDate: '', procedure: '', notes: '' });
-            return {
-                ...prev,
-                surgicalHistory: newHistory
-            };
+        setForm(prev => {
+            const newSurgeries = [...prev.surgeries];
+            newSurgeries.splice(index + 1, 0, { _tempId: Date.now().toString(), surgeryDate: '', surgeryType: '', findings: '' });
+            return { ...prev, surgeries: newSurgeries };
         });
     };
 
-    const characteristicsList = [
-        { key: 'allergy', label: 'Dị ứng', code: '01', notePlaceholder: '(Dị nguyên)' },
-        { key: 'drugs', label: 'Ma túy', code: '02' },
-        { key: 'alcohol', label: 'Rượu bia', code: '03' },
-        { key: 'smoking', label: 'Hút thuốc', code: '04' },
-        { key: 'other', label: 'Khác', code: '05' },
+    const characteristicsList: { checkedField: keyof IMedicalHistory; noteField: keyof IMedicalHistory; label: string; code: string; notePlaceholder?: string }[] = [
+        { checkedField: 'isAllergy', noteField: 'allergyNote', label: 'Dị ứng', code: '01', notePlaceholder: '(Dị nguyên)' },
+        { checkedField: 'isDrug', noteField: 'drugNote', label: 'Ma túy', code: '02' },
+        { checkedField: 'isAlcohol', noteField: 'alcoholNote', label: 'Rượu bia', code: '03' },
+        { checkedField: 'isSmoking', noteField: 'smokingNote', label: 'Hút thuốc', code: '04' },
+        { checkedField: 'isOther', noteField: 'otherNote', label: 'Khác', code: '05' },
     ];
-
-    // Comorbidity labels removed
-
 
     return (
         <>
@@ -160,9 +124,8 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Quá trình bệnh lý</span>
                                 <textarea
-                                    name="medicalHistory"
-                                    value={demographics.medicalHistory}
-                                    onChange={handleInputChange}
+                                    value={form.medicalHistory.process ?? ''}
+                                    onChange={(e) => handleMedicalHistoryChange('process', e.target.value)}
                                     className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
                                     placeholder="Mô tả chi tiết quá trình bệnh lý..."
                                 />
@@ -170,9 +133,8 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Tiền sử bệnh</span>
                                 <textarea
-                                    name="pastMedicalHistory"
-                                    value={demographics.pastMedicalHistory}
-                                    onChange={handleInputChange}
+                                    value={form.medicalHistory.medicalHistory ?? ''}
+                                    onChange={(e) => handleMedicalHistoryChange('medicalHistory', e.target.value)}
                                     className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
                                     placeholder="Các bệnh lý nền, dị ứng, phẫu thuật trước đây..."
                                 />
@@ -180,9 +142,8 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Tiền sử điều trị kháng sinh</span>
                                 <textarea
-                                    name="antibioticHistory"
-                                    value={demographics.antibioticHistory}
-                                    onChange={handleInputChange}
+                                    value={form.medicalHistory.antibioticHistory ?? ''}
+                                    onChange={(e) => handleMedicalHistoryChange('antibioticHistory', e.target.value)}
                                     className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
                                     placeholder="Các loại kháng sinh dùng trước đây..."
                                 />
@@ -202,10 +163,11 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-200">
-                                            {characteristicsList.map((item, index) => {
-                                                const config = demographics.relatedCharacteristics[item.key as keyof typeof demographics.relatedCharacteristics];
+                                            {characteristicsList.map((item) => {
+                                                const isChecked = !!form.medicalHistory[item.checkedField];
+                                                const noteValue = (form.medicalHistory[item.noteField] as string) ?? '';
                                                 return (
-                                                    <tr key={item.key} className="hover:bg-slate-50/50">
+                                                    <tr key={item.code} className="hover:bg-slate-50/50">
                                                         <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200">{item.code}</td>
                                                         <td className="px-3 py-2 font-medium text-slate-900 border-r border-slate-200">
                                                             {item.label}
@@ -213,17 +175,17 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                                         <td className="px-3 py-2 text-center border-r border-slate-200">
                                                             <input
                                                                 type="checkbox"
-                                                                checked={config.checked}
-                                                                onChange={(e) => handleCharacteristicChange(item.key as any, 'checked', e.target.checked)}
+                                                                checked={isChecked}
+                                                                onChange={(e) => handleCharacteristicToggle(item.checkedField, item.noteField, e.target.checked)}
                                                                 className="w-4 h-4 rounded border-slate-300 accent-primary"
                                                             />
                                                         </td>
                                                         <td className="px-3 py-2">
                                                             <input
                                                                 type="text"
-                                                                value={config.note}
-                                                                onChange={(e) => handleCharacteristicChange(item.key as any, 'note', e.target.value)}
-                                                                disabled={!config.checked}
+                                                                value={noteValue}
+                                                                onChange={(e) => handleCharacteristicNote(item.noteField, e.target.value)}
+                                                                disabled={!isChecked}
                                                                 className="w-full text-sm px-2 py-1 rounded border border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
                                                                 placeholder={item.notePlaceholder || "Nhập thời gian..."}
                                                             />
@@ -237,8 +199,6 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                             </div>
                         </div>
                     </section>
-
-                    {/* Risk Factors removed */}
 
                     {/* Surgical History Table */}
                     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -261,22 +221,22 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-200">
-                                        {demographics.surgicalHistory.map((row, index) => (
-                                            <tr key={row.id} className="group hover:bg-slate-50/50">
+                                        {form.surgeries.map((row, index) => (
+                                            <tr key={row._tempId || row.id || index} className="group hover:bg-slate-50/50">
                                                 <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200 bg-slate-50">{index + 1}</td>
                                                 <td className="p-0 border-r border-slate-200">
                                                     <input
                                                         type="date"
-                                                        value={row.surgeryDate}
-                                                        onChange={(e) => handleSurgicalHistoryChange(row.id, 'surgeryDate', e.target.value)}
+                                                        value={row.surgeryDate ?? ''}
+                                                        onChange={(e) => handleSurgeryChange(index, 'surgeryDate', e.target.value)}
                                                         className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
                                                     />
                                                 </td>
                                                 <td className="p-0 border-r border-slate-200">
                                                     <input
                                                         type="text"
-                                                        value={row.procedure}
-                                                        onChange={(e) => handleSurgicalHistoryChange(row.id, 'procedure', e.target.value)}
+                                                        value={row.surgeryType ?? ''}
+                                                        onChange={(e) => handleSurgeryChange(index, 'surgeryType', e.target.value)}
                                                         className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
                                                         placeholder="Nhập phương pháp..."
                                                     />
@@ -284,8 +244,8 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPr
                                                 <td className="p-0 border-r border-slate-200">
                                                     <input
                                                         type="text"
-                                                        value={row.notes}
-                                                        onChange={(e) => handleSurgicalHistoryChange(row.id, 'notes', e.target.value)}
+                                                        value={row.findings ?? ''}
+                                                        onChange={(e) => handleSurgeryChange(index, 'findings', e.target.value)}
                                                         className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
                                                         placeholder="Ghi chú thêm..."
                                                     />

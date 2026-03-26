@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { callFetchPatient } from '@/apis/api';
 import { IModelPaginate, IPatient, IEpisode } from '@/types/backend';
-import { Demographics, ClinicalAssessment } from '@/types/types';
+import { IClinicFormState } from '@/types/types';
 
 interface ICurrentCase {
     patient: IPatient;
@@ -18,10 +18,9 @@ interface IState {
     },
     result: IPatient[];
     currentCase: ICurrentCase | null;
-    demographics: Demographics;
-    clinical: ClinicalAssessment;
+    clinicForm: IClinicFormState;
 }
-// First, create the thunk
+
 export const fetchPatient = createAsyncThunk(
     'patient/fetchPatient',
     async ({ query }: { query: string }) => {
@@ -30,51 +29,23 @@ export const fetchPatient = createAsyncThunk(
     }
 )
 
-const defaultCharacteristic = { checked: false, note: '' };
-
-const defaultDemographics: Demographics = {
-    medicalHistory: '',
-    pastMedicalHistory: '',
-    antibioticHistory: '',
-    surgeryDate: '',
-    symptomDate: '',
-    isAcute: false,
-    dob: '',
-    gender: '',
-    relatedCharacteristics: {
-        allergy: { ...defaultCharacteristic },
-        drugs: { ...defaultCharacteristic },
-        alcohol: { ...defaultCharacteristic },
-        smoking: { ...defaultCharacteristic },
-        other: { ...defaultCharacteristic },
-    },
-    surgicalHistory: [{ id: '1', surgeryDate: '', procedure: '', notes: '' }],
-};
-
-export const defaultClinical: ClinicalAssessment = {
-    major: { sinusTract: false, twoPositiveCultures: false },
-    examination: {
-        date_on_illness: '',
-        whole_body: '',
-        vessel: '',
-        temperature: '',
-        blood_press: '',
-        breath: '',
-        bmi: '',
-    },
-    symptoms: {
-        fever: false,
-        sinusTract: false,
-        erythema: false,
-        pain: false,
-        swelling: false,
-        drainage: false,
-        purulence: false,
-    },
-    imaging: {
-        description: '',
-        images: []
-    },
+export const defaultClinicForm: IClinicFormState = {
+    clinicalRecord: {},
+    medicalHistory: {},
+    surgeries: [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+    cultureResults: [{
+        _tempId: 'default-1',
+        sampleNumber: 1,
+        name: '',
+        incubationDays: undefined,
+        result: '',
+        notes: '',
+        gramType: '',
+        usedAntibioticBefore: false,
+        daysOffAntibiotic: '',
+    }],
+    formImages: [],
+    imagingDescription: '',
     hematologyTests: [
         { id: 'ht_1', name: 'wbc', result: '', normalRange: '', unit: 'G/L' },
         { id: 'ht_2', name: '%NEUT', result: '', normalRange: '40 - 74', unit: '%' },
@@ -109,27 +80,8 @@ export const defaultClinical: ClinicalAssessment = {
         { id: 'fa_5', name: 'Định lượng CRP (Dịch)', result: '', normalRange: '', unit: 'mg/l' },
         { id: 'fa_6', name: '%PMN (Dịch)', result: '', normalRange: '', unit: '%' },
     ],
-    cultureSamples: [
-        {
-            id: 'default-1',
-            sampleNumber: 1,
-            bacteriaName: '',
-            incubation_days: '' as '',
-            used_antibiotic_before: false,
-            days_off_antibiotic: '' as '',
-            notes: '',
-            result: '' as any
-        }
-    ],
-};
-
-const loadDemographics = (): Demographics => {
-    try {
-        const saved = localStorage.getItem('pji_demographics');
-        return saved ? JSON.parse(saved) : defaultDemographics;
-    } catch {
-        return defaultDemographics;
-    }
+    surgeryDate: '',
+    isAcute: false,
 };
 
 const loadCurrentCase = (): ICurrentCase | null => {
@@ -141,12 +93,12 @@ const loadCurrentCase = (): ICurrentCase | null => {
     }
 };
 
-const loadClinical = (): ClinicalAssessment => {
+const loadClinicForm = (): IClinicFormState => {
     try {
-        const saved = localStorage.getItem('pji_clinical');
-        return saved ? JSON.parse(saved) : defaultClinical;
+        const saved = localStorage.getItem('pji_clinicForm');
+        return saved ? JSON.parse(saved) : defaultClinicForm;
     } catch {
-        return defaultClinical;
+        return defaultClinicForm;
     }
 };
 
@@ -160,8 +112,7 @@ const initialState: IState = {
     },
     result: [],
     currentCase: loadCurrentCase(),
-    demographics: loadDemographics(),
-    clinical: loadClinical(),
+    clinicForm: loadClinicForm(),
 };
 
 
@@ -180,46 +131,32 @@ export const patientSlice = createSlice({
             state.currentCase = null;
             localStorage.removeItem('pji_currentCase');
         },
-        setDemographics: (state, action: PayloadAction<Demographics>) => {
-            state.demographics = action.payload;
-            localStorage.setItem('pji_demographics', JSON.stringify(action.payload));
+        setClinicForm: (state, action: PayloadAction<IClinicFormState>) => {
+            state.clinicForm = action.payload;
+            localStorage.setItem('pji_clinicForm', JSON.stringify(action.payload));
         },
-        resetDemographics: (state) => {
-            state.demographics = defaultDemographics;
-            localStorage.removeItem('pji_demographics');
-        },
-        setClinical: (state, action: PayloadAction<ClinicalAssessment>) => {
-            state.clinical = action.payload;
-            localStorage.setItem('pji_clinical', JSON.stringify(action.payload));
-        },
-        resetClinical: (state) => {
-            state.clinical = defaultClinical;
-            localStorage.removeItem('pji_clinical');
+        resetClinicForm: (state) => {
+            state.clinicForm = defaultClinicForm;
+            localStorage.removeItem('pji_clinicForm');
         },
     },
     extraReducers: (builder) => {
-        // Add reducers for additional action types here, and handle loading state as needed
         builder.addCase(fetchPatient.pending, (state, action) => {
             state.isFetching = true;
-
         })
 
         builder.addCase(fetchPatient.rejected, (state, action) => {
             state.isFetching = false;
-
         })
 
         builder.addCase(fetchPatient.fulfilled, (state, action) => {
             const payload = action.payload;
             if (payload && payload.data) {
-                //Cast payload.data as IModelPaginate<IRole> before reading meta/result.
                 const pageData = payload.data as unknown as IModelPaginate<IPatient>;
                 state.isFetching = false;
                 state.meta = pageData.meta;
                 state.result = pageData.result;
             }
-
-            // state.courseOrder = action.payload;
         })
     },
 
@@ -229,10 +166,8 @@ export const {
     setActiveMenu,
     setCurrentCase,
     clearCurrentCase,
-    setDemographics,
-    resetDemographics,
-    setClinical,
-    resetClinical,
+    setClinicForm,
+    resetClinicForm,
 } = patientSlice.actions;
 
 export default patientSlice.reducer;

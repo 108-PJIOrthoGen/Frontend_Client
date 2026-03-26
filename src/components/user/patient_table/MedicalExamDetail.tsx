@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { Drawer, Tabs, Button, Spin, message, notification } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './S2MedicalExamination';
-import { MedicalHistoryPage, demoToMedicalHistoryRequest, demoToSurgeryRequests } from './MedicalHistory';
+import { MedicalHistoryPage } from './MedicalHistory';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
 import { Step4Antibiogram, AntibioticRow } from './S4Antibiogram';
 import {
@@ -41,8 +41,8 @@ import {
     callUpdateCultureResult,
     callDeleteCultureResult,
 } from '@/apis/api';
-import { useDemographics, useAppDispatch, useClinical } from '@/redux/hook';
-import { resetDemographics, resetClinical } from '@/redux/slice/patientSlice';
+import { useClinicForm, useAppDispatch } from '@/redux/hook';
+import { resetClinicForm } from '@/redux/slice/patientSlice';
 
 interface MedicalExamDetailProps {
     open: boolean;
@@ -66,8 +66,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
     const antibioticsRef = useRef<AntibioticRow[]>([]);
-    const { demographics } = useDemographics();
-    const { clinical } = useClinical();
+    const { form } = useClinicForm();
     const dispatch = useAppDispatch();
 
     // Initialize form ref with existing data
@@ -99,8 +98,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         setSensitivityMap({});
         setMedicalHistory(null);
         setSurgeries([]);
-        dispatch(resetDemographics());
-        dispatch(resetClinical());
+        dispatch(resetClinicForm());
     };
 
     const fetchAllData = async (episodeId: string) => {
@@ -179,25 +177,30 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 }
             }
 
-            // 2. Save medical history
-            const mhPayload = demoToMedicalHistoryRequest(demographics);
+            // 2. Save medical history — send form.medicalHistory directly
+            const mhPayload = { ...form.medicalHistory };
             if (medicalHistory?.id) {
                 await callUpdateMedicalHistory(episodeId!, mhPayload);
             } else {
                 await callCreateMedicalHistory(episodeId!, mhPayload);
             }
 
-            // 3. Save surgeries (Sync logic)
-            // Only include rows that have at least surgeryDate AND procedure (required by backend)
-            const formSurgeries = demographics.surgicalHistory.filter(s => s.surgeryDate && s.procedure);
+            // 3. Save surgeries (Sync logic) — form.surgeries uses backend ISurgery fields directly
+            const formSurgeries = form.surgeries.filter(s => s.surgeryDate && s.surgeryType);
             const dbSurgeries = surgeries;
 
-            const formIds = new Set(formSurgeries.map(s => String(s.id)));
             const dbIds = new Set(dbSurgeries.map(s => String(s.id)));
 
-            const toDelete = dbSurgeries.filter(s => !formIds.has(String(s.id)));
-            const toUpdate = formSurgeries.filter(s => dbIds.has(String(s.id)));
-            const toCreate = formSurgeries.filter(s => !dbIds.has(String(s.id)));
+            // Surgeries with a real DB id (not just _tempId) that exist in DB → update
+            // Surgeries without a DB id or whose id is not in DB → create
+            // DB surgeries not in form → delete
+            const formRealIds = new Set(
+                formSurgeries.filter(s => s.id && dbIds.has(String(s.id))).map(s => String(s.id))
+            );
+
+            const toDelete = dbSurgeries.filter(s => !formRealIds.has(String(s.id)));
+            const toUpdate = formSurgeries.filter(s => s.id && dbIds.has(String(s.id)));
+            const toCreate = formSurgeries.filter(s => !s.id || !dbIds.has(String(s.id)));
 
             const deletePromises = toDelete.map(s => callDeleteSurgery(String(s.id!)));
 
@@ -205,8 +208,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'> = {
                     episodeId: Number(episodeId),
                     surgeryDate: s.surgeryDate,
-                    surgeryType: s.procedure,
-                    findings: s.notes || undefined,
+                    surgeryType: s.surgeryType,
+                    findings: s.findings || undefined,
                 };
                 return callUpdateSurgery(String(s.id), payload);
             });
@@ -215,21 +218,21 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'> = {
                     episodeId: Number(episodeId),
                     surgeryDate: s.surgeryDate,
-                    surgeryType: s.procedure,
-                    findings: s.notes || undefined,
+                    surgeryType: s.surgeryType,
+                    findings: s.findings || undefined,
                 };
                 return callCreateSurgery(payload);
             });
 
             await Promise.all([...deletePromises, ...updatePromises, ...createPromises]);
 
-            // 4. Save Lab Results
+            // 4. Save Lab Results — TestItem → ILabResult conversion stays (save boundary)
             const getLab = (name: string) => {
-                const test = clinical.hematologyTests?.find(t => t.name.toLowerCase() === name.toLowerCase());
+                const test = form.hematologyTests?.find(t => t.name.toLowerCase() === name.toLowerCase());
                 return test && test.result ? { value: Number(test.result), unit: test.unit } : undefined;
             };
             const getFluid = (name: string) => {
-                const test = clinical.fluidAnalysis?.find(t => t.name.toLowerCase() === name.toLowerCase());
+                const test = form.fluidAnalysis?.find(t => t.name.toLowerCase() === name.toLowerCase());
                 return test && test.result ? { value: Number(test.result), unit: test.unit } : undefined;
             };
 
@@ -261,7 +264,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 crp: getFluid('Định lượng CRP (Dịch)'),
                 synovialWbc: getFluid('Bạch cầu (Dịch)'),
                 synovialPmn: getFluid('%PMN (Dịch)'),
-                biochemicalData: clinical.biochemistryTests?.reduce((acc, test) => {
+                biochemicalData: form.biochemistryTests?.reduce((acc, test) => {
                     if (test.result) {
                         const backendKey = reverseBioMapping[test.id] || test.id;
                         acc[backendKey] = { value: Number(test.result), unit: test.unit };
@@ -275,26 +278,11 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             } else {
                 await callCreateLabResult(labPayload as ILabResult);
             }
-            // 5. Save Clinical Record (symptoms + examination)
+
+            // 5. Save Clinical Record — send form.clinicalRecord directly (+ episodeId)
             const clinicalPayload: Partial<IClinicalRecord> = {
+                ...form.clinicalRecord,
                 episodeId: Number(episodeId),
-                illnessOnsetDate: demographics.symptomDate || undefined,
-                bloodPressure: clinical.examination?.blood_press || undefined,
-                bmi: clinical.examination?.bmi ? Number(clinical.examination.bmi) : undefined,
-                fever: clinical.symptoms?.fever ?? false,
-                pain: clinical.symptoms?.pain ?? false,
-                erythema: clinical.symptoms?.erythema ?? false,
-                swelling: clinical.symptoms?.swelling ?? false,
-                sinusTract: clinical.symptoms?.sinusTract ?? false,
-                hematogenousSuspected: clinical.symptoms?.hematogenousSuspected ?? false,
-                pmmaAllergy: clinical.symptoms?.pmmaAllergy ?? false,
-                suspectedInfectionType: clinical.examination?.suspectedInfectionType || undefined,
-                softTissue: clinical.examination?.softTissue || undefined,
-                implantStability: clinical.examination?.implantStability || undefined,
-                prosthesisJoint: clinical.examination?.prosthesisJoint || undefined,
-                daysSinceIndexArthroplasty: clinical.examination?.daysSinceIndexArthroplasty
-                    ? Number(clinical.examination.daysSinceIndexArthroplasty) : undefined,
-                notations: clinical.examination?.notations || undefined,
             };
 
             if (clinicalRecord?.id) {
@@ -303,26 +291,30 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 await callCreateClinicalRecord(clinicalPayload as IClinicalRecord);
             }
 
-            // 6. Save Culture Results (microbiology samples)
-            const formCultures = clinical.cultureSamples || [];
+            // 6. Save Culture Results — form.cultureResults uses backend fields directly
+            const formCultures = form.cultureResults || [];
             const dbCultures = cultureResults;
 
-            const formCultureIds = new Set(formCultures.map(s => String(s.id)));
             const dbCultureIds = new Set(dbCultures.map(c => String(c.id)));
 
-            const culturesToDelete = dbCultures.filter(c => !formCultureIds.has(String(c.id)));
-            const culturesToUpdate = formCultures.filter(s => dbCultureIds.has(String(s.id)));
-            const culturesToCreate = formCultures.filter(s => !dbCultureIds.has(String(s.id)));
+            const formCultureRealIds = new Set(
+                formCultures.filter(s => s.id && dbCultureIds.has(String(s.id))).map(s => String(s.id))
+            );
+
+            const culturesToDelete = dbCultures.filter(c => !formCultureRealIds.has(String(c.id)));
+            const culturesToUpdate = formCultures.filter(s => s.id && dbCultureIds.has(String(s.id)));
+            const culturesToCreate = formCultures.filter(s => !s.id || !dbCultureIds.has(String(s.id)));
 
             const deleteCulturePromises = culturesToDelete.map(c => callDeleteCultureResult(String(c.id!)));
 
             const updateCulturePromises = culturesToUpdate.map(s => {
                 const payload: Partial<ICultureResult> = {
                     episodeId: Number(episodeId),
-                    name: s.bacteriaName || undefined,
-                    incubationDays: s.incubation_days ? Number(s.incubation_days) : undefined,
+                    name: s.name || undefined,
+                    incubationDays: s.incubationDays != null ? Number(s.incubationDays) : undefined,
                     result: s.result || undefined,
                     notes: s.notes || undefined,
+                    gramType: s.gramType || undefined,
                 };
                 return callUpdateCultureResult(String(s.id), payload as ICultureResult);
             });
@@ -330,17 +322,19 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const createCulturePromises = culturesToCreate.map(s => {
                 const payload: Partial<ICultureResult> = {
                     episodeId: Number(episodeId),
-                    name: s.bacteriaName || undefined,
-                    incubationDays: s.incubation_days ? Number(s.incubation_days) : undefined,
+                    name: s.name || undefined,
+                    incubationDays: s.incubationDays != null ? Number(s.incubationDays) : undefined,
                     result: s.result || undefined,
                     notes: s.notes || undefined,
+                    gramType: s.gramType || undefined,
                 };
                 return callCreateCultureResult(payload as ICultureResult);
             });
 
             await Promise.all([...deleteCulturePromises, ...updateCulturePromises, ...createCulturePromises]);
-            // 5. Save Image Results
-            const formImages = clinical.imaging?.images || [];
+
+            // 7. Save Image Results — form.formImages → IImageResult conversion stays (fileMetadata JSON)
+            const formImages = form.formImages || [];
             const dbImages = imageResults;
 
             const formImageIds = new Set(formImages.map(img => String(img.id)));
@@ -357,7 +351,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     episodeId: Number(episodeId),
                     type: img.type,
                     fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
-                    findings: clinical.imaging?.description || undefined,
+                    findings: form.imagingDescription || undefined,
                 };
                 return callUpdateImageResult(String(img.id), payload as IImageResult);
             });
@@ -367,7 +361,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     episodeId: Number(episodeId),
                     type: img.type,
                     fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
-                    findings: clinical.imaging?.description || undefined,
+                    findings: form.imagingDescription || undefined,
                     imagingDate: new Date().toISOString().split('T')[0],
                 };
                 return callCreateImageResult(payload as IImageResult);
@@ -415,6 +409,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     clinicalRecord={clinicalRecord}
                     cultureResults={cultureResults}
                     imageResults={imageResults}
+                    patient={examData?.patient}
                 />
             ),
         },

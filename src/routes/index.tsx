@@ -1,6 +1,6 @@
 import { LayoutClient } from "@/layouts/LayoutClient";
 import { createBrowserRouter } from "react-router-dom";
-import { PatientProvider } from "@/context/PatientContext";
+
 import LoginPage from "@/pages/auth/LoginPage";
 import AiDiagnosisSuggestion from "@/pages/user/AiDiagnoseSuggestion";
 import Error404 from "@/pages/errors/NotFoundPage";
@@ -20,9 +20,7 @@ const router = createBrowserRouter([
         path: "/",
         element: (
             <LayoutApp>
-                <PatientProvider>
-                    <LayoutClient />
-                </PatientProvider>
+                <LayoutClient />
             </LayoutApp>
 
         ), // thêm layoutApp sau
