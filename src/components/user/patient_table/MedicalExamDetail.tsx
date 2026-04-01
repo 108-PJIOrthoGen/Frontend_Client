@@ -40,6 +40,8 @@ import {
     callCreateCultureResult,
     callUpdateCultureResult,
     callDeleteCultureResult,
+    callCreateSensitivityResult,
+    callDeleteSensitivityResult,
 } from '@/apis/api';
 import { useClinicForm, useAppDispatch } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/slice/patientSlice';
@@ -261,6 +263,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 mch: getLab('MCH'),
                 rdw: getLab('RDW-CV'),
                 ig: getLab('IG%'),
+                dimer: getLab('D-dimer'),
+                alphaDefensin: getLab('Alpha Defensin'),
+                serumIl6: getLab('Serum IL-6'),
                 crp: getFluid('Định lượng CRP (Dịch)'),
                 synovialWbc: getFluid('Bạch cầu (Dịch)'),
                 synovialPmn: getFluid('%PMN (Dịch)'),
@@ -315,6 +320,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     result: s.result || undefined,
                     notes: s.notes || undefined,
                     gramType: s.gramType || undefined,
+                    antibioticed: s.antibioticed,
+                    daysOffAntibio: s.daysOffAntibio != null ? Number(s.daysOffAntibio) : undefined,
                 };
                 return callUpdateCultureResult(String(s.id), payload as ICultureResult);
             });
@@ -327,6 +334,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     result: s.result || undefined,
                     notes: s.notes || undefined,
                     gramType: s.gramType || undefined,
+                    antibioticed: s.antibioticed,
+                    daysOffAntibio: s.daysOffAntibio != null ? Number(s.daysOffAntibio) : undefined,
                 };
                 return callCreateCultureResult(payload as ICultureResult);
             });
@@ -368,6 +377,32 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             });
 
             await Promise.all([...deleteImagePromises, ...updateImagePromises, ...createImagePromises]);
+
+            // 8. Save Sensitivity Results (Antibiogram) — delete all existing, then recreate from antibioticsRef
+            if (cultureResults.length > 0 && cultureResults[0].id) {
+                const activeCultureId = cultureResults[0].id;
+                const existingSensitivities = sensitivityMap[activeCultureId] || [];
+
+                // Delete all existing sensitivity results for this culture
+                await Promise.all(
+                    existingSensitivities
+                        .filter(s => s.id)
+                        .map(s => callDeleteSensitivityResult(String(s.id!)))
+                );
+
+                // Create new sensitivity results from the antibiogram form
+                const formAntibiotics = antibioticsRef.current.filter(row => row.name.trim());
+                await Promise.all(
+                    formAntibiotics.map(row =>
+                        callCreateSensitivityResult({
+                            cultureId: Number(activeCultureId),
+                            antibioticName: row.name,
+                            micValue: row.mic || undefined,
+                            sensitivityCode: row.interpretation || undefined,
+                        } as ISensitivityResult)
+                    )
+                );
+            }
 
             message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
             onClose();

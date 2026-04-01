@@ -161,18 +161,16 @@ export interface ILabResult {
     wbcBlood?: IMeasurement;
     neut?: IMeasurement;
     mono?: IMeasurement;
-    lymph?: IMeasurement;
     eos?: IMeasurement;
-    baso?: IMeasurement;
     rbc?: IMeasurement;
-    hgb?: IMeasurement;
-    hct?: IMeasurement;
     rdw?: IMeasurement;
     ig?: IMeasurement;
     mcv?: IMeasurement;
     mch?: IMeasurement;
-    mchc?: IMeasurement;
     crp?: IMeasurement;
+    dimer?: IMeasurement;
+    serumIl6?: IMeasurement;
+    alphaDefensin?: IMeasurement;
     synovialWbc?: IMeasurement;
     synovialPmn?: IMeasurement;
     biochemicalData?: Record<string, any>;
@@ -186,12 +184,13 @@ export interface ILabResult {
 export interface ICultureResult {
     id?: string;
     episodeId?: number;
-    sampleType?: string;
     incubationDays?: number;
     name?: string;
     result?: string;
     gramType?: string;
     notes?: string;
+    antibioticed?: boolean;
+    daysOffAntibio?: number;
     createdAt?: string;
     updatedAt?: string;
 }

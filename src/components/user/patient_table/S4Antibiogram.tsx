@@ -65,16 +65,6 @@ export const Step4Antibiogram: React.FC<Step4Props> = ({ onNext, onPrev, mode = 
                         <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Bảng Kháng Sinh Đồ</h1>
                         <p className="text-slate-500 text-sm mt-1">Kết quả định danh vi khuẩn và mức độ nhạy cảm tự động</p>
                     </div>
-                    <div className="flex items-center gap-3 z-10">
-                        <button onClick={onPrev} className="px-6 py-3 text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-300">
-                            <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lại
-                        </button>
-                        <div className="flex gap-3">
-                            <button onClick={onNext} className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3  font-bold text-white hover:bg-cyan-400 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
-                                AI chẩn đoán <span className="material-symbols-outlined text-[18px]">auto_awesome</span>
-                            </button>
-                        </div>
-                    </div>
                 </header>
             )}
 

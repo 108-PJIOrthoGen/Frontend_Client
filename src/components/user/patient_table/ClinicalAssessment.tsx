@@ -3,10 +3,9 @@ import { useClinicForm } from '@/redux/hook';
 import { ILabResult, IClinicalRecord, ICultureResult, IImageResult, IPatient } from '@/types/backend';
 import { TestItem } from '@/types/types';
 import { callUploadImage } from '@/apis/api';
+import { Input } from 'antd';
 
 interface ClinicalAssessmentProps {
-  onNext?: () => void;
-  onPrev?: () => void;
   mode?: 'wizard' | 'standalone';
   labResults?: ILabResult[];
   clinicalRecord?: IClinicalRecord | null;
@@ -15,7 +14,7 @@ interface ClinicalAssessmentProps {
   patient?: IPatient | null;
 }
 
-export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNext, onPrev, mode = 'wizard', labResults, clinicalRecord, cultureResults, imageResults, patient }) => {
+export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ mode = 'wizard', labResults, clinicalRecord, cultureResults, imageResults, patient }) => {
   const { form, setForm } = useClinicForm();
   const [uploading, setUploading] = useState(false);
 
@@ -66,6 +65,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
         if (lab.mch?.value != null) hTests = setVal(hTests, 'MCH', lab.mch.value);
         if (lab.rdw?.value != null) hTests = setVal(hTests, 'RDW-CV', lab.rdw.value);
         if (lab.ig?.value != null) hTests = setVal(hTests, 'IG%', lab.ig.value);
+        if (lab.dimer?.value != null) hTests = setVal(hTests, 'D-dimer', lab.dimer.value);
+        if (lab.serumIl6?.value != null) hTests = setVal(hTests, 'Serum IL-6', lab.serumIl6.value);
+        if (lab.alphaDefensin?.value != null) hTests = setVal(hTests, 'Alpha Defensin', lab.alphaDefensin.value);
 
         let fTests = [...prev.fluidAnalysis];
         if (lab.synovialWbc?.value != null) fTests = setVal(fTests, 'Bạch cầu (Dịch)', lab.synovialWbc.value);
@@ -271,13 +273,19 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
 
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>
-                    <input
-                      type="text"
-                      placeholder="Ví dụ: cấp tính sau phẫu thuật"
+                    <select
                       value={form.clinicalRecord.suspectedInfectionType ?? ''}
                       onChange={(e) => setForm(prev => ({ ...prev, clinicalRecord: { ...prev.clinicalRecord, suspectedInfectionType: e.target.value } }))}
-                      className="w-full rounded-lg border-slate-300 h-11 px-3 border focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    />
+                      className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border"
+                    >
+                      <option value="UNKNOWN" disabled>Chọn tình trạng</option>
+                      <option value="EARLY_POSTOPERATIVE">Nhiễm trùng hậu phẫu sớm</option>
+                      <option value="DELAYED">Nhiễm trùng muộn / trì hoãn</option>
+                      <option value="LATE_HEMATOGENOUS">nhiễm trùng đường máu (hơn 24 tháng)</option>
+                      <option value="ACUTE_HEMATOGENOUS">nhiễm trùng cấp đường máu</option>
+                      <option value="CHRONIC">nhiễm trùng mạn tính</option>
+                      <option value="UNKNOWN">Chưa rõ</option>
+                    </select>
                   </label>
 
                   <label className="flex flex-col gap-1.5">
@@ -519,190 +527,190 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({ onNe
                         {form.fluidAnalysis?.map((test, index) => {
                           if (test.name === 'Nhuộm Gram') return null;
                           return (
-                          <tr key={test.id} className="hover:bg-slate-50/50">
-                            <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">{test.name}</td>
-                            <td className="px-4 py-2 border-r border-slate-200 p-0">
-                              {test.name === 'Cấy khuẩn' ? (
-                                <div className="p-4 space-y-4">
-                                  {form.cultureResults?.map((sample, sampleIdx) => (
-                                    <div key={sample._tempId || sample.id || sampleIdx} className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm flex flex-col gap-4">
-                                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                                        <span className="font-bold text-slate-800 text-sm">Mẫu {sample.sampleNumber}</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            const newSamples = form.cultureResults.filter((_, idx) => idx !== sampleIdx);
-                                            const renumbered = newSamples.map((s, idx) => ({ ...s, sampleNumber: idx + 1 }));
-                                            setForm(prev => ({ ...prev, cultureResults: renumbered }));
-                                          }}
-                                          className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1"
-                                        >
-                                          <span className="material-symbols-outlined text-[16px]">delete</span>
-                                          Xoá
-                                        </button>
-                                      </div>
-
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div className="flex flex-col gap-1.5">
-                                          <label className="text-xs font-semibold text-slate-700">Kết quả</label>
-                                          <select
-                                            value={sample.result || ''}
-                                            onChange={(e) => {
-                                              const newSamples = [...form.cultureResults];
-                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], result: e.target.value };
-                                              setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                            <tr key={test.id} className="hover:bg-slate-50/50">
+                              <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">{test.name}</td>
+                              <td className="px-4 py-2 border-r border-slate-200 p-0">
+                                {test.name === 'Cấy khuẩn' ? (
+                                  <div className="p-4 space-y-4">
+                                    {form.cultureResults?.map((sample, sampleIdx) => (
+                                      <div key={sample._tempId || sample.id || sampleIdx} className="p-4 border border-slate-200 rounded-lg bg-white shadow-sm flex flex-col gap-4">
+                                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                                          <span className="font-bold text-slate-800 text-sm">Mẫu {sample.sampleNumber}</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const newSamples = form.cultureResults.filter((_, idx) => idx !== sampleIdx);
+                                              const renumbered = newSamples.map((s, idx) => ({ ...s, sampleNumber: idx + 1 }));
+                                              setForm(prev => ({ ...prev, cultureResults: renumbered }));
                                             }}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                            className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1"
                                           >
-                                            <option value="">-- Chọn kết quả --</option>
-                                            <option value="POSITIVE">Dương tính (POSITIVE)</option>
-                                            <option value="NEGATIVE">Âm tính (NEGATIVE)</option>
-                                            <option value="CONTAMINATED">Nhiễm bẩn (CONTAMINATED)</option>
-                                            <option value="PENDING">Đang chờ (PENDING)</option>
-                                          </select>
+                                            <span className="material-symbols-outlined text-[16px]">delete</span>
+                                            Xoá
+                                          </button>
                                         </div>
 
-                                        <div className="flex flex-col gap-1.5">
-                                          <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
-                                          <input
-                                            type="text"
-                                            value={sample.name || ''}
-                                            onChange={(e) => {
-                                              const newSamples = [...form.cultureResults];
-                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], name: e.target.value };
-                                              setForm(prev => ({ ...prev, cultureResults: newSamples }));
-                                            }}
-                                            placeholder="Nhập tên vi khuẩn..."
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                                          />
-                                        </div>
-
-                                        <div className="flex flex-col gap-1.5">
-                                          <label className="text-xs font-semibold text-slate-700">Nhuộm Gram</label>
-                                          <select
-                                            value={sample.gramType || ''}
-                                            onChange={(e) => {
-                                              const newSamples = [...form.cultureResults];
-                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], gramType: e.target.value };
-                                              setForm(prev => ({ ...prev, cultureResults: newSamples }));
-                                            }}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                                          >
-                                            <option value="">-- Chọn loại --</option>
-                                            <option value="Gram Dương">Gram Dương</option>
-                                            <option value="Gram Âm">Gram Âm</option>
-                                            <option value="Chưa rõ">Chưa rõ</option>
-                                          </select>
-                                        </div>
-
-                                        <div className="flex flex-col gap-1.5">
-                                          <label className="text-xs font-semibold text-slate-700">Số ngày ủ (incubationDays)</label>
-                                          <input
-                                            type="number"
-                                            value={sample.incubationDays != null ? sample.incubationDays : ''}
-                                            onChange={(e) => {
-                                              const newSamples = [...form.cultureResults];
-                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], incubationDays: e.target.value === '' ? undefined : Number(e.target.value) };
-                                              setForm(prev => ({ ...prev, cultureResults: newSamples }));
-                                            }}
-                                            placeholder="Ví dụ: 3"
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                                          />
-                                        </div>
-
-                                        <div className="flex flex-col justify-center pt-5">
-                                          <label className="flex items-center gap-2 cursor-pointer">
-                                            <input
-                                              type="checkbox"
-                                              checked={sample.usedAntibioticBefore || false}
-                                              onChange={(e) => {
-                                                const newSamples = [...form.cultureResults];
-                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], usedAntibioticBefore: e.target.checked };
-                                                setForm(prev => ({ ...prev, cultureResults: newSamples }));
-                                              }}
-                                              className="w-4 h-4 accent-primary rounded border-slate-300"
-                                            />
-                                            <span className="text-sm font-medium text-slate-700">Đã dùng KS trước đó</span>
-                                          </label>
-                                        </div>
-
-                                        {sample.usedAntibioticBefore && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-slate-700">Số ngày ngưng KS (daysOffAntibiotic)</label>
-                                            <input
-                                              type="number"
-                                              value={sample.daysOffAntibiotic !== undefined ? sample.daysOffAntibiotic : ''}
+                                            <label className="text-xs font-semibold text-slate-700">Kết quả</label>
+                                            <select
+                                              value={sample.result || ''}
                                               onChange={(e) => {
                                                 const newSamples = [...form.cultureResults];
-                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], daysOffAntibiotic: e.target.value === '' ? '' : Number(e.target.value) };
+                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], result: e.target.value };
                                                 setForm(prev => ({ ...prev, cultureResults: newSamples }));
                                               }}
-                                              placeholder="Ví dụ: 7"
+                                              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                            >
+                                              <option value="">-- Chọn kết quả --</option>
+                                              <option value="POSITIVE">Dương tính (POSITIVE)</option>
+                                              <option value="NEGATIVE">Âm tính (NEGATIVE)</option>
+                                              <option value="CONTAMINATED">Nhiễm bẩn (CONTAMINATED)</option>
+                                              <option value="PENDING">Đang chờ (PENDING)</option>
+                                            </select>
+                                          </div>
+
+                                          <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
+                                            <input
+                                              type="text"
+                                              value={sample.name || ''}
+                                              onChange={(e) => {
+                                                const newSamples = [...form.cultureResults];
+                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], name: e.target.value };
+                                                setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                              }}
+                                              placeholder="Nhập tên vi khuẩn..."
                                               className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                                             />
                                           </div>
-                                        )}
 
-                                        <div className={`flex flex-col gap-1.5 ${sample.usedAntibioticBefore ? '' : 'md:col-span-2'}`}>
-                                          <label className="text-xs font-semibold text-slate-700">Ghi chú (notes)</label>
-                                          <input
-                                            type="text"
-                                            value={sample.notes || ''}
-                                            onChange={(e) => {
-                                              const newSamples = [...form.cultureResults];
-                                              newSamples[sampleIdx] = { ...newSamples[sampleIdx], notes: e.target.value };
-                                              setForm(prev => ({ ...prev, cultureResults: newSamples }));
-                                            }}
-                                            placeholder="Ghi chú thêm..."
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
-                                          />
+                                          <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-slate-700">Nhuộm Gram</label>
+                                            <select
+                                              value={sample.gramType || ''}
+                                              onChange={(e) => {
+                                                const newSamples = [...form.cultureResults];
+                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], gramType: e.target.value };
+                                                setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                              }}
+                                              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                            >
+                                              <option value="">-- Chọn loại --</option>
+                                              <option value="Gram Dương">Gram Dương</option>
+                                              <option value="Gram Âm">Gram Âm</option>
+                                              <option value="Chưa rõ">Chưa rõ</option>
+                                            </select>
+                                          </div>
+
+                                          <div className="flex flex-col gap-1.5">
+                                            <label className="text-xs font-semibold text-slate-700">Số ngày ủ (incubationDays)</label>
+                                            <input
+                                              type="number"
+                                              value={sample.incubationDays != null ? sample.incubationDays : ''}
+                                              onChange={(e) => {
+                                                const newSamples = [...form.cultureResults];
+                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], incubationDays: e.target.value === '' ? undefined : Number(e.target.value) };
+                                                setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                              }}
+                                              placeholder="Ví dụ: 3"
+                                              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                            />
+                                          </div>
+
+                                          <div className="flex flex-col justify-center pt-5">
+                                            <label className="flex items-center gap-2 cursor-pointer">
+                                              <input
+                                                type="checkbox"
+                                                checked={sample.antibioticed || false}
+                                                onChange={(e) => {
+                                                  const newSamples = [...form.cultureResults];
+                                                  newSamples[sampleIdx] = { ...newSamples[sampleIdx], antibioticed: e.target.checked };
+                                                  setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                                }}
+                                                className="w-4 h-4 accent-primary rounded border-slate-300"
+                                              />
+                                              <span className="text-sm font-medium text-slate-700">Đã dùng KS trước đó</span>
+                                            </label>
+                                          </div>
+
+                                          {sample.antibioticed && (
+                                            <div className="flex flex-col gap-1.5">
+                                              <label className="text-xs font-semibold text-slate-700">Số ngày ngưng KS (daysOffAntibiotic)</label>
+                                              <Input
+                                                type="number"
+                                                value={sample.daysOffAntibio !== undefined ? sample.daysOffAntibio : ''}
+                                                onChange={(e) => {
+                                                  const newSamples = [...form.cultureResults];
+                                                  newSamples[sampleIdx] = { ...newSamples[sampleIdx], daysOffAntibio: Number(e.target.value) };
+                                                  setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                                }}
+                                                placeholder="Ví dụ: 7"
+                                                className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                              />
+                                            </div>
+                                          )}
+
+                                          <div className={`flex flex-col gap-1.5 ${sample.antibioticed ? '' : 'md:col-span-2'}`}>
+                                            <label className="text-xs font-semibold text-slate-700">Ghi chú (notes)</label>
+                                            <input
+                                              type="text"
+                                              value={sample.notes || ''}
+                                              onChange={(e) => {
+                                                const newSamples = [...form.cultureResults];
+                                                newSamples[sampleIdx] = { ...newSamples[sampleIdx], notes: e.target.value };
+                                                setForm(prev => ({ ...prev, cultureResults: newSamples }));
+                                              }}
+                                              placeholder="Ghi chú thêm..."
+                                              className="w-full px-3 py-2 border border-slate-300 rounded-md text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                                            />
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
+                                    ))}
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const newSample = {
-                                        _tempId: Math.random().toString(36).substr(2, 9),
-                                        sampleNumber: (form.cultureResults?.length || 0) + 1,
-                                        name: '',
-                                        incubationDays: undefined,
-                                        result: '',
-                                        notes: '',
-                                        gramType: '',
-                                        usedAntibioticBefore: false,
-                                        daysOffAntibiotic: '' as '',
-                                      };
-                                      setForm(prev => ({
-                                        ...prev,
-                                        cultureResults: [...(prev.cultureResults || []), newSample]
-                                      }));
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const newSample = {
+                                          _tempId: Math.random().toString(36).substr(2, 9),
+                                          sampleNumber: (form.cultureResults?.length || 0) + 1,
+                                          name: '',
+                                          incubationDays: undefined,
+                                          result: '',
+                                          notes: '',
+                                          gramType: '',
+                                          antibioticed: false,
+                                          daysOffAntibio: 0,
+                                        };
+                                        setForm(prev => ({
+                                          ...prev,
+                                          cultureResults: [...(prev.cultureResults || []), newSample]
+                                        }));
+                                      }}
+                                      className="w-full py-2 border-2 border-dashed border-primary/50 text-primary hover:bg-primary/5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors mt-2"
+                                    >
+                                      <span className="material-symbols-outlined text-[18px]">add</span>
+                                      Thêm mẫu vi khuẩn mới
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={test.result}
+                                    onChange={(e) => {
+                                      const newTests = (form.fluidAnalysis || []).map((t, i) =>
+                                        i === index ? { ...t, result: e.target.value } : t
+                                      );
+                                      setForm(prev => ({ ...prev, fluidAnalysis: newTests }));
                                     }}
-                                    className="w-full py-2 border-2 border-dashed border-primary/50 text-primary hover:bg-primary/5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors mt-2"
-                                  >
-                                    <span className="material-symbols-outlined text-[18px]">add</span>
-                                    Thêm mẫu vi khuẩn mới
-                                  </button>
-                                </div>
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={test.result}
-                                  onChange={(e) => {
-                                    const newTests = (form.fluidAnalysis || []).map((t, i) =>
-                                      i === index ? { ...t, result: e.target.value } : t
-                                    );
-                                    setForm(prev => ({ ...prev, fluidAnalysis: newTests }));
-                                  }}
-                                  className="w-full h-full px-4 py-2 border-none bg-transparent focus:ring-inset focus:ring-2 focus:ring-primary outline-none"
-                                />
-                              )}
-                            </td>
-                            <td className="px-4 py-2 border-r border-slate-200 text-slate-700">{test.normalRange}</td>
-                            <td className="px-4 py-2 text-slate-500 bg-slate-50/30">{test.unit}</td>
-                          </tr>
+                                    className="w-full h-full px-4 py-2 border-none bg-transparent focus:ring-inset focus:ring-2 focus:ring-primary outline-none"
+                                  />
+                                )}
+                              </td>
+                              <td className="px-4 py-2 border-r border-slate-200 text-slate-700">{test.normalRange}</td>
+                              <td className="px-4 py-2 text-slate-500 bg-slate-50/30">{test.unit}</td>
+                            </tr>
                           );
                         })}
                       </tbody>

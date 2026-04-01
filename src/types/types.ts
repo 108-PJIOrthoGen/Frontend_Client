@@ -28,8 +28,8 @@ export interface IClinicFormState {
   cultureResults: (Partial<ICultureResult> & {
     _tempId?: string;
     sampleNumber?: number;
-    usedAntibioticBefore?: boolean;
-    daysOffAntibiotic?: number | '';
+    antibioticed?: boolean;
+    daysOffAntibio?: number | '';
   })[];
   formImages: { id: string; url: string; type: string; name: string; previewUrl?: string }[];
   imagingDescription: string;

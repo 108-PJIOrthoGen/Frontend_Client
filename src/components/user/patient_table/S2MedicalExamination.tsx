@@ -1,6 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { IEpisode } from '@/types/backend';
+import { DatePicker } from 'antd';
+import locale from 'antd/es/date-picker/locale/en_US';
+import dayjs, { Dayjs } from 'dayjs';
 
+// Helper function to safely parse dates from API
+const parseDateFromApi = (dateValue: any): string => {
+    if (!dateValue) return '';
+
+    const dateStr = String(dateValue).trim();
+
+    // If it matches ISO format (YYYY-MM-DD), convert to DD/MM/YYYY
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+        const parsed = dayjs(dateStr, 'YYYY-MM-DD');
+        if (parsed.isValid()) {
+            return parsed.format('DD/MM/YYYY');
+        }
+    }
+
+    // If it's already in DD/MM/YYYY format, check if valid
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const parsed = dayjs(dateStr, 'DD/MM/YYYY');
+        if (parsed.isValid()) {
+            return dateStr;
+        }
+    }
+
+    // Try to parse as ISO format first
+    let date = dayjs(dateStr, 'YYYY-MM-DD');
+    if (date.isValid()) {
+        return date.format('DD/MM/YYYY');
+    }
+
+    // Try DD/MM/YYYY format
+    date = dayjs(dateStr, 'DD/MM/YYYY');
+    if (date.isValid()) {
+        return dateStr;
+    }
+
+    // If nothing works, return empty
+    return '';
+};
 export interface EpisodeFormData {
     arrivalTime: string;
     dischargeTime: string;
@@ -27,8 +67,8 @@ const emptyFormData: EpisodeFormData = {
 
 export function episodeToFormData(ep: IEpisode): EpisodeFormData {
     return {
-        arrivalTime: ep.admissionDate ?? '',
-        dischargeTime: ep.dischargeDate ?? '',
+        arrivalTime: parseDateFromApi(ep.admissionDate),
+        dischargeTime: parseDateFromApi(ep.dischargeDate),
         department: ep.department ?? '',
         admissionMethod: ep.direct ?? '',
         reason: ep.reason ?? '',
@@ -70,8 +110,17 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
         setFormData(episodeData ? episodeToFormData(episodeData) : emptyFormData);
     }, [episodeData]);
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        setFormData(prev => {
+            const next = { ...prev, [name]: value };
+            onFormChange?.(next);
+            return next;
+        });
+    };
+
+    const handleDateChange = (name: keyof EpisodeFormData) => (_date: Dayjs | null, dateString: string | string[]) => {
+        const value = Array.isArray(dateString) ? dateString[0] : dateString;
         setFormData(prev => {
             const next = { ...prev, [name]: value };
             onFormChange?.(next);
@@ -94,12 +143,14 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Thời gian vào viện <span className="text-red-500">*</span></span>
-                                <input name="arrivalTime" value={formData.arrivalTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="date" />
+
+                                <DatePicker locale={locale} format={"DD/MM/YYYY"} value={formData.arrivalTime ? dayjs(formData.arrivalTime, 'DD/MM/YYYY') : null} onChange={handleDateChange('arrivalTime')} placeholder='ngày/tháng/năm' />
                             </label>
 
                             <label className="flex flex-col gap-1.5">
                                 <span className="text-sm font-medium text-slate-700">Thời gian ra viện <span className="text-red-500">*</span></span>
-                                <input name="dischargeTime" value={formData.dischargeTime} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border" type="date" />
+
+                                <DatePicker locale={locale} format={"DD/MM/YYYY"} value={formData.dischargeTime ? dayjs(formData.dischargeTime, 'DD/MM/YYYY') : null} onChange={handleDateChange('dischargeTime')} placeholder='ngày/tháng/năm' />
                             </label>
                             <label className="flex flex-col col-span-2">
                                 <span className="text-sm font-medium text-slate-700">Lý do vào viện</span>
@@ -116,9 +167,9 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({ onNext, 
                                 <span className="text-sm font-medium text-slate-700">Trực tiếp vào <span className="text-red-500">*</span></span>
                                 <select name="admissionMethod" value={formData.admissionMethod} onChange={handleInputChange} className="w-full rounded-lg border-slate-300 h-11 px-3 focus:ring-primary focus:border-primary border bg-white">
                                     <option value="" disabled>-- Vào theo hình thức --</option>
-                                    <option value="cc">Cấp cứu</option>
-                                    <option value="kkb">Khám bệnh</option>
-                                    <option value="kdt">Khám theo yêu cầu</option>
+                                    <option value="CC">Cấp cứu</option>
+                                    <option value="KKB">Khám bệnh</option>
+                                    <option value="KDT">Khám theo yêu cầu</option>
                                 </select>
                             </label>
 
