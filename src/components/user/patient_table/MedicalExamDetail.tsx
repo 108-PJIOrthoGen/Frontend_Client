@@ -4,7 +4,7 @@ import { SaveOutlined } from '@ant-design/icons';
 import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './S2MedicalExamination';
 import { MedicalHistoryPage } from './MedicalHistory';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
-import { Step4Antibiogram, AntibioticRow } from './S4Antibiogram';
+import { Antibiogram, AntibioticRow } from './Antibiogram';
 import {
     IEpisode,
     ILabResult,
@@ -452,7 +452,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             key: '4',
             label: 'Kháng sinh đồ',
             children: (
-                <Step4Antibiogram
+                <Antibiogram
                     mode="standalone"
                     cultureResults={cultureResults}
                     sensitivityMap={sensitivityMap}

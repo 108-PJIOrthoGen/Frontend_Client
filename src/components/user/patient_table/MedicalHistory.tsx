@@ -1,285 +1,380 @@
 import React, { useEffect } from 'react';
+import { Form, Input, Checkbox, DatePicker, Button } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IMedicalHistory, ISurgery } from '@/types/backend';
 
+const { TextArea } = Input;
+
 interface MedicalHistoryProps {
-    onNext?: () => void;
-    onPrev?: () => void;
-    mode?: 'wizard' | 'standalone';
-    medicalHistoryData?: IMedicalHistory | null;
-    surgeriesData?: ISurgery[];
+  onNext?: () => void;
+  onPrev?: () => void;
+  mode?: 'wizard' | 'standalone';
+  medicalHistoryData?: IMedicalHistory | null;
+  surgeriesData?: ISurgery[];
 }
 
-export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({ onNext, onPrev, mode = 'wizard', medicalHistoryData, surgeriesData }) => {
-    const { form, setForm } = useClinicForm();
+interface SurgeryFormRow extends ISurgery {
+  _tempId?: string;
+}
 
-    // When data is loaded from API, populate form directly with backend types
-    useEffect(() => {
-        if (medicalHistoryData || (surgeriesData && surgeriesData.length > 0)) {
-            const mh = medicalHistoryData ?? {};
-            setForm(prev => ({
-                ...prev,
-                medicalHistory: {
-                    ...prev.medicalHistory,
-                    process: mh.process ?? '',
-                    medicalHistory: mh.medicalHistory ?? '',
-                    antibioticHistory: mh.antibioticHistory ?? '',
-                    isAllergy: mh.isAllergy ?? false,
-                    allergyNote: mh.allergyNote ?? '',
-                    isDrug: mh.isDrug ?? false,
-                    drugNote: mh.drugNote ?? '',
-                    isAlcohol: mh.isAlcohol ?? false,
-                    alcoholNote: mh.alcoholNote ?? '',
-                    isSmoking: mh.isSmoking ?? false,
-                    smokingNote: mh.smokingNote ?? '',
-                    isOther: mh.isOther ?? false,
-                    otherNote: mh.otherNote ?? '',
-                },
-                surgeries: surgeriesData && surgeriesData.length > 0
-                    ? surgeriesData.map(s => ({
-                        ...s,
-                        id: s.id ?? undefined,
-                        _tempId: String(s.id ?? Date.now()),
-                    }))
-                    : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
-            }));
-        }
-    }, [medicalHistoryData, surgeriesData]);
+interface MedicalHistoryFormValues {
+  process: string;
+  medicalHistory: string;
+  antibioticHistory: string;
+  characteristics: {
+    isAllergy: boolean;
+    allergyNote: string;
+    isDrug: boolean;
+    drugNote: string;
+    isAlcohol: boolean;
+    alcoholNote: string;
+    isSmoking: boolean;
+    smokingNote: string;
+    isOther: boolean;
+    otherNote: string;
+  };
+  surgeries: SurgeryFormRow[];
+}
 
-    const handleMedicalHistoryChange = (field: keyof IMedicalHistory, value: string) => {
-        setForm(prev => ({
-            ...prev,
-            medicalHistory: { ...prev.medicalHistory, [field]: value }
-        }));
-    };
+export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
+  mode = 'wizard',
+  medicalHistoryData,
+  surgeriesData,
+}) => {
+  const { setForm } = useClinicForm();
+  const [form] = Form.useForm<MedicalHistoryFormValues>();
 
-    const handleCharacteristicToggle = (checkedField: keyof IMedicalHistory, noteField: keyof IMedicalHistory, checked: boolean) => {
-        setForm(prev => ({
-            ...prev,
-            medicalHistory: { ...prev.medicalHistory, [checkedField]: checked }
-        }));
-    };
+  // When data is loaded from API, populate both Redux and Ant Form
+  useEffect(() => {
+    if (medicalHistoryData || (surgeriesData && surgeriesData.length > 0)) {
+      const mh = medicalHistoryData ?? {};
 
-    const handleCharacteristicNote = (noteField: keyof IMedicalHistory, value: string) => {
-        setForm(prev => ({
-            ...prev,
-            medicalHistory: { ...prev.medicalHistory, [noteField]: value }
-        }));
-    };
+      // Update Redux store
+      setForm((prev) => ({
+        ...prev,
+        medicalHistory: {
+          ...prev.medicalHistory,
+          process: mh.process ?? '',
+          medicalHistory: mh.medicalHistory ?? '',
+          antibioticHistory: mh.antibioticHistory ?? '',
+          isAllergy: mh.isAllergy ?? false,
+          allergyNote: mh.allergyNote ?? '',
+          isDrug: mh.isDrug ?? false,
+          drugNote: mh.drugNote ?? '',
+          isAlcohol: mh.isAlcohol ?? false,
+          alcoholNote: mh.alcoholNote ?? '',
+          isSmoking: mh.isSmoking ?? false,
+          smokingNote: mh.smokingNote ?? '',
+          isOther: mh.isOther ?? false,
+          otherNote: mh.otherNote ?? '',
+        },
+        surgeries:
+          surgeriesData && surgeriesData.length > 0
+            ? surgeriesData.map((s) => ({
+                ...s,
+                id: s.id ?? undefined,
+                _tempId: String(s.id ?? Date.now()),
+              }))
+            : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+      }));
 
-    const handleSurgeryChange = (index: number, field: keyof ISurgery, value: string) => {
-        setForm(prev => ({
-            ...prev,
-            surgeries: prev.surgeries.map((s, i) =>
-                i === index ? { ...s, [field]: value } : s
-            )
-        }));
-    };
+      // Update Ant Design Form
+      form.setFieldsValue({
+        process: mh.process ?? '',
+        medicalHistory: mh.medicalHistory ?? '',
+        antibioticHistory: mh.antibioticHistory ?? '',
+        characteristics: {
+          isAllergy: mh.isAllergy ?? false,
+          allergyNote: mh.allergyNote ?? '',
+          isDrug: mh.isDrug ?? false,
+          drugNote: mh.drugNote ?? '',
+          isAlcohol: mh.isAlcohol ?? false,
+          alcoholNote: mh.alcoholNote ?? '',
+          isSmoking: mh.isSmoking ?? false,
+          smokingNote: mh.smokingNote ?? '',
+          isOther: mh.isOther ?? false,
+          otherNote: mh.otherNote ?? '',
+        },
+        surgeries:
+          surgeriesData && surgeriesData.length > 0
+            ? surgeriesData.map((s) => ({
+                ...s,
+                _tempId: String(s.id ?? Date.now()),
+              }))
+            : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+      });
+    }
+  }, [medicalHistoryData, surgeriesData, form, setForm]);
 
-    const handleRemoveRow = (index: number) => {
-        setForm(prev => ({
-            ...prev,
-            surgeries: prev.surgeries.filter((_, i) => i !== index)
-        }));
-    };
+  // Sync Ant Form changes to Redux
+  const handleValuesChange = (_changedValues: Partial<MedicalHistoryFormValues>, allValues: MedicalHistoryFormValues) => {
+    setForm((prev) => ({
+      ...prev,
+      medicalHistory: {
+        ...prev.medicalHistory,
+        process: allValues.process ?? '',
+        medicalHistory: allValues.medicalHistory ?? '',
+        antibioticHistory: allValues.antibioticHistory ?? '',
+        isAllergy: allValues.characteristics?.isAllergy ?? false,
+        allergyNote: allValues.characteristics?.allergyNote ?? '',
+        isDrug: allValues.characteristics?.isDrug ?? false,
+        drugNote: allValues.characteristics?.drugNote ?? '',
+        isAlcohol: allValues.characteristics?.isAlcohol ?? false,
+        alcoholNote: allValues.characteristics?.alcoholNote ?? '',
+        isSmoking: allValues.characteristics?.isSmoking ?? false,
+        smokingNote: allValues.characteristics?.smokingNote ?? '',
+        isOther: allValues.characteristics?.isOther ?? false,
+        otherNote: allValues.characteristics?.otherNote ?? '',
+      },
+      surgeries: allValues.surgeries ?? [],
+    }));
+  };
 
-    const handleInsertRow = (index: number) => {
-        setForm(prev => {
-            const newSurgeries = [...prev.surgeries];
-            newSurgeries.splice(index + 1, 0, { _tempId: Date.now().toString(), surgeryDate: '', surgeryType: '', findings: '' });
-            return { ...prev, surgeries: newSurgeries };
-        });
-    };
+  const characteristicsList: {
+    checkedField: keyof MedicalHistoryFormValues['characteristics'];
+    noteField: keyof MedicalHistoryFormValues['characteristics'];
+    label: string;
+    code: string;
+    notePlaceholder?: string;
+  }[] = [
+    { checkedField: 'isAllergy', noteField: 'allergyNote', label: 'Di ung', code: '01', notePlaceholder: '(Di nguyen)' },
+    { checkedField: 'isDrug', noteField: 'drugNote', label: 'Ma tuy', code: '02' },
+    { checkedField: 'isAlcohol', noteField: 'alcoholNote', label: 'Ruou bia', code: '03' },
+    { checkedField: 'isSmoking', noteField: 'smokingNote', label: 'Hut thuoc', code: '04' },
+    { checkedField: 'isOther', noteField: 'otherNote', label: 'Khac', code: '05' },
+  ];
 
-    const characteristicsList: { checkedField: keyof IMedicalHistory; noteField: keyof IMedicalHistory; label: string; code: string; notePlaceholder?: string }[] = [
-        { checkedField: 'isAllergy', noteField: 'allergyNote', label: 'Dị ứng', code: '01', notePlaceholder: '(Dị nguyên)' },
-        { checkedField: 'isDrug', noteField: 'drugNote', label: 'Ma túy', code: '02' },
-        { checkedField: 'isAlcohol', noteField: 'alcoholNote', label: 'Rượu bia', code: '03' },
-        { checkedField: 'isSmoking', noteField: 'smokingNote', label: 'Hút thuốc', code: '04' },
-        { checkedField: 'isOther', noteField: 'otherNote', label: 'Khác', code: '05' },
-    ];
-
-    return (
-        <>
-            {mode === 'wizard' && (
-                <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhập thông tin bệnh án</h1>
-                        <p className="text-slate-500 text-sm mt-1">Lưu trữ thông tin về tiền sử bệnh & điều trị </p>
-                    </div>
-                </header>
-            )}
-            <div className="flex-1 overflow-y-auto p-8 pb-32">
-
-                <div className="max-w-5xl mx-auto space-y-6">
-                    {/* Medical History Context */}
-                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tiền sử bệnh</h1>
-                                <p className="text-slate-500 text-sm mt-1">Ghi nhận tiền sử bệnh </p>
-                            </div>
-                        </div>
-                        <div className="p-6 grid grid-cols-1 gap-6">
-                            <label className="flex flex-col gap-1.5">
-                                <span className="text-sm font-medium text-slate-700">Quá trình bệnh lý</span>
-                                <textarea
-                                    value={form.medicalHistory.process ?? ''}
-                                    onChange={(e) => handleMedicalHistoryChange('process', e.target.value)}
-                                    className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
-                                    placeholder="Mô tả chi tiết quá trình bệnh lý..."
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1.5">
-                                <span className="text-sm font-medium text-slate-700">Tiền sử bệnh</span>
-                                <textarea
-                                    value={form.medicalHistory.medicalHistory ?? ''}
-                                    onChange={(e) => handleMedicalHistoryChange('medicalHistory', e.target.value)}
-                                    className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
-                                    placeholder="Các bệnh lý nền, dị ứng, phẫu thuật trước đây..."
-                                />
-                            </label>
-                            <label className="flex flex-col gap-1.5">
-                                <span className="text-sm font-medium text-slate-700">Tiền sử điều trị kháng sinh</span>
-                                <textarea
-                                    value={form.medicalHistory.antibioticHistory ?? ''}
-                                    onChange={(e) => handleMedicalHistoryChange('antibioticHistory', e.target.value)}
-                                    className="w-full rounded-lg border-slate-300 min-h-[120px] p-3 border focus:ring-primary focus:border-primary"
-                                    placeholder="Các loại kháng sinh dùng trước đây..."
-                                />
-                            </label>
-
-                            {/* Related Characteristics Table */}
-                            <div className="flex flex-col gap-2">
-                                <span className="text-sm font-medium text-slate-700">Đặc điểm liên quan bệnh:</span>
-                                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                    <table className="w-full text-sm text-left">
-                                        <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-                                            <tr>
-                                                <th className="px-3 py-2 text-center w-12 border-r border-slate-200">TT</th>
-                                                <th className="px-3 py-2 border-r border-slate-200">Ký hiệu</th>
-                                                <th className="px-3 py-2 w-16 text-center border-r border-slate-200">Chọn</th>
-                                                <th className="px-3 py-2">Thời gian (tính theo tháng) / Ghi chú</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-slate-200">
-                                            {characteristicsList.map((item) => {
-                                                const isChecked = !!form.medicalHistory[item.checkedField];
-                                                const noteValue = (form.medicalHistory[item.noteField] as string) ?? '';
-                                                return (
-                                                    <tr key={item.code} className="hover:bg-slate-50/50">
-                                                        <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200">{item.code}</td>
-                                                        <td className="px-3 py-2 font-medium text-slate-900 border-r border-slate-200">
-                                                            {item.label}
-                                                        </td>
-                                                        <td className="px-3 py-2 text-center border-r border-slate-200">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={isChecked}
-                                                                onChange={(e) => handleCharacteristicToggle(item.checkedField, item.noteField, e.target.checked)}
-                                                                className="w-4 h-4 rounded border-slate-300 accent-primary"
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2">
-                                                            <input
-                                                                type="text"
-                                                                value={noteValue}
-                                                                onChange={(e) => handleCharacteristicNote(item.noteField, e.target.value)}
-                                                                disabled={!isChecked}
-                                                                className="w-full text-sm px-2 py-1 rounded border border-slate-200 disabled:bg-slate-50 disabled:text-slate-400 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                                                placeholder={item.notePlaceholder || "Nhập thời gian..."}
-                                                            />
-                                                        </td>
-                                                    </tr>
-                                                );
-                                            })}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Surgical History Table */}
-                    <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                            <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary text-[20px]">surgical</span>
-                                Tiền sử phẫu thuật
-                            </h2>
-                        </div>
-                        <div className="p-6">
-                            <div className="border border-slate-200 rounded-lg overflow-hidden">
-                                <table className="w-full text-sm text-left">
-                                    <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-                                        <tr>
-                                            <th className="px-3 py-2 text-center w-16 border-r border-slate-200">Lần PT</th>
-                                            <th className="px-3 py-2 w-32 border-r border-slate-200">Thời gian</th>
-                                            <th className="px-3 py-2 border-r border-slate-200">Phương pháp phẫu thuật</th>
-                                            <th className="px-3 py-2 border-r border-slate-200">Ghi chú</th>
-                                            <th className="px-3 py-2 text-center w-24"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-200">
-                                        {form.surgeries.map((row, index) => (
-                                            <tr key={row._tempId || row.id || index} className="group hover:bg-slate-50/50">
-                                                <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200 bg-slate-50">{index + 1}</td>
-                                                <td className="p-0 border-r border-slate-200">
-                                                    <input
-                                                        type="date"
-                                                        value={row.surgeryDate ?? ''}
-                                                        onChange={(e) => handleSurgeryChange(index, 'surgeryDate', e.target.value)}
-                                                        className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
-                                                    />
-                                                </td>
-                                                <td className="p-0 border-r border-slate-200">
-                                                    <input
-                                                        type="text"
-                                                        value={row.surgeryType ?? ''}
-                                                        onChange={(e) => handleSurgeryChange(index, 'surgeryType', e.target.value)}
-                                                        className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
-                                                        placeholder="Nhập phương pháp..."
-                                                    />
-                                                </td>
-                                                <td className="p-0 border-r border-slate-200">
-                                                    <input
-                                                        type="text"
-                                                        value={row.findings ?? ''}
-                                                        onChange={(e) => handleSurgeryChange(index, 'findings', e.target.value)}
-                                                        className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
-                                                        placeholder="Ghi chú thêm..."
-                                                    />
-                                                </td>
-                                                <td className="px-3 py-2 flex items-center justify-center gap-1 opacity-100 transition-opacity">
-                                                    <button
-                                                        onClick={() => handleInsertRow(index)}
-                                                        className="p-1 rounded hover:bg-blue-100 text-blue-600 transition-colors"
-                                                        title="Chèn hàng dưới"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">add</span>
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleRemoveRow(index)}
-                                                        className="p-1 rounded hover:bg-red-100 text-red-600 transition-colors"
-                                                        title="Xóa hàng"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </section>
-
-
+  return (
+    <>
+      {mode === 'wizard' && (
+        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhap thong tin benh an</h1>
+            <p className="text-slate-500 text-sm mt-1">Luu tru thong tin ve tien su benh & dieu tri</p>
+          </div>
+        </header>
+      )}
+      <div className="flex-1 overflow-y-auto p-8 pb-32">
+        <Form
+          form={form}
+          layout="vertical"
+          onValuesChange={handleValuesChange}
+          initialValues={{
+            process: '',
+            medicalHistory: '',
+            antibioticHistory: '',
+            characteristics: {
+              isAllergy: false,
+              allergyNote: '',
+              isDrug: false,
+              drugNote: '',
+              isAlcohol: false,
+              alcoholNote: '',
+              isSmoking: false,
+              smokingNote: '',
+              isOther: false,
+              otherNote: '',
+            },
+            surgeries: [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+          }}
+        >
+          <div className="max-w-5xl mx-auto space-y-6">
+            {/* Medical History Context */}
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Tien su benh</h1>
+                  <p className="text-slate-500 text-sm mt-1">Ghi nhan tien su benh</p>
                 </div>
+              </div>
+              <div className="p-6 grid grid-cols-1 gap-6">
+                <Form.Item
+                  name="process"
+                  label={<span className="text-sm font-medium text-slate-700">Qua trinh benh ly</span>}
+                >
+                  <TextArea
+                    rows={4}
+                    placeholder="Mo ta chi tiet qua trinh benh ly..."
+                    className="rounded-lg border-slate-300"
+                  />
+                </Form.Item>
 
-            </div>
+                <Form.Item
+                  name="medicalHistory"
+                  label={<span className="text-sm font-medium text-slate-700">Tien su benh</span>}
+                >
+                  <TextArea
+                    rows={4}
+                    placeholder="Cac benh ly nen, di ung, phau thuat truoc day..."
+                    className="rounded-lg border-slate-300"
+                  />
+                </Form.Item>
 
+                <Form.Item
+                  name="antibioticHistory"
+                  label={<span className="text-sm font-medium text-slate-700">Tien su dieu tri khang sinh</span>}
+                >
+                  <TextArea
+                    rows={4}
+                    placeholder="Cac loai khang sinh dung truoc day..."
+                    className="rounded-lg border-slate-300"
+                  />
+                </Form.Item>
 
-        </>
-    );
+                {/* Related Characteristics Table */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-slate-700">Dac diem lien quan benh:</span>
+                  <div className="border border-slate-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                        <tr>
+                          <th className="px-3 py-2 text-center w-12 border-r border-slate-200">TT</th>
+                          <th className="px-3 py-2 border-r border-slate-200">Ky hieu</th>
+                          <th className="px-3 py-2 w-16 text-center border-r border-slate-200">Chon</th>
+                          <th className="px-3 py-2">Thoi gian (tinh theo thang) / Ghi chu</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200">
+                        {characteristicsList.map((item) => (
+                          <Form.Item
+                            key={item.code}
+                            noStyle
+                            shouldUpdate={(prevValues, currentValues) =>
+                              prevValues.characteristics?.[item.checkedField] !==
+                              currentValues.characteristics?.[item.checkedField]
+                            }
+                          >
+                            {({ getFieldValue }) => {
+                              const isChecked = getFieldValue(['characteristics', item.checkedField]);
+                              return (
+                                <tr className="hover:bg-slate-50/50">
+                                  <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200">
+                                    {item.code}
+                                  </td>
+                                  <td className="px-3 py-2 font-medium text-slate-900 border-r border-slate-200">
+                                    {item.label}
+                                  </td>
+                                  <td className="px-3 py-2 text-center border-r border-slate-200">
+                                    <Form.Item
+                                      name={['characteristics', item.checkedField]}
+                                      valuePropName="checked"
+                                      className="mb-0"
+                                    >
+                                      <Checkbox className="accent-primary" />
+                                    </Form.Item>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <Form.Item name={['characteristics', item.noteField]} className="mb-0">
+                                      <Input
+                                        disabled={!isChecked}
+                                        placeholder={item.notePlaceholder || 'Nhap thoi gian...'}
+                                        className="w-full text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                                      />
+                                    </Form.Item>
+                                  </td>
+                                </tr>
+                              );
+                            }}
+                          </Form.Item>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Surgical History Table */}
+            <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary text-[20px]">surgical</span>
+                  Tien su phau thuat
+                </h2>
+              </div>
+              <div className="p-6">
+                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-sm text-left">
+                    <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+                      <tr>
+                        <th className="px-3 py-2 text-center w-16 border-r border-slate-200">Lan PT</th>
+                        <th className="px-3 py-2 w-32 border-r border-slate-200">Thoi gian</th>
+                        <th className="px-3 py-2 border-r border-slate-200">Phuong phap phau thuat</th>
+                        <th className="px-3 py-2 border-r border-slate-200">Ghi chu</th>
+                        <th className="px-3 py-2 text-center w-24"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      <Form.List name="surgeries">
+                        {(fields, { add, remove }) => (
+                          <>
+                            {fields.map(({ key, name, ...restField }, index) => (
+                              <tr key={key} className="group hover:bg-slate-50/50">
+                                <td className="px-3 py-2 text-center text-slate-500 border-r border-slate-200 bg-slate-50">
+                                  {index + 1}
+                                </td>
+                                <td className="p-0 border-r border-slate-200">
+                                  <Form.Item {...restField} name={[name, 'surgeryDate']} className="mb-0">
+                                    <DatePicker
+                                      className="w-full border-none"
+                                      placeholder="Chon ngay"
+                                      format="YYYY-MM-DD"
+                                    />
+                                  </Form.Item>
+                                </td>
+                                <td className="p-0 border-r border-slate-200">
+                                  <Form.Item {...restField} name={[name, 'surgeryType']} className="mb-0">
+                                    <Input
+                                      className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
+                                      placeholder="Nhap phuong phap..."
+                                    />
+                                  </Form.Item>
+                                </td>
+                                <td className="p-0 border-r border-slate-200">
+                                  <Form.Item {...restField} name={[name, 'findings']} className="mb-0">
+                                    <Input
+                                      className="w-full px-3 py-2 border-none focus:ring-inset focus:ring-2 focus:ring-primary outline-none bg-transparent"
+                                      placeholder="Ghi chu them..."
+                                    />
+                                  </Form.Item>
+                                </td>
+                                <td className="px-3 py-2 flex items-center justify-center gap-1 opacity-100 transition-opacity">
+                                  <Button
+                                    type="link"
+                                    onClick={() =>
+                                      add(
+                                        { _tempId: Date.now().toString(), surgeryDate: '', surgeryType: '', findings: '' },
+                                        index + 1
+                                      )
+                                    }
+                                    className="p-1 text-blue-600 hover:bg-blue-100"
+                                    title="Chen hang duoi"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">add</span>
+                                  </Button>
+                                  <Button
+                                    type="link"
+                                    danger
+                                    onClick={() => remove(name)}
+                                    className="p-1 hover:bg-red-100"
+                                    title="Xoa hang"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))}
+                          </>
+                        )}
+                      </Form.List>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </section>
+          </div>
+        </Form>
+      </div>
+    </>
+  );
 };
