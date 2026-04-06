@@ -120,14 +120,20 @@ const ModalPermission = (props: IProps) => {
                             name="module"
                             label="Thuộc Module"
                             valueEnum={{
-                                COMPANIES: 'COMPANIES',
-                                FILES: 'FILES',
-                                JOBS: 'JOBS',
+                                RAG: 'RAG',
+                                PATIENTS: 'PATIENTS',
+                                EPISODES: 'EPISODES',
                                 PERMISSIONS: 'PERMISSIONS',
-                                RESUMES: 'RESUMES',
+                                MEDICAL_HISTORY: 'MEDICAL_HISTORY',
                                 ROLES: 'ROLES',
                                 USERS: 'USERS',
-                                SUBSCRIBERS: 'SUBSCRIBERS'
+                                CLINICAL_RECORDS: 'CLINICAL_RECORDS',
+                                SURGERIES: 'SURGERIES',
+                                LAB_RESULTS: 'LAB_RESULTS',
+                                IMAGE_RESULTS: 'IMAGE_RESULTS',
+                                CULTURE_RESULTS: 'CULTURE_RESULTS',
+                                SENSITIVITY_RESULTS: 'SENSITIVITY_RESULTS',
+                                FILES: 'FILES'
                             }}
                             placeholder="Please select a module"
                             rules={[{ required: true, message: 'Vui lòng chọn module!' }]}

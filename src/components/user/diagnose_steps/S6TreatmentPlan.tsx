@@ -152,8 +152,6 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         {/**Section: Local Antibitics */}
                         <LocalAntibioticTreatment localPlan={LOCAL_PLAN} />
 
-
-
                     </div>
                 </div>
 

@@ -12,7 +12,7 @@ const StageItem = ({ stage }: { stage: SurgeryPlanData['stages'][0] }) => {
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
-        <div className="rounded-lg border border-slate-200 bg-green-100 overflow-hidden transition-all duration-200 shadow-sm">
+        <div className="rounded-lg border border-slate-200 bg-white-50 overflow-hidden transition-all duration-200 shadow-sm">
             <div
                 className="flex flex-wrap items-center gap-2 p-3 cursor-pointer hover:bg-cyan-200 transition-colors"
                 onClick={() => setIsExpanded(!isExpanded)}

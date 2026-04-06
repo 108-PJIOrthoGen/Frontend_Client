@@ -40,13 +40,13 @@ const ViewDetailPermission = (props: IProps) => {
                     </Descriptions.Item>
 
                     <Descriptions.Item label="Ngày tạo">
-                        {dataInit && dataInit.createdTime
-                            ? dayjs(dataInit.createdTime).format("DD-MM-YYYY HH:mm:ss")
+                        {dataInit && dataInit.createdAt
+                            ? dayjs(dataInit.createdAt).format("DD-MM-YYYY HH:mm:ss")
                             : ""}
                     </Descriptions.Item>
                     <Descriptions.Item label="Ngày sửa">
-                        {dataInit && dataInit.updatedTime
-                            ? dayjs(dataInit.updatedTime).format("DD-MM-YYYY HH:mm:ss")
+                        {dataInit && dataInit.updatedAt
+                            ? dayjs(dataInit.updatedAt).format("DD-MM-YYYY HH:mm:ss")
                             : ""}
                     </Descriptions.Item>
                 </Descriptions>

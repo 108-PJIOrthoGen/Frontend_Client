@@ -50,32 +50,10 @@ const LocalAntibioticTreatment: React.FC<LocalAntibioticTreatmentProps> = ({ loc
 
             <div className="p-4 space-y-4">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-500">Chẩn đoán/chỉ định</p>
+                    <p className="text-[12px] uppercase tracking-wide font-semibold text-red-500">Chẩn đoán/chỉ định</p>
                     <p className="text-sm text-slate-700 mt-1">{localPlan.indication}</p>
                     <p className="text-xs text-slate-600 mt-2">{localPlan.durationNote}</p>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Thông tin spacer</p>
-                        <div className="space-y-1.5 text-xs text-blue-900">
-                            <p><span className="font-semibold">Delivery:</span> {localPlan.deliveryInfo.deliveryMethod}</p>
-                            <p><span className="font-semibold">Spacer:</span> {localPlan.deliveryInfo.spacerType}</p>
-                            <p><span className="font-semibold">Xi măng gợi ý:</span> {localPlan.deliveryInfo.cementBrandSuggestion}</p>
-                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {localPlan.deliveryInfo.mixingRatio}</p>
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                        <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
-                        <ul className="space-y-1">
-                            {localPlan.monitoring.map((item) => (
-                                <li key={item} className="text-xs text-amber-800">- {item}</li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
                 {/* Antibiotics list */}
                 <div className="space-y-2">
                     {antibiotics.map((abx, index) => {
@@ -200,6 +178,29 @@ const LocalAntibioticTreatment: React.FC<LocalAntibioticTreatmentProps> = ({ loc
                         </button>
                     </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                        <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Gợi ý về spacer</p>
+                        <div className="space-y-1.5 text-xs text-blue-900">
+                            <p><span className="font-semibold">Delivery:</span> {localPlan.deliveryInfo.deliveryMethod}</p>
+                            <p><span className="font-semibold">Spacer:</span> {localPlan.deliveryInfo.spacerType}</p>
+                            <p><span className="font-semibold">Xi măng gợi ý:</span> {localPlan.deliveryInfo.cementBrandSuggestion}</p>
+                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {localPlan.deliveryInfo.mixingRatio}</p>
+                        </div>
+                    </div>
+
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                        <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
+                        <ul className="space-y-1">
+                            {localPlan.monitoring.map((item) => (
+                                <li key={item} className="text-xs text-amber-800">- {item}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+
+
 
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
                     <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
