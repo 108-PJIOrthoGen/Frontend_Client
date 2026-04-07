@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Input } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { LocalPlanData, TemplateAntibiotic } from '@/components/user/diagnose_steps/treatmentTemplateData';
+import { LocalPlanData, TemplateAntibiotic } from '@/components/user/diagnose_steps/treatmentType';
 
 interface LocalAntibioticTreatmentProps {
     localPlan: LocalPlanData;

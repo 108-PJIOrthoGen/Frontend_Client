@@ -31,10 +31,10 @@ const ModalRole = (props: IProps) => {
         permissions: IPermission[]
     }[] | null>(null);
 
-    const groupByPermission = (data: any[]): { module: string; permissions: IPermission[] }[] => {
-        const groupedData = groupBy(data, x => x.module);
-        return map(groupedData, (value, key) => {
-            return { module: key, permissions: value as IPermission[] };
+    const groupByPermission = (data: IPermission[]): { module: string; permissions: IPermission[] }[] => {
+        const groupedData = groupBy(data, (x: IPermission) => x.module);
+        return map(groupedData, (value: IPermission[], key: string) => {
+            return { module: key, permissions: value };
         });
     };
 
@@ -56,7 +56,7 @@ const ModalRole = (props: IProps) => {
                 description: singleRole.description
             })
             //current permissions of role
-            const userPermissions = groupByPermission(singleRole.permissions ?? []);
+            const userPermissions = groupByPermission((singleRole.permissions ?? []) as IPermission[]);
 
             listPermissions.forEach(x => {
                 let allCheck = true;

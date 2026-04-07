@@ -5,14 +5,16 @@ import { SendOutlined } from '@ant-design/icons';
 import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
 import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
-import {
-    LOCAL_PLAN,
-    RAG_CITATIONS,
-    SURGERY_PLAN,
-    SYSTEMIC_PLAN,
-} from './treatmentTemplateData';
+import type {
+    SurgeryPlanData,
+    SystemicPlanData,
+    LocalPlanData,
+    CitationData,
+} from './treatmentType';
 import { clearCurrentCase } from '@/redux/slice/patientSlice';
 import { useDispatch } from 'react-redux';
+import { callFetchAiRecommendationRunDetail } from '@/apis/api';
+import type { IAiRecommendationRunDetail, IAiRagCitation } from '@/types/backend';
 
 interface Step5Props {
     onPrev: () => void;
@@ -25,34 +27,113 @@ interface Message {
     timestamp: Date;
 }
 
-export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
+const snakeToCamelKey = (str: string): string =>
+    str.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
 
+const snakeToCamel = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(snakeToCamel);
+    if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj).map(([k, v]) => [snakeToCamelKey(k), snakeToCamel(v)])
+        );
+    }
+    return obj;
+};
+
+const parseItemJson = (item: { itemJson?: Record<string, any> } | undefined) => {
+    if (!item?.itemJson) return null;
+    const raw = typeof item.itemJson === 'string' ? JSON.parse(item.itemJson) : item.itemJson;
+    return snakeToCamel(raw);
+};
+
+const mapCitations = (citations?: IAiRagCitation[]): CitationData[] => {
+    if (!citations?.length) return [];
+    return citations.map(c => ({
+        sourceType: c.sourceType ?? '',
+        sourceTitle: c.sourceTitle ?? '',
+        sourceUri: c.sourceUri ?? '',
+        snippet: c.snippet ?? '',
+        relevanceScore: c.relevanceScore ?? 0,
+        citedFor: c.citedFor ?? '',
+    }));
+};
+
+export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const dispatch = useDispatch();
+
+    const [surgeryPlan, setSurgeryPlan] = useState<SurgeryPlanData | null>(null);
+    const [systemicPlan, setSystemicPlan] = useState<SystemicPlanData | null>(null);
+    const [localPlan, setLocalPlan] = useState<LocalPlanData | null>(null);
+    const [citations, setCitations] = useState<CitationData[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
+
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
             role: 'assistant',
             content: 'Xin chào! Tôi là trợ lý AI. Bạn có thể hỏi tôi bất kỳ điều gì về phác đồ điều trị, kháng sinh, hay phẫu thuật trên.',
-            timestamp: new Date()
-        }
+            timestamp: new Date(),
+        },
     ]);
     const [inputValue, setInputValue] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
+    const [isChatLoading, setIsChatLoading] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        const loadRunDetail = async () => {
+            setIsLoading(true);
+            try {
+                // Try localStorage cache first, then fetch fresh
+                let detail: IAiRecommendationRunDetail | null = null;
+                const cachedDetail = localStorage.getItem('pji_aiRunDetail');
+                const runId = localStorage.getItem('pji_aiRunId');
+
+                if (cachedDetail) {
+                    detail = JSON.parse(cachedDetail);
+                } else if (runId) {
+                    const res = await callFetchAiRecommendationRunDetail(runId);
+                    detail = res?.data ?? null;
+                }
+
+                if (!detail?.items?.length) {
+                    setLoadError('Không tìm thấy dữ liệu gợi ý. Vui lòng quay lại bước trước.');
+                    return;
+                }
+
+                const items = detail.items;
+
+                const surgeryItem = items.find(i => i.category === 'SURGERY_PROCEDURE');
+                if (surgeryItem) setSurgeryPlan(parseItemJson(surgeryItem) as SurgeryPlanData);
+
+                const systemicItem = items.find(i => i.category === 'SYSTEMIC_ANTIBIOTIC');
+                if (systemicItem) setSystemicPlan(parseItemJson(systemicItem) as SystemicPlanData);
+
+                const localItem = items.find(i => i.category === 'LOCAL_ANTIBIOTIC');
+                if (localItem) setLocalPlan(parseItemJson(localItem) as LocalPlanData);
+
+                setCitations(mapCitations(detail.citations));
+            } catch (err: any) {
+                setLoadError(err?.message || 'Lỗi khi tải dữ liệu phác đồ');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadRunDetail();
+    }, []);
+
     const handleConfirmTreatment = () => {
-        // TODO: gửi dữ liệu lên backend/AI nếu cần
         setIsSuccessModalOpen(true);
     };
 
     const backToHomepage = () => {
-        // Xóa tất cả dữ liệu bệnh nhân trong localStorage
+        localStorage.removeItem('pji_aiRunId');
+        localStorage.removeItem('pji_aiRunDetail');
         localStorage.clear();
         dispatch(clearCurrentCase());
-
-        // Quay lại step 1 (gọi onPrev 4 lần từ step 5)
         for (let i = 0; i < 2; i++) {
             onPrev();
         }
@@ -69,49 +150,66 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const handleSendMessage = async (text: string) => {
         if (!text.trim()) return;
 
-        // Add user message
         const userMessage: Message = {
             id: Date.now().toString(),
             role: 'user',
             content: text,
-            timestamp: new Date()
+            timestamp: new Date(),
         };
 
         setMessages(prev => [...prev, userMessage]);
         setInputValue('');
-        setIsLoading(true);
+        setIsChatLoading(true);
 
-        // Simulate AI response with delay
         setTimeout(() => {
             const aiResponse: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
                 content: generateAIResponse(text),
-                timestamp: new Date()
+                timestamp: new Date(),
             };
             setMessages(prev => [...prev, aiResponse]);
-            setIsLoading(false);
+            setIsChatLoading(false);
         }, 1000);
     };
 
     const generateAIResponse = (userMessage: string): string => {
         const lowerMessage = userMessage.toLowerCase();
-
         const responses: { [key: string]: string } = {
             'dair': 'DAIR khong phu hop cho PJI man tinh > 4 tuan va MRSA. Phuong an uu tien la two-stage revision ket hop khang sinh.',
             'khang sinh': 'Phac do 2 giai doan: 6 tuan IV Vancomycin + Rifampicin, sau do 6 tuan TMP-SMX + Rifampicin duong uong.',
             'phau thuat': 'Chi dinh two-stage revision: giai doan 1 thao implant + dat spacer khang sinh, giai doan 2 reimplantation sau 8-12 tuan neu dat tieu chuan.',
             'phac do': 'Phac do tong the gom phau thuat 2 giai doan, khang sinh toan than 12 tuan, khang sinh tai cho qua ALCS, va theo doi sat CRP/ESR/chuc nang gan than.',
         };
-
         for (const [key, response] of Object.entries(responses)) {
-            if (lowerMessage.includes(key)) {
-                return response;
-            }
+            if (lowerMessage.includes(key)) return response;
         }
-
         return 'Can doi chieu voi tinh trang lam sang, khang sinh do va cac nguy co benh nen. Neu ban muon, toi co the tom tat nhanh theo tung giai doan dieu tri.';
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Spin size="large" tip="Đang tải dữ liệu phác đồ..." />
+            </div>
+        );
+    }
+
+    if (loadError) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Result
+                    status="warning"
+                    title={loadError}
+                    extra={
+                        <Button onClick={onPrev} type="primary">
+                            Quay lại
+                        </Button>
+                    }
+                />
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-full relative">
@@ -134,7 +232,6 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     </Button>
                     <button onClick={onPrev} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors bg-slate-800 border border-slate-600 hover:border-slate-500 rounded-lg">Quay lại</button>
                 </div>
-
             </header>
 
             {/* Dark Theme Container */}
@@ -142,24 +239,22 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
 
                 {/* Left Panel: Treatment Plan Draft */}
                 <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-                    {/* Section: Local Antibiotics */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {/* Section: surgery */}
-                        <SurgerySection surgeryPlan={SURGERY_PLAN} />
-                        <SystemicAntibioticTreatment
-                            guidelinePlan={SYSTEMIC_PLAN}
-                        />
-                        {/**Section: Local Antibitics */}
-                        <LocalAntibioticTreatment localPlan={LOCAL_PLAN} />
-
+                        {surgeryPlan && <SurgerySection surgeryPlan={surgeryPlan} />}
+                        {systemicPlan && (
+                            <SystemicAntibioticTreatment guidelinePlan={systemicPlan} />
+                        )}
+                        {localPlan && <LocalAntibioticTreatment localPlan={localPlan} />}
+                        {!surgeryPlan && !systemicPlan && !localPlan && (
+                            <Result status="info" title="Không có dữ liệu phác đồ điều trị cho ca bệnh này." />
+                        )}
                     </div>
                 </div>
 
                 {/* Right Panel: Evidence */}
                 <div className="w-96 flex flex-col gap-4 h-full">
-                    {/* Evidence block */}
                     <div className="bg-slate-800 border border-slate-700 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 flex flex-col ">
+                        <div className="bg-slate-50 rounded-xl border border-slate-200 flex flex-col">
                             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-purple-600">smart_toy</span>
@@ -168,32 +263,35 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                 <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tạo bởi AI</span>
                             </div>
                             <div className="p-4 flex-1 space-y-3 max-h-[calc(100vh-220px)] overflow-y-auto">
-                                {RAG_CITATIONS.map((citation) => (
-                                    <article key={citation.sourceUri} className="rounded-lg border border-slate-200 bg-white p-3">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
-                                                {citation.sourceType}
-                                            </span>
-                                            <span className="text-[10px] text-slate-500">Relevance {citation.relevanceScore.toFixed(2)}</span>
-                                        </div>
-                                        <p className="text-xs font-semibold text-slate-900 mt-2 leading-relaxed">{citation.sourceTitle}</p>
-                                        <p className="text-xs text-slate-600 mt-1 italic">"{citation.snippet}"</p>
-                                        <p className="text-xs text-slate-700 mt-2"><span className="font-semibold">Cited for:</span> {citation.citedFor}</p>
-                                        <a
-                                            href={citation.sourceUri}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="inline-flex mt-2 text-xs text-blue-600 hover:underline"
-                                        >
-                                            Xem tai lieu
-                                        </a>
-                                    </article>
-                                ))}
+                                {citations.length > 0 ? (
+                                    citations.map((citation, idx) => (
+                                        <article key={citation.sourceUri || idx} className="rounded-lg border border-slate-200 bg-white p-3">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <span className="text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
+                                                    {citation.sourceType}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500">Relevance {citation.relevanceScore.toFixed(2)}</span>
+                                            </div>
+                                            <p className="text-xs font-semibold text-slate-900 mt-2 leading-relaxed">{citation.sourceTitle}</p>
+                                            <p className="text-xs text-slate-600 mt-1 italic">"{citation.snippet}"</p>
+                                            <p className="text-xs text-slate-700 mt-2"><span className="font-semibold">Cited for:</span> {citation.citedFor}</p>
+                                            <a
+                                                href={citation.sourceUri}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="inline-flex mt-2 text-xs text-blue-600 hover:underline"
+                                            >
+                                                Xem tai lieu
+                                            </a>
+                                        </article>
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-slate-500 text-center py-4">Không có citation</p>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-
             </div>
 
             {/* Floating Chat Button */}
@@ -220,16 +318,14 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 headerStyle={{ borderBottom: '1px solid #e5e7eb' }}
             >
                 <div className="flex flex-col h-full bg-white">
-                    {/* Chat Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
-                        {messages.map((message) => (
+                        {messages.map((msg) => (
                             <div
-                                key={message.id}
-                                className={`flex flex-col gap-1 ${message.role === 'user' ? 'items-end' : 'items-start'}`}
+                                key={msg.id}
+                                className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
                             >
-                                <span className={`text-xs font-semibold flex items-center gap-1 ${message.role === 'user' ? 'text-blue-600' : 'text-emerald-600'
-                                    }`}>
-                                    {message.role === 'user' ? (
+                                <span className={`text-xs font-semibold flex items-center gap-1 ${msg.role === 'user' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                                    {msg.role === 'user' ? (
                                         <>Bạn</>
                                     ) : (
                                         <>
@@ -238,19 +334,18 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                         </>
                                     )}
                                 </span>
-                                <div className={`p-3 rounded-lg max-w-[90%] ${message.role === 'user'
+                                <div className={`p-3 rounded-lg max-w-[90%] ${msg.role === 'user'
                                     ? 'bg-blue-500 text-white rounded-tr-none'
                                     : 'bg-slate-100 text-slate-900 rounded-tl-none border border-slate-200'
                                     }`}>
-                                    <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
-                                    <span className={`text-[10px] mt-1 block ${message.role === 'user' ? 'text-blue-100' : 'text-slate-500'
-                                        }`}>
-                                        {message.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                    <p className="whitespace-pre-wrap leading-relaxed text-sm">{msg.content}</p>
+                                    <span className={`text-[10px] mt-1 block ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
+                                        {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </div>
                             </div>
                         ))}
-                        {isLoading && (
+                        {isChatLoading && (
                             <div className="flex items-center gap-2 text-slate-600">
                                 <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
                                 <span>AI đang suy nghĩ...</span>
@@ -260,7 +355,6 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* Input Area */}
                     <div className="p-4 border-t border-slate-200 bg-white flex-shrink-0">
                         <div className="flex gap-2">
                             <Input
@@ -268,7 +362,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
                                 onPressEnter={() => handleSendMessage(inputValue)}
-                                disabled={isLoading}
+                                disabled={isChatLoading}
                                 className="flex-1"
                                 allowClear
                             />
@@ -276,8 +370,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                 type="primary"
                                 icon={<SendOutlined />}
                                 onClick={() => handleSendMessage(inputValue)}
-                                loading={isLoading}
-                                disabled={!inputValue.trim() || isLoading}
+                                loading={isChatLoading}
+                                disabled={!inputValue.trim() || isChatLoading}
                                 className="bg-blue-500 hover:bg-blue-600"
                             />
                         </div>

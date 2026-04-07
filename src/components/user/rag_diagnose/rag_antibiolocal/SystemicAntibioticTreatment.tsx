@@ -5,7 +5,7 @@ import {
     SystemicPlanData,
     SystemicPhaseData,
     TemplateAntibiotic,
-} from '@/components/user/diagnose_steps/treatmentTemplateData';
+} from '@/components/user/diagnose_steps/treatmentType';
 
 interface SystemicAntibioticTreatmentProps {
     guidelinePlan: SystemicPlanData;

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SurgeryPlanData } from '@/components/user/diagnose_steps/treatmentTemplateData';
+import { SurgeryPlanData } from '@/components/user/diagnose_steps/treatmentType';
 
 const ScalpelIcon = () => (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

@@ -30,7 +30,7 @@ const PermissionPage = () => {
     const handleDeletePermission = async (id: string | undefined) => {
         if (id) {
             const res = await callDeletePermission(id);
-            if (res && res.statusCode === 200) {
+            if (res && res.status === 200) {
                 message.success("Xóa Permission thành công");
                 reloadTable();
             } else {
@@ -205,8 +205,8 @@ const PermissionPage = () => {
             "apiPath",
             "method",
             "module",
-            "createdTime",
-            "updatedTime",
+            "createdAt",
+            "updatedAt",
         ];
 
         if (sort) {

@@ -292,6 +292,13 @@ export interface IAiRecommendationRun {
     id?: string;
     episodeId?: number;
     status?: string;
+    runNo?: number;
+    assessmentJson?: string;
+    explanationJson?: string;
+    warningsJson?: string;
+    modelName?: string;
+    latencyMs?: number;
+    errorMessage?: string;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -306,8 +313,18 @@ export interface IAiRecommendationItem {
     itemJson?: Record<string, any>;
 }
 
+export interface IAiRagCitation {
+    id?: string;
+    sourceType?: string;
+    sourceTitle?: string;
+    sourceUri?: string;
+    snippet?: string;
+    relevanceScore?: number;
+    citedFor?: string;
+}
+
 export interface IAiRecommendationRunDetail {
     run?: IAiRecommendationRun;
     items?: IAiRecommendationItem[];
-    citations?: Record<string, any>[];
+    citations?: IAiRagCitation[];
 }

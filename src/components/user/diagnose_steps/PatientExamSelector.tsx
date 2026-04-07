@@ -225,7 +225,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                             </span>
                         </div>
                         <Button type="primary" size="large" onClick={handleContinue}>
-                            Tiến hành chẩn đoán AI →
+                            Chẩn đoán AI →
                         </Button>
                     </div>
                 )}
