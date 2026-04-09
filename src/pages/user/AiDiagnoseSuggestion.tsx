@@ -3,7 +3,7 @@ import { Steps, Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { PatientExamSelector } from '../../components/user/diagnose_steps/PatientExamSelector';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
-import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/S6TreatmentPlan';
+import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
 
 const AiDiagnosisSuggestion = () => {

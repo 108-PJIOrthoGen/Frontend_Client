@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Input } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import {
@@ -7,16 +7,24 @@ import {
     TemplateAntibiotic,
 } from '@/components/user/diagnose_steps/treatmentType';
 
+export interface SystemicAntibioticTreatmentHandle {
+    getData: () => SystemicPlanData;
+}
+
 interface SystemicAntibioticTreatmentProps {
     guidelinePlan: SystemicPlanData;
 }
 
-export const SystemicAntibioticTreatment: React.FC<SystemicAntibioticTreatmentProps> = ({
+export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmentHandle, SystemicAntibioticTreatmentProps>(({
     guidelinePlan,
-}) => {
+}, ref) => {
     const [phases, setPhases] = useState<SystemicPhaseData[]>(() => guidelinePlan.phases);
     const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
     const [editingAbxKey, setEditingAbxKey] = useState<string | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        getData: () => ({ ...guidelinePlan, phases }),
+    }), [guidelinePlan, phases]);
 
     // --- Phase handlers ---
     const toggleEditPhase = useCallback((phaseOrder: number) => {
@@ -387,4 +395,4 @@ export const SystemicAntibioticTreatment: React.FC<SystemicAntibioticTreatmentPr
             </div>
         </div>
     );
-};
+});

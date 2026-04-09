@@ -328,3 +328,17 @@ export interface IAiRecommendationRunDetail {
     items?: IAiRecommendationItem[];
     citations?: IAiRagCitation[];
 }
+
+export interface IDoctorRecommendationReview {
+    id?: string;
+    episodeId?: number;
+    runId?: number;
+    reviewStatus?: string;
+    reviewNote?: string;
+    modificationJson?: Record<string, any>;
+    rejectionReason?: string;
+    createdBy?: string;
+    updatedBy?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}

@@ -1,19 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Input, Drawer, Spin, Modal, Result } from 'antd';
+import { Button, Input, Drawer, Spin, Modal, Result, message } from 'antd';
 import { SendOutlined } from '@ant-design/icons';
 
 import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
 import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import type { SystemicAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import type { LocalAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import type {
     SurgeryPlanData,
     SystemicPlanData,
     LocalPlanData,
     CitationData,
-} from './treatmentType';
+} from '@/types/treatmentType';
 import { clearCurrentCase } from '@/redux/slice/patientSlice';
-import { useDispatch } from 'react-redux';
-import { callFetchAiRecommendationRunDetail } from '@/apis/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
+import { callFetchAiRecommendationRunDetail, callCreateDoctorReview } from '@/apis/api';
 import type { IAiRecommendationRunDetail, IAiRagCitation } from '@/types/backend';
 
 interface Step5Props {
@@ -60,8 +63,18 @@ const mapCitations = (citations?: IAiRagCitation[]): CitationData[] => {
 
 export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewNote, setReviewNote] = useState('');
+    const [rejectionReason, setRejectionReason] = useState('');
     const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
     const dispatch = useDispatch();
+    const currentCase = useSelector((state: RootState) => state.patient.currentCase);
+    const episodeId = currentCase?.episode?.id;
+
+    const systemicRef = useRef<SystemicAntibioticTreatmentHandle>(null);
+    const localRef = useRef<LocalAntibioticTreatmentHandle>(null);
+    const runIdRef = useRef<string | null>(null);
 
     const [surgeryPlan, setSurgeryPlan] = useState<SurgeryPlanData | null>(null);
     const [systemicPlan, setSystemicPlan] = useState<SystemicPlanData | null>(null);
@@ -103,6 +116,10 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     return;
                 }
 
+                if (detail.run?.id) {
+                    runIdRef.current = String(detail.run.id);
+                }
+
                 const items = detail.items;
 
                 const surgeryItem = items.find(i => i.category === 'SURGERY_PROCEDURE');
@@ -125,8 +142,47 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
         loadRunDetail();
     }, []);
 
-    const handleConfirmTreatment = () => {
-        setIsSuccessModalOpen(true);
+    const openReviewModal = () => {
+        if (!episodeId || !runIdRef.current) {
+            message.error('Thiếu thông tin bệnh án hoặc lần gợi ý AI.');
+            return;
+        }
+        setReviewNote('');
+        setRejectionReason('');
+        setIsReviewModalOpen(true);
+    };
+
+    const handleConfirmTreatment = async () => {
+        setIsReviewModalOpen(false);
+        setIsSaving(true);
+        try {
+            const currentSystemic = systemicRef.current?.getData() ?? null;
+            const currentLocal = localRef.current?.getData() ?? null;
+
+            const hasModification =
+                (currentSystemic && JSON.stringify(currentSystemic) !== JSON.stringify(systemicPlan)) ||
+                (currentLocal && JSON.stringify(currentLocal) !== JSON.stringify(localPlan));
+            const reviewStatus = rejectionReason ? 'REJECTED' : hasModification ? 'MODIFIED' : 'ACCEPTED';
+
+            const modificationJson: Record<string, any> = {};
+            if (currentSystemic) modificationJson.systemicAntibiotic = currentSystemic;
+            if (currentLocal) modificationJson.localAntibiotic = currentLocal;
+            if (surgeryPlan) modificationJson.surgery = surgeryPlan;
+
+            await callCreateDoctorReview(String(episodeId), {
+                runId: Number(runIdRef.current),
+                reviewStatus,
+                reviewNote: reviewNote || undefined,
+                modificationJson: hasModification ? modificationJson : undefined,
+                rejectionReason: rejectionReason || undefined,
+            });
+
+            setIsSuccessModalOpen(true);
+        } catch {
+            message.error('Lỗi khi lưu xác nhận phác đồ.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const backToHomepage = () => {
@@ -225,7 +281,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     <Button
                         size="small"
                         type="primary"
-                        onClick={handleConfirmTreatment}
+                        onClick={openReviewModal}
+                        loading={isSaving}
                         className="bg-green-700 hover:!bg-green-400 border-none flex items-center gap-1.5"
                     >
                         Xác nhận <span className="material-symbols-outlined text-[14px]">save</span>
@@ -242,9 +299,9 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                         {surgeryPlan && <SurgerySection surgeryPlan={surgeryPlan} />}
                         {systemicPlan && (
-                            <SystemicAntibioticTreatment guidelinePlan={systemicPlan} />
+                            <SystemicAntibioticTreatment ref={systemicRef} guidelinePlan={systemicPlan} />
                         )}
-                        {localPlan && <LocalAntibioticTreatment localPlan={localPlan} />}
+                        {localPlan && <LocalAntibioticTreatment ref={localRef} localPlan={localPlan} />}
                         {!surgeryPlan && !systemicPlan && !localPlan && (
                             <Result status="info" title="Không có dữ liệu phác đồ điều trị cho ca bệnh này." />
                         )}
@@ -378,6 +435,43 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     </div>
                 </div>
             </Drawer>
+
+            {/* Review Modal */}
+            <Modal
+                title="Xác nhận phác đồ điều trị"
+                open={isReviewModalOpen}
+                onCancel={() => setIsReviewModalOpen(false)}
+                onOk={handleConfirmTreatment}
+                okText="Lưu"
+                cancelText="Hủy"
+                confirmLoading={isSaving}
+                destroyOnClose
+            >
+                <div className="space-y-4 py-2">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Ghi chú của bác sĩ
+                        </label>
+                        <Input.TextArea
+                            rows={3}
+                            placeholder="Nhập ghi chú về phác đồ điều trị..."
+                            value={reviewNote}
+                            onChange={(e) => setReviewNote(e.target.value)}
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">
+                            Lý do từ chối (nếu có)
+                        </label>
+                        <Input.TextArea
+                            rows={3}
+                            placeholder="Nhập lý do từ chối nếu không đồng ý với phác đồ..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                        />
+                    </div>
+                </div>
+            </Modal>
 
             {/* Success Result Modal */}
             <Modal

@@ -1,15 +1,23 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Input } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import { LocalPlanData, TemplateAntibiotic } from '@/components/user/diagnose_steps/treatmentType';
+
+export interface LocalAntibioticTreatmentHandle {
+    getData: () => LocalPlanData;
+}
 
 interface LocalAntibioticTreatmentProps {
     localPlan: LocalPlanData;
 }
 
-const LocalAntibioticTreatment: React.FC<LocalAntibioticTreatmentProps> = ({ localPlan }) => {
+const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan }, ref) => {
     const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
+    useImperativeHandle(ref, () => ({
+        getData: () => ({ ...localPlan, antibiotics }),
+    }), [localPlan, antibiotics]);
 
     const toggleEdit = useCallback((index: number) => {
         setEditingIndex(prev => (prev === index ? null : index));
@@ -214,6 +222,6 @@ const LocalAntibioticTreatment: React.FC<LocalAntibioticTreatmentProps> = ({ loc
             </div>
         </div>
     );
-};
+});
 
 export default LocalAntibioticTreatment;

@@ -1,7 +1,7 @@
 import { Menu, Button } from "antd";
 import { NavLink, useLocation } from "react-router-dom";
 
-const SideNav = (props) => {
+const SideNav = (props: any) => {
     const { color } = props;
     const { pathname } = useLocation();
     const page = pathname.replace("/", "");
@@ -76,23 +76,6 @@ const SideNav = (props) => {
                     Quản lý các bảng
                 </Menu.Item>
 
-                <Menu.Item key="10">
-                    <NavLink to="/admin/table-fees" className={({ isActive }) => isActive ? 'active' : ''}>
-                        <span
-                            className="icon"
-                            style={{
-                                background: page === "table-medicines" ? color : "",
-                            }}
-                        >
-                            {tables}
-                        </span>
-                        <span className="label">Quản Lý Viện Phí</span>
-                    </NavLink>
-                </Menu.Item>
-
-                <Menu.Item className="menu-item-header" key="6">
-                    Account Pages
-                </Menu.Item>
                 <Menu.Item key="4">
                     <NavLink to="/admin/table-role" className={({ isActive }) => isActive ? 'active' : ''}>
                         <span

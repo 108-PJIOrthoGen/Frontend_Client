@@ -3,7 +3,8 @@ import {
     IBackendRes, IModelPaginate, IPatient, IPermission, IRole, IUser,
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
-    IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail
+    IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
+    IDoctorRecommendationReview
 } from '@/types/backend';
 
 export const callUploadImage = (file: any, folder: string) => {
@@ -336,6 +337,27 @@ export const callFetchAiRecommendationRunDetail = (runId: string): Promise<IBack
 
 export const callRetryAiRecommendationRun = (runId: string): Promise<IBackendRes<any>> => {
     return instance.post(`/api/v1/ai-recommendations/runs/${runId}/retry`);
+}
+
+/**
+ * Doctor Recommendation Reviews
+ */
+export const callCreateDoctorReview = (episodeId: string, data: {
+    runId: number;
+    reviewStatus: string;
+    reviewNote?: string;
+    modificationJson?: Record<string, any>;
+    rejectionReason?: string;
+}): Promise<IBackendRes<IDoctorRecommendationReview>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/doctor-reviews`, data);
+}
+
+export const callFetchDoctorReviewByRunId = (runId: string): Promise<IBackendRes<IDoctorRecommendationReview>> => {
+    return instance.get(`/api/v1/ai-recommendations/runs/${runId}/review`);
+}
+
+export const callFetchDoctorReviewsByEpisode = (episodeId: string): Promise<IBackendRes<IDoctorRecommendationReview[]>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/doctor-reviews`);
 }
 
 

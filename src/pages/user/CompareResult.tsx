@@ -7,8 +7,9 @@ import {
     callFetchEpisodeById,
     callFetchAiRecommendationRuns,
     callFetchAiRecommendationRunDetail,
+    callFetchDoctorReviewByRunId,
 } from '@/apis/api';
-import { IEpisode, IAiRecommendationRun, IAiRecommendationRunDetail } from '@/types/backend';
+import { IEpisode, IAiRecommendationRun, IAiRecommendationRunDetail, IDoctorRecommendationReview } from '@/types/backend';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 
@@ -17,6 +18,7 @@ const CompareResult: React.FC = () => {
     const [runs, setRuns] = useState<IAiRecommendationRun[]>([]);
     const [selectedRunDetail, setSelectedRunDetail] = useState<IAiRecommendationRunDetail | null>(null);
     const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
+    const [doctorReview, setDoctorReview] = useState<IDoctorRecommendationReview | null>(null);
     const [loading, setLoading] = useState(true);
     const [detailLoading, setDetailLoading] = useState(false);
 
@@ -43,7 +45,6 @@ const CompareResult: React.FC = () => {
             if (runsRes?.data?.result) {
                 const allRuns = runsRes.data.result;
                 setRuns(allRuns);
-                // Auto-select the latest run
                 if (allRuns.length > 0 && allRuns[0].id) {
                     handleSelectRun(allRuns[0].id);
                 }
@@ -58,11 +59,14 @@ const CompareResult: React.FC = () => {
     const handleSelectRun = async (runId: string) => {
         setSelectedRunId(runId);
         setDetailLoading(true);
+        setDoctorReview(null);
         try {
-            const res = await callFetchAiRecommendationRunDetail(runId);
-            if (res?.data) {
-                setSelectedRunDetail(res.data);
-            }
+            const [detailRes, reviewRes] = await Promise.all([
+                callFetchAiRecommendationRunDetail(runId),
+                callFetchDoctorReviewByRunId(runId),
+            ]);
+            if (detailRes?.data) setSelectedRunDetail(detailRes.data);
+            if (reviewRes?.data) setDoctorReview(reviewRes.data);
         } catch {
             message.error('Không thể tải chi tiết gợi ý AI');
         } finally {
@@ -126,6 +130,7 @@ const CompareResult: React.FC = () => {
                                 runs={runs}
                                 selectedRunId={selectedRunId}
                                 loading={detailLoading}
+                                doctorReview={doctorReview}
                             />
                         </div>
                     </div>

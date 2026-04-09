@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Spin, Empty, Tag } from 'antd';
-import { IAiRecommendationRunDetail, IAiRecommendationRun, IAiRecommendationItem } from '@/types/backend';
+import { IAiRecommendationRunDetail, IAiRecommendationRun, IAiRecommendationItem, IDoctorRecommendationReview } from '@/types/backend';
 import dayjs from 'dayjs';
 
 interface ComparisonDetailsProps {
@@ -8,18 +8,34 @@ interface ComparisonDetailsProps {
     runs: IAiRecommendationRun[];
     selectedRunId: string | null;
     loading: boolean;
+    doctorReview?: IDoctorRecommendationReview | null;
 }
 
 const CATEGORY_CONFIG: Record<string, { label: string; color: string; icon: string }> = {
-    assessment: { label: 'Đánh giá ca bệnh', color: 'text-indigo-700', icon: 'diagnosis' },
-    antibiotic: { label: 'Phác đồ kháng sinh', color: 'text-blue-700', icon: 'medication' },
-    surgery: { label: 'Phẫu thuật', color: 'text-rose-700', icon: 'surgical' },
-    monitoring: { label: 'Theo dõi', color: 'text-teal-700', icon: 'monitor_heart' },
-    warning: { label: 'Cảnh báo', color: 'text-red-700', icon: 'warning' },
-    explanation: { label: 'Giải thích', color: 'text-slate-700', icon: 'description' },
+    SURGERY_PROCEDURE: { label: 'Phẫu thuật', color: 'text-rose-700', icon: 'surgical' },
+    SYSTEMIC_ANTIBIOTIC: { label: 'Kháng sinh toàn thân', color: 'text-blue-700', icon: 'medication' },
+    LOCAL_ANTIBIOTIC: { label: 'Kháng sinh tại chỗ', color: 'text-cyan-700', icon: 'vaccines' },
+    DIAGNOSTIC_TEST: { label: 'Xét nghiệm chẩn đoán', color: 'text-indigo-700', icon: 'diagnosis' },
 };
 
-const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, selectedRunId, loading }) => {
+const REVIEW_STATUS_CONFIG: Record<string, { label: string; color: string; bgColor: string }> = {
+    ACCEPTED: { label: 'Đã chấp nhận', color: 'text-emerald-700', bgColor: 'bg-emerald-50 border-emerald-200' },
+    MODIFIED: { label: 'Đã chỉnh sửa', color: 'text-amber-700', bgColor: 'bg-amber-50 border-amber-200' },
+    REJECTED: { label: 'Đã từ chối', color: 'text-red-700', bgColor: 'bg-red-50 border-red-200' },
+    SAVED_DRAFT: { label: 'Bản nháp', color: 'text-slate-700', bgColor: 'bg-slate-50 border-slate-200' },
+};
+
+const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, selectedRunId, loading, doctorReview }) => {
+
+    const modificationData = useMemo(() => {
+        if (!doctorReview?.modificationJson) return null;
+        try {
+            const raw = doctorReview.modificationJson;
+            return typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch {
+            return null;
+        }
+    }, [doctorReview]);
 
     if (loading) {
         return (
@@ -42,24 +58,52 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
     const runNumber = runs.length - runIndex;
     const isLatest = runIndex === 0;
 
-    // Group items by category
-    const groupedItems = items.reduce<Record<string, IAiRecommendationItem[]>>((acc, item) => {
-        const cat = item.category || 'other';
-        if (!acc[cat]) acc[cat] = [];
-        acc[cat].push(item);
-        return acc;
-    }, {});
 
-    // Sort items within each category by priority
-    Object.values(groupedItems).forEach(group =>
-        group.sort((a, b) => (a.priorityOrder ?? 999) - (b.priorityOrder ?? 999))
-    );
 
-    // Find primary item
+
     const primaryItem = items.find(i => i.isPrimary);
+    const reviewStatusConfig = doctorReview?.reviewStatus ? REVIEW_STATUS_CONFIG[doctorReview.reviewStatus] : null;
 
     return (
         <div className="flex flex-col gap-[22px]">
+            {/* Doctor Review Status Banner */}
+            {doctorReview && reviewStatusConfig && (
+                <div className={`border rounded-[18px] p-4 ${reviewStatusConfig.bgColor}`}>
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <span className="material-symbols-outlined text-[20px]">
+                                {doctorReview.reviewStatus === 'ACCEPTED' ? 'check_circle' :
+                                    doctorReview.reviewStatus === 'MODIFIED' ? 'edit_note' :
+                                        doctorReview.reviewStatus === 'REJECTED' ? 'cancel' : 'draft'}
+                            </span>
+                            <div>
+                                <div className={`text-sm font-bold ${reviewStatusConfig.color}`}>
+                                    {reviewStatusConfig.label}
+                                </div>
+                                <div className="text-xs text-slate-500">
+                                    Bác sĩ: {doctorReview.createdBy ?? '—'} | {doctorReview.updatedAt ? dayjs(doctorReview.updatedAt).format('HH:mm DD/MM/YYYY') : '—'}
+                                </div>
+                            </div>
+                        </div>
+                        <Tag color={doctorReview.reviewStatus === 'ACCEPTED' ? 'green' :
+                            doctorReview.reviewStatus === 'MODIFIED' ? 'orange' :
+                                doctorReview.reviewStatus === 'REJECTED' ? 'red' : 'default'}>
+                            {reviewStatusConfig.label}
+                        </Tag>
+                    </div>
+                    {doctorReview.reviewNote && (
+                        <div className="mt-2 text-sm text-slate-700 bg-white/60 rounded-lg px-3 py-2">
+                            <span className="font-semibold">Ghi chú:</span> {doctorReview.reviewNote}
+                        </div>
+                    )}
+                    {doctorReview.rejectionReason && (
+                        <div className="mt-2 text-sm text-red-700 bg-red-50 rounded-lg px-3 py-2">
+                            <span className="font-semibold">Lý do từ chối:</span> {doctorReview.rejectionReason}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {/* Summary Cards */}
             <div className="bg-white border border-[#dbe3ef] rounded-[18px] shadow-[0_10px_30px_rgba(16,24,40,0.08)]">
                 <div className="p-[18px_20px] border-b border-[#dbe3ef] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -81,18 +125,15 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
                             <div className="text-xs text-[#607086] mb-2">Số hạng mục</div>
                             <div className="text-xl font-extrabold text-[#1b2430]">{items.length}</div>
                         </div>
-                        <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fafcff]">
-                            <div className="text-xs text-[#607086] mb-2">Danh mục</div>
-                            <div className="text-xl font-extrabold text-[#1b2430]">{Object.keys(groupedItems).length}</div>
-                        </div>
+
                         <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fafcff]">
                             <div className="text-xs text-[#607086] mb-2">Trích dẫn</div>
                             <div className="text-xl font-extrabold text-[#1b2430]">{citations.length}</div>
                         </div>
                         <div className="border border-[#dbe3ef] rounded-2xl p-[14px] bg-[#fafcff]">
-                            <div className="text-xs text-[#607086] mb-2">Trạng thái</div>
-                            <div className={`text-xl font-extrabold ${run.status === 'completed' ? 'text-emerald-600' : 'text-amber-600'}`}>
-                                {run.status === 'completed' ? 'Hoàn thành' : run.status || '—'}
+                            <div className="text-xs text-[#607086] mb-2">Trạng thái review</div>
+                            <div className={`text-xl font-extrabold ${doctorReview ? (reviewStatusConfig?.color ?? 'text-slate-600') : 'text-slate-400'}`}>
+                                {doctorReview ? reviewStatusConfig?.label ?? '—' : 'Chưa review'}
                             </div>
                         </div>
                     </div>
@@ -113,54 +154,77 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
                         </div>
                     )}
 
-                    {/* Grouped items by category */}
-                    <div className="grid lg:grid-cols-2 gap-4">
-                        {Object.entries(groupedItems).map(([category, categoryItems]) => {
-                            const config = CATEGORY_CONFIG[category] || {
-                                label: category, color: 'text-slate-700', icon: 'category'
-                            };
+                    {/* AI vs Doctor Comparison Section */}
+                    {doctorReview?.reviewStatus === 'MODIFIED' && modificationData && (
+                        <div className="mb-5">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="material-symbols-outlined text-[16px] text-amber-600">compare_arrows</span>
+                                <h3 className="m-0 text-sm font-bold uppercase tracking-wider text-amber-700">
+                                    So sánh AI & Bác sĩ
+                                </h3>
+                            </div>
 
-                            return (
-                                <div key={category} className="border border-[#dbe3ef] rounded-[18px] p-4 bg-[#fcfdff]">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className={`material-symbols-outlined text-[16px] ${config.color}`}>{config.icon}</span>
-                                        <h3 className={`m-0 text-sm font-bold uppercase tracking-wider ${config.color}`}>
-                                            {config.label}
-                                        </h3>
-                                        <span className="text-[11px] text-slate-400 ml-auto">{categoryItems.length} mục</span>
+                            <div className="grid lg:grid-cols-2 gap-4">
+                                {/* AI Original */}
+                                <div className="border border-blue-200 rounded-[18px] overflow-hidden">
+                                    <div className="bg-blue-50 px-4 py-2.5 border-b border-blue-200 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-blue-600 text-[16px]">smart_toy</span>
+                                        <span className="text-sm font-bold text-blue-800">Gợi ý AI gốc</span>
                                     </div>
-
-                                    <div className="grid gap-2">
-                                        {categoryItems.map((item) => (
-                                            <div
-                                                key={item.id || item.clientItemKey}
-                                                className={`border rounded-[14px] p-3 bg-white ${item.isPrimary ? 'border-l-4 border-l-blue-500 border-blue-200' : 'border-[#dbe3ef]'}`}
-                                            >
-                                                <div className="flex items-start justify-between gap-2">
-                                                    <div className="font-bold mb-1 text-sm text-[#1b2430]">
-                                                        {item.title}
-                                                    </div>
-                                                    {item.isPrimary && (
-                                                        <Tag color="blue" className="text-[10px] shrink-0">Chính</Tag>
-                                                    )}
+                                    <div className="p-4 space-y-3 bg-white">
+                                        {items.filter(i => i.category === 'SYSTEMIC_ANTIBIOTIC' || i.category === 'LOCAL_ANTIBIOTIC').map((item) => (
+                                            <div key={item.id || item.clientItemKey} className="border border-[#dbe3ef] rounded-xl p-3">
+                                                <div className="text-xs font-semibold text-blue-600 uppercase mb-1">
+                                                    {CATEGORY_CONFIG[item.category ?? '']?.label ?? item.category}
                                                 </div>
+                                                <div className="font-bold text-sm text-[#1b2430] mb-1">{item.title}</div>
                                                 {item.itemJson && (
                                                     <div className="text-[13px] text-[#607086] leading-relaxed">
                                                         {renderItemDetails(item.itemJson)}
-                                                    </div>
-                                                )}
-                                                {item.priorityOrder != null && (
-                                                    <div className="text-[11px] text-slate-400 mt-1.5">
-                                                        Ưu tiên: {item.priorityOrder}
                                                     </div>
                                                 )}
                                             </div>
                                         ))}
                                     </div>
                                 </div>
-                            );
-                        })}
-                    </div>
+
+                                {/* Doctor Modified */}
+                                <div className="border border-amber-200 rounded-[18px] overflow-hidden">
+                                    <div className="bg-amber-50 px-4 py-2.5 border-b border-amber-200 flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-amber-600 text-[16px]">person</span>
+                                        <span className="text-sm font-bold text-amber-800">Bác sĩ chỉnh sửa</span>
+                                    </div>
+                                    <div className="p-4 space-y-3 bg-white">
+                                        {modificationData.systemicAntibiotic && (
+                                            <div className="border border-amber-100 rounded-xl p-3">
+                                                <div className="text-xs font-semibold text-amber-600 uppercase mb-1">
+                                                    Kháng sinh toàn thân
+                                                </div>
+                                                <div className="font-bold text-sm text-[#1b2430] mb-1">
+                                                    {modificationData.systemicAntibiotic.regimenName}
+                                                </div>
+                                                <DoctorModificationSummary data={modificationData.systemicAntibiotic} type="systemic" />
+                                            </div>
+                                        )}
+                                        {modificationData.localAntibiotic && (
+                                            <div className="border border-amber-100 rounded-xl p-3">
+                                                <div className="text-xs font-semibold text-amber-600 uppercase mb-1">
+                                                    Kháng sinh tại chỗ
+                                                </div>
+                                                <div className="font-bold text-sm text-[#1b2430] mb-1">
+                                                    {modificationData.localAntibiotic.regimenName}
+                                                </div>
+                                                <DoctorModificationSummary data={modificationData.localAntibiotic} type="local" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Grouped items by category */}
+
 
                     {/* Citations / Evidence */}
                     {citations.length > 0 && (
@@ -177,22 +241,22 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
                                         <div className="text-[11px] font-bold text-slate-400 mt-0.5 shrink-0">[{idx + 1}]</div>
                                         <div className="flex-1 min-w-0">
                                             <div className="text-[13px] font-semibold text-[#1b2430] mb-0.5 truncate">
-                                                {citation.sourceTitle || citation.source_title || 'Nguồn tài liệu'}
+                                                {citation.sourceTitle || 'Nguồn tài liệu'}
                                             </div>
-                                            {(citation.snippet) && (
+                                            {citation.snippet && (
                                                 <div className="text-[12px] text-[#607086] leading-relaxed line-clamp-2">
                                                     {citation.snippet}
                                                 </div>
                                             )}
                                             <div className="flex items-center gap-2 mt-1.5">
-                                                {(citation.sourceType || citation.source_type) && (
+                                                {citation.sourceType && (
                                                     <span className="text-[10px] bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
-                                                        {citation.sourceType || citation.source_type}
+                                                        {citation.sourceType}
                                                     </span>
                                                 )}
-                                                {(citation.relevanceScore || citation.relevance_score) && (
+                                                {citation.relevanceScore != null && (
                                                     <span className="text-[10px] text-slate-400">
-                                                        Độ liên quan: {Math.round((citation.relevanceScore || citation.relevance_score) * 100)}%
+                                                        Độ liên quan: {Math.round(citation.relevanceScore * 100)}%
                                                     </span>
                                                 )}
                                             </div>
@@ -218,8 +282,21 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
 };
 
 /** Renders key-value details from an item's JSON payload */
-function renderItemDetails(json: Record<string, any>): React.ReactNode {
-    const displayKeys = Object.entries(json).filter(
+function renderItemDetails(json: Record<string, any> | string): React.ReactNode {
+    let parsed: Record<string, any>;
+    if (typeof json === 'string') {
+        try {
+            parsed = JSON.parse(json);
+        } catch {
+            return <span>{json}</span>;
+        }
+    } else {
+        parsed = json;
+    }
+
+    if (!parsed || typeof parsed !== 'object') return null;
+
+    const displayKeys = Object.entries(parsed).filter(
         ([, v]) => v != null && v !== '' && typeof v !== 'object'
     );
     if (displayKeys.length === 0) return null;
@@ -247,6 +324,44 @@ function formatKey(key: string): string {
         .replace(/^\w/, c => c.toUpperCase())
         .trim();
 }
+
+/** Renders a summary of the doctor's modifications */
+const DoctorModificationSummary: React.FC<{ data: any; type: 'systemic' | 'local' }> = ({ data, type }) => {
+    if (type === 'systemic' && data.phases) {
+        return (
+            <div className="space-y-2 mt-2">
+                {data.phases.map((phase: any, idx: number) => (
+                    <div key={idx} className="bg-amber-50/50 rounded-lg p-2 border border-amber-100">
+                        <div className="text-xs font-semibold text-slate-700">
+                            Giai đoạn {phase.phaseOrder}: {phase.phaseName}
+                            <span className="text-amber-600 ml-2">({phase.durationWeeks} tuần)</span>
+                        </div>
+                        {phase.antibiotics?.map((abx: any, aIdx: number) => (
+                            <div key={aIdx} className="text-xs text-slate-600 ml-2 mt-1">
+                                - {abx.antibioticName} | {abx.dosage} | {abx.frequency} | {abx.route}
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    if (type === 'local' && data.antibiotics) {
+        return (
+            <div className="space-y-1 mt-2">
+                {data.antibiotics.map((abx: any, idx: number) => (
+                    <div key={idx} className="text-xs text-slate-600 bg-amber-50/50 rounded-lg p-2 border border-amber-100">
+                        - {abx.antibioticName} | {abx.dosage} | {abx.frequency} | {abx.route}
+                        {abx.notes && <span className="text-amber-600 ml-1">({abx.notes})</span>}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
+    return null;
+};
 
 /** Notice showing this run was triggered by data changes */
 const RunDiffNotice: React.FC<{

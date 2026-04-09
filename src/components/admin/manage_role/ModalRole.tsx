@@ -95,7 +95,7 @@ const ModalRole = (props: IProps) => {
                 name, description, active, permissions: checkedPermissions
             }
             const res = await callUpdateRole(role, singleRole.id);
-            if (res.data) {
+            if (res.status) {
                 message.success("Cập nhật role thành công");
                 handleReset();
                 reloadTable();
