@@ -80,7 +80,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         if (lab.wbcBlood?.value != null) hTests = setVal(hTests, 'wbc', lab.wbcBlood.value);
         if (lab.neut?.value != null) hTests = setVal(hTests, '%NEUT', lab.neut.value);
         if (lab.mono?.value != null) hTests = setVal(hTests, '%MONO', lab.mono.value);
-        if (lab.esr?.value != null) hTests = setVal(hTests, 'Mau lang', lab.esr.value);
+        if (lab.esr?.value != null) hTests = setVal(hTests, 'Máu lắng', lab.esr.value);
         if (lab.rbc?.value != null) hTests = setVal(hTests, 'RBC', lab.rbc.value);
         if (lab.mcv?.value != null) hTests = setVal(hTests, 'MCV', lab.mcv.value);
         if (lab.mch?.value != null) hTests = setVal(hTests, 'MCH', lab.mch.value);
@@ -91,9 +91,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         if (lab.alphaDefensin?.value != null) hTests = setVal(hTests, 'Alpha Defensin', lab.alphaDefensin.value);
 
         let fTests = [...prev.fluidAnalysis];
-        if (lab.synovialWbc?.value != null) fTests = setVal(fTests, 'Bach cau (Dich)', lab.synovialWbc.value);
-        if (lab.crp?.value != null) fTests = setVal(fTests, 'Dinh luong CRP (Dich)', lab.crp.value);
-        if (lab.synovialPmn?.value != null) fTests = setVal(fTests, '%PMN (Dich)', lab.synovialPmn.value);
+        if (lab.synovialWbc?.value != null) fTests = setVal(fTests, 'Bạch cầu (Dịch)', lab.synovialWbc.value);
+        if (lab.crp?.value != null) fTests = setVal(fTests, 'Định lượng CRP (Dịch)', lab.crp.value);
+        if (lab.synovialPmn?.value != null) fTests = setVal(fTests, '%PMN (Dịch)', lab.synovialPmn.value);
 
         let bTests = [...prev.biochemistryTests];
         if (lab.biochemicalData) {
@@ -219,13 +219,13 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
   };
 
   const symptomCheckboxes = [
-    { key: 'fever' as const, label: 'Sot' },
-    { key: 'sinusTract' as const, label: 'Duong ro' },
-    { key: 'erythema' as const, label: 'Tay do' },
-    { key: 'pain' as const, label: 'Dau' },
-    { key: 'swelling' as const, label: 'Sung ne' },
-    { key: 'pmmaAllergy' as const, label: 'Di ung PMMA' },
-    { key: 'hematogenousSuspected' as const, label: 'Nhiem trung huyet' },
+    { key: 'fever' as const, label: 'Sốt' },
+    { key: 'sinusTract' as const, label: 'Đường rò' },
+    { key: 'erythema' as const, label: 'Tấy đỏ' },
+    { key: 'pain' as const, label: 'Đau' },
+    { key: 'swelling' as const, label: 'Sưng nề' },
+    { key: 'pmmaAllergy' as const, label: 'Dị ứng PMMA' },
+    { key: 'hematogenousSuspected' as const, label: 'Nhiễm trùng huyết' },
   ];
 
   return (
@@ -256,7 +256,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
                       1
                     </span>
-                    Trieu chung & Kham lam sang
+                    Triệu chứng & Khám lâm sàng
                   </h3>
                 </div>
                 <div className="p-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -291,14 +291,14 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
                       1.1
                     </span>
-                    Kham lam sang chi tiet
+                    Khám lâm sàng chi tiết
                   </h3>
                 </div>
                 <Form form={antForm} layout="vertical" className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <Form.Item
                       name="illnessOnsetDate"
-                      label={<span className="text-sm font-medium text-slate-700">Ngay khoi phat trieu chung</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Ngày khởi phát triệu chứng</span>}
                     >
                       <Input
                         type="date"
@@ -306,15 +306,16 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                         onChange={(e) => handleClinicalRecordChange('illnessOnsetDate', e.target.value)}
                         className="w-full rounded-lg h-11"
                       />
-                    </Form.Item>
-                    <div className="flex flex-col gap-1.5">
-                      <span className="text-xs text-slate-500">
-                        Phan loai:{' '}
-                        <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
-                          {clinicForm.isAcute ? 'CAP TINH (<3 tuan)' : 'MAN TINH (>3 tuan)'}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-slate-500">
+                          Phan loai:{' '}
+                          <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
+                            {clinicForm.isAcute ? 'CAP TINH (<3 tuan)' : 'MAN TINH (>3 tuan)'}
+                          </span>
                         </span>
-                      </span>
-                    </div>
+                      </div>
+                    </Form.Item>
+
 
                     <Form.Item
                       name="bmi"
@@ -333,18 +334,18 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                     <Form.Item
                       name="suspectedInfectionType"
-                      label={<span className="text-sm font-medium text-slate-700">Loai nhiem trung nghi ngo</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}
                     >
                       <Select
                         value={clinicForm.clinicalRecord.suspectedInfectionType ?? ''}
                         onChange={(val) => handleClinicalRecordChange('suspectedInfectionType', val)}
-                        placeholder="Chon tinh trang"
+                        placeholder="Chọn tình trạng"
                         className="h-11 rounded-lg"
                         options={[
-                          { value: 'EARLY_POSTOPERATIVE', label: 'Nhiem trung hau phau som' },
-                          { value: 'DELAYED', label: 'Nhiem trung muon / tri hoan' },
-                          { value: 'LATE_HEMATOGENOUS', label: 'Nhiem trung duong mau (hon 24 thang)' },
-                          { value: 'ACUTE_HEMATOGENOUS', label: 'Nhiem trung cap duong mau' },
+                          { value: 'EARLY_POSTOPERATIVE', label: 'Nhiễm trùng hậu phẫu sớm' },
+                          { value: 'DELAYED', label: 'Nhiễm trùng muộn / trì hoãn' },
+                          { value: 'LATE_HEMATOGENOUS', label: 'Nhiễm trùng đường máu (hơn 24 tháng)' },
+                          { value: 'ACUTE_HEMATOGENOUS', label: 'Nhiễm trùng cấp đường máu' },
                           { value: 'CHRONIC', label: 'Nhiem trung man tinh' },
                           { value: 'UNKNOWN', label: 'Chua ro' },
                         ]}
@@ -365,12 +366,12 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                     <Form.Item
                       name="implantStability"
-                      label={<span className="text-sm font-medium text-slate-700">Do on dinh cay ghep</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Độ ổn định cấy ghép</span>}
                     >
                       <Select
                         value={clinicForm.clinicalRecord.implantStability ?? ''}
                         onChange={(val) => handleClinicalRecordChange('implantStability', val)}
-                        placeholder="Chon tinh trang"
+                        placeholder="Chọn tình trạng"
                         className="h-11 rounded-lg"
                         options={[
                           { value: 'stable', label: 'On dinh' },
@@ -383,11 +384,11 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                     <Form.Item
                       name="daysSinceIndexArthroplasty"
-                      label={<span className="text-sm font-medium text-slate-700">So ngay tu lan thay khop dau</span>}
-                      rules={[{ type: 'number', message: 'Vui long nhap so hop le' }]}
+                      label={<span className="text-sm font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>}
+                      rules={[{ type: 'number', message: 'Vui lòng nhập số hợp lệ' }]}
                     >
                       <InputNumber
-                        placeholder="Vi du: 70"
+                        placeholder="Ví dụ: 70"
                         value={clinicForm.clinicalRecord.daysSinceIndexArthroplasty}
                         onChange={(val) => handleClinicalRecordChange('daysSinceIndexArthroplasty', val)}
                         className="w-full h-11 rounded-lg"
@@ -398,11 +399,11 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                     <Form.Item
                       name="prosthesisJoint"
-                      label={<span className="text-sm font-medium text-slate-700">Khop nhan tao</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Khớp nhân tạo</span>}
                       className="col-span-3"
                     >
                       <Input
-                        placeholder="Vi du: Mieu ta ve vi tri khop, co phai mo lai khong, phuong phap co dinh..."
+                        placeholder="Ví dụ: Mô tả về vị trí khớp, có phải mổ lại không, phương pháp cố định..."
                         value={clinicForm.clinicalRecord.prosthesisJoint ?? ''}
                         onChange={(e) => handleClinicalRecordChange('prosthesisJoint', e.target.value)}
                         className="h-11 rounded-lg"
@@ -411,11 +412,11 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                     <Form.Item
                       name="notations"
-                      label={<span className="text-sm font-medium text-slate-700">Kham benh toan than</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Khám bệnh toàn thân</span>}
                       className="col-span-3"
                     >
                       <Input
-                        placeholder="Vi du: Tinh tao, tiep xuc tot..."
+                        placeholder="Ví dụ: Tỉnh táo, tiếp xúc tốt..."
                         value={clinicForm.clinicalRecord.notations ?? ''}
                         onChange={(e) => handleClinicalRecordChange('notations', e.target.value)}
                         className="h-11 rounded-lg"
@@ -432,7 +433,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
                       2
                     </span>
-                    Xet nghiem chan doan PJI
+                    Xét nghiệm chẩn đoán PJI
                   </h3>
                 </div>
 
@@ -443,18 +444,18 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                       <span className="flex items-center justify-center w-5 h-5 rounded bg-blue-500/10 text-blue-600 text-xs font-bold">
                         1
                       </span>
-                      Xet nghiem huyet hoc
+                      Xét nghiệm huyết học
                     </h4>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-700">
                       <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                         <tr>
-                          <th className="px-4 py-3 border-r border-slate-200">Ten xet nghiem</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-32">Ket qua</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-16 text-center">Ghi chu</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chi so BT</th>
-                          <th className="px-4 py-3">Don vi</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Tên xét nghiệm</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-32">Kết quả</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-16 text-center">Ghi chú</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
+                          <th className="px-4 py-3">Đơn vị</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -507,11 +508,11 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     <table className="w-full text-sm text-left text-slate-700">
                       <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                         <tr>
-                          <th className="px-4 py-3 border-r border-slate-200">Ten xet nghiem</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-32">Ket qua</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-16 text-center">Ghi chu</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chi so BT</th>
-                          <th className="px-4 py-3">Don vi</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Tên xét nghiệm</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-32">Kết quả</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-16 text-center">Ghi chú</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
+                          <th className="px-4 py-3">Đơn vị</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -600,29 +601,29 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                       <span className="flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-600 text-xs font-bold">
                         3
                       </span>
-                      Xet nghiem vi sinh
+                      Xét nghiệm vi sinh
                     </h4>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-700">
                       <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                         <tr>
-                          <th className="px-4 py-3 border-r border-slate-200">Ten xet nghiem</th>
-                          <th className="px-4 py-3 border-r border-slate-200">Ket qua</th>
-                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chi so BT</th>
-                          <th className="px-4 py-3">Don vi</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Tên xét nghiệm</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Kết quả</th>
+                          <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
+                          <th className="px-4 py-3">Đơn vị</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {clinicForm.fluidAnalysis?.map((test, index) => {
-                          if (test.name === 'Nhuom Gram') return null;
+                          if (test.name === 'Nhuộm Gram') return null;
                           return (
                             <tr key={test.id} className="hover:bg-slate-50/50">
                               <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">
                                 {test.name}
                               </td>
                               <td className="px-4 py-2 border-r border-slate-200 p-0">
-                                {test.name === 'Cay khuan' ? (
+                                {test.name === 'Cấy khuẩn' ? (
                                   <div className="p-4 space-y-4">
                                     {clinicForm.cultureResults?.map((sample, sampleIdx) => (
                                       <div
@@ -710,7 +711,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                                           <div className="flex flex-col gap-1.5">
                                             <label className="text-xs font-semibold text-slate-700">
-                                              So ngay u (incubationDays)
+                                              Số ngày ủ (incubationDays)
                                             </label>
                                             <InputNumber
                                               value={sample.incubationDays}
@@ -743,7 +744,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                 }}
                                               />
                                               <span className="text-sm font-medium text-slate-700">
-                                                Da dung KS truoc do
+                                                Đã dùng KS trước đó
                                               </span>
                                             </label>
                                           </div>
@@ -751,7 +752,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                           {sample.antibioticed && (
                                             <div className="flex flex-col gap-1.5">
                                               <label className="text-xs font-semibold text-slate-700">
-                                                So ngay ngung KS (daysOffAntibiotic)
+                                                Số ngày ngưng KS (daysOffAntibiotic)
                                               </label>
                                               <InputNumber
                                                 value={sample.daysOffAntibio}
@@ -774,7 +775,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                           <div
                                             className={`flex flex-col gap-1.5 ${sample.antibioticed ? '' : 'md:col-span-2'}`}
                                           >
-                                            <label className="text-xs font-semibold text-slate-700">Ghi chu (notes)</label>
+                                            <label className="text-xs font-semibold text-slate-700">Ghi chú (notes)</label>
                                             <Input
                                               value={sample.notes || ''}
                                               onChange={(e) => {
@@ -814,7 +815,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                       className="w-full py-2 border-2 border-dashed border-primary/50 text-primary hover:bg-primary/5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition-colors mt-2"
                                     >
                                       <span className="material-symbols-outlined text-[18px]">add</span>
-                                      Them mau vi khuan moi
+                                      Thêm mẫu vi khuẩn mới
                                     </button>
                                   </div>
                                 ) : (
@@ -849,16 +850,16 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
                       4
                     </span>
-                    Chuan doan hinh anh
+                    Chuẩn đoán hình ảnh
                   </h3>
                 </div>
                 <div className="p-6 flex flex-col gap-6">
                   {/* Description */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-slate-700">Mo ta hinh anh</label>
+                    <label className="text-sm font-semibold text-slate-700">Mô tả hình ảnh</label>
                     <Input.TextArea
                       rows={4}
-                      placeholder="Nhap mo ta chi tiet ve ket qua chan doan hinh anh..."
+                      placeholder="Nhập mô tả chi tiết về kết quả chẩn đoán hình ảnh..."
                       value={clinicForm.imagingDescription}
                       onChange={(e) =>
                         setForm((prev) => ({

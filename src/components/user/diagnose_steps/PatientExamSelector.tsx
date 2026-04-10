@@ -1,12 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Table, message, Tag, Empty } from 'antd';
-import { SearchOutlined, CheckCircleOutlined, CloseOutlined } from '@ant-design/icons';
-import { callFetchPatient, callFetchEpisodesByPatient } from '@/apis/api';
-import { IPatient, IEpisode } from '@/types/backend';
+import { Button, Input, Table, message, Tag, Empty, Spin, Tooltip } from 'antd';
+import { SearchOutlined, CheckCircleOutlined, HistoryOutlined, PlusCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import { callFetchPatient, callFetchEpisodesByPatient, callFetchAiRecommendationRuns, callFetchAiRecommendationRunDetail } from '@/apis/api';
+import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
 import dayjs from 'dayjs';
 import { sfLike } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
 import { setCurrentCase } from '@/redux/slice/patientSlice';
+
+const MAX_RUNS_PER_EPISODE = 5;
+
+const getStatusTag = (status?: string) => {
+    switch (status) {
+        case 'SUCCESS': return <Tag color="success">Thành công</Tag>;
+        case 'PARTIAL': return <Tag color="warning">Một phần</Tag>;
+        case 'FAILED': return <Tag color="error">Thất bại</Tag>;
+        case 'TIMEOUT': return <Tag color="error">Hết thời gian</Tag>;
+        case 'PROCESSING': return <Tag color="processing">Đang xử lý</Tag>;
+        case 'QUEUED': return <Tag color="default">Đang chờ</Tag>;
+        default: return <Tag>{status || 'N/A'}</Tag>;
+    }
+};
 
 interface PatientExamSelectorProps {
     onNext: () => void;
@@ -25,6 +39,10 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     const [exams, setExams] = useState<IEpisode[]>([]);
     const [examsLoading, setExamsLoading] = useState(false);
     const [selectedExam, setSelectedExam] = useState<IEpisode | null>(null);
+
+    const [aiRuns, setAiRuns] = useState<IAiRecommendationRun[]>([]);
+    const [aiRunsLoading, setAiRunsLoading] = useState(false);
+    const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchFilms = async () => {
@@ -70,8 +88,51 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         }
     };
 
-    const handleSelectExam = (exam: IEpisode) => {
+    const handleSelectExam = async (exam: IEpisode) => {
         setSelectedExam(exam);
+        setAiRuns([]);
+        if (!exam.id) return;
+
+        setAiRunsLoading(true);
+        try {
+            const res = await callFetchAiRecommendationRuns(String(exam.id), 'page=0&size=10&sort=createdAt,desc');
+            if (res?.data?.result) {
+                setAiRuns(res.data.result);
+            }
+        } catch {
+            // Silently fail — runs are optional info
+        } finally {
+            setAiRunsLoading(false);
+        }
+    };
+
+    const handleViewPreviousRun = async (run: IAiRecommendationRun) => {
+        if (!run.id || !selectedPatient || !selectedExam) return;
+        if (run.status !== 'SUCCESS' && run.status !== 'PARTIAL') {
+            message.warning('Chỉ có thể xem kết quả của lần chạy thành công.');
+            return;
+        }
+
+        setLoadingRunId(String(run.id));
+        try {
+            const res = await callFetchAiRecommendationRunDetail(String(run.id));
+            const detail = res?.data;
+            if (!detail?.items?.length) {
+                message.warning('Không tìm thấy dữ liệu gợi ý cho lần chạy này.');
+                return;
+            }
+
+            localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
+            localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
+            localStorage.setItem('pji_aiRunId', String(run.id));
+            localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
+            dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
+            onNext();
+        } catch {
+            message.error('Lỗi khi tải kết quả AI.');
+        } finally {
+            setLoadingRunId(null);
+        }
     };
 
     const handleContinue = () => {
@@ -83,7 +144,13 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             message.warning('Vui lòng chọn bệnh án');
             return;
         }
-        // Store selection in localStorage for downstream steps
+        if (aiRuns.length >= MAX_RUNS_PER_EPISODE) {
+            message.error(`Đã đạt giới hạn ${MAX_RUNS_PER_EPISODE} lần gọi AI cho bệnh án này.`);
+            return;
+        }
+        // Clear stale AI run data — user is starting a new diagnosis
+        localStorage.removeItem('pji_aiRunId');
+        localStorage.removeItem('pji_aiRunDetail');
         localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
         localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
         dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
@@ -217,17 +284,87 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
 
                 {/* Selected Exam Confirmation */}
                 {selectedExam && (
-                    <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <CheckCircleOutlined className="text-green-500 text-xl" />
-                            <span className="text-green-900 font-semibold">
-                                Bệnh án đã chọn: #{selectedExam.id} — Ngày: {selectedExam.admissionDate ? dayjs(selectedExam.admissionDate).format('DD/MM/YYYY') : 'N/A'}
-                            </span>
+                    <section className="space-y-4">
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <CheckCircleOutlined className="text-green-500 text-xl" />
+                                <span className="text-green-900 font-semibold">
+                                    Bệnh án đã chọn: #{selectedExam.id} — Ngày: {selectedExam.admissionDate ? dayjs(selectedExam.admissionDate).format('DD/MM/YYYY') : 'N/A'}
+                                </span>
+                            </div>
+                            <Tooltip title={aiRuns.length >= MAX_RUNS_PER_EPISODE ? `Đã đạt giới hạn ${MAX_RUNS_PER_EPISODE} lần gọi AI` : ''}>
+                                <Button
+                                    type="primary"
+                                    size="large"
+                                    onClick={handleContinue}
+                                    disabled={aiRuns.length >= MAX_RUNS_PER_EPISODE}
+                                    icon={<PlusCircleOutlined />}
+                                >
+                                    Chẩn đoán AI mới ({aiRuns.length}/{MAX_RUNS_PER_EPISODE})
+                                </Button>
+                            </Tooltip>
                         </div>
-                        <Button type="primary" size="large" onClick={handleContinue}>
-                            Chẩn đoán AI →
-                        </Button>
-                    </div>
+
+                        {/* Previous AI Runs */}
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
+                                <HistoryOutlined className="text-blue-500" />
+                                <h4 className="font-semibold text-slate-800 text-sm">
+                                    Lịch sử chẩn đoán AI ({aiRuns.length} lần)
+                                </h4>
+                            </div>
+
+                            {aiRunsLoading ? (
+                                <div className="p-6 text-center">
+                                    <Spin tip="Đang tải lịch sử..." />
+                                </div>
+                            ) : aiRuns.length === 0 ? (
+                                <div className="p-6">
+                                    <Empty
+                                        description="Chưa có lần chẩn đoán AI nào cho bệnh án này"
+                                        image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-slate-100">
+                                    {aiRuns.map((run) => (
+                                        <div
+                                            key={run.id}
+                                            className="px-4 py-3 flex items-center justify-between hover:bg-blue-50/50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">
+                                                    #{run.runNo}
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-slate-800">
+                                                            Lần chạy #{run.runNo}
+                                                        </span>
+                                                        {getStatusTag(run.status)}
+                                                    </div>
+                                                    <span className="text-xs text-slate-500">
+                                                        {run.createdAt ? dayjs(run.createdAt).format('DD/MM/YYYY HH:mm') : 'N/A'}
+                                                        {run.modelName && ` · ${run.modelName}`}
+                                                        {run.latencyMs && ` · ${(run.latencyMs / 1000).toFixed(1)}s`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                type="link"
+                                                icon={<EyeOutlined />}
+                                                loading={loadingRunId === String(run.id)}
+                                                disabled={run.status !== 'SUCCESS' && run.status !== 'PARTIAL'}
+                                                onClick={() => handleViewPreviousRun(run)}
+                                            >
+                                                Xem kết quả
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </section>
                 )}
             </div>
         </div>

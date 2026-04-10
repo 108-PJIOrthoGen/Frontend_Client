@@ -19,9 +19,35 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const [showResults, setShowResults] = useState(false);
   const [diagnosticData, setDiagnosticData] = useState<Record<string, any> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isViewingPrevious, setIsViewingPrevious] = useState(false);
 
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
+
+  // On mount: check if a previous run was pre-loaded from PatientExamSelector
+  React.useEffect(() => {
+    const cachedDetail = localStorage.getItem('pji_aiRunDetail');
+    const cachedRunId = localStorage.getItem('pji_aiRunId');
+    if (cachedDetail && cachedRunId) {
+      try {
+        const detail = JSON.parse(cachedDetail);
+        const diagnosticItem = detail.items?.find(
+          (item: any) => item.category === 'DIAGNOSTIC_TEST'
+        );
+        if (diagnosticItem) {
+          const itemData =
+            typeof diagnosticItem.itemJson === 'string'
+              ? JSON.parse(diagnosticItem.itemJson)
+              : diagnosticItem.itemJson;
+          setDiagnosticData({ title: diagnosticItem.title, ...itemData });
+          setShowResults(true);
+          setIsViewingPrevious(true);
+        }
+      } catch {
+        // Invalid cache — fall through to normal generate flow
+      }
+    }
+  }, []);
 
   const pollRunDetail = useCallback(async (runId: string) => {
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
@@ -113,6 +139,11 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
           <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
             <span className="material-symbols-outlined text-blue-600">neurology</span>
             {diagnosticData?.title ?? 'Đánh giá nguy cơ PJI'}
+            {isViewingPrevious && (
+              <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full border border-amber-200">
+                Kết quả trước đó
+              </span>
+            )}
           </h2>
           {scoring_system && (
             <p className="text-sm text-slate-500 mt-1">

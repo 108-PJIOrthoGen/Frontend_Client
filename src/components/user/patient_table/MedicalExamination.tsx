@@ -3,6 +3,7 @@ import { IEpisode } from '@/types/backend';
 import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
 import locale from 'antd/es/date-picker/locale/en_US';
 import dayjs, { Dayjs } from 'dayjs';
+import { parseDateFromApi } from '@/config/utils';
 
 export interface EpisodeFormData {
     arrivalTime: string;
@@ -16,6 +17,12 @@ export interface EpisodeFormData {
     status: string;
 }
 
+interface MedicalExaminationProps {
+    mode?: 'wizard' | 'standalone';
+    episodeData?: IEpisode | null;
+    onFormChange?: (data: EpisodeFormData) => void;
+}
+
 const emptyFormData: EpisodeFormData = {
     arrivalTime: '',
     dischargeTime: '',
@@ -27,42 +34,7 @@ const emptyFormData: EpisodeFormData = {
     treatmentResult: '',
     status: '',
 };
-// Helper to  parse dates from API
-const parseDateFromApi = (dateValue: any): string => {
-    if (!dateValue) return '';
 
-    const dateStr = String(dateValue).trim();
-    // If it matches ISO format (YYYY-MM-DD), convert to DD/MM/YYYY
-    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
-        const parsed = dayjs(dateStr, 'YYYY-MM-DD');
-        if (parsed.isValid()) {
-            return parsed.format('DD/MM/YYYY');
-        }
-    }
-
-    // If it's already in DD/MM/YYYY format, check if valid
-    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
-        const parsed = dayjs(dateStr, 'DD/MM/YYYY');
-        if (parsed.isValid()) {
-            return dateStr;
-        }
-    }
-
-    // Try to parse as ISO format first
-    let date = dayjs(dateStr, 'YYYY-MM-DD');
-    if (date.isValid()) {
-        return date.format('DD/MM/YYYY');
-    }
-
-    // Try DD/MM/YYYY format
-    date = dayjs(dateStr, 'DD/MM/YYYY');
-    if (date.isValid()) {
-        return dateStr;
-    }
-
-    // If nothing works, return empty
-    return '';
-};
 
 export function episodeToFormData(ep: IEpisode): EpisodeFormData {
     return {
@@ -92,13 +64,7 @@ export function formDataToEpisodeRequest(form: EpisodeFormData) {
     };
 }
 
-interface MedicalExaminationProps {
-    onNext?: () => void;
-    onPrev?: () => void;
-    mode?: 'wizard' | 'standalone';
-    episodeData?: IEpisode | null;
-    onFormChange?: (data: EpisodeFormData) => void;
-}
+
 
 // Convert string date DD/MM/YYYY to Dayjs for DatePicker
 const stringToDayjs = (dateStr: string): Dayjs | null => {
@@ -108,9 +74,6 @@ const stringToDayjs = (dateStr: string): Dayjs | null => {
 };
 
 export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
-    onNext,
-    onPrev,
-    mode = 'wizard',
     episodeData,
     onFormChange,
 }) => {
@@ -135,7 +98,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
         onFormChange?.(allValues);
     };
 
-    const requiredRule = { required: true, message: 'Truong nay la bat buoc' };
+    const requiredRule = { required: true, message: 'Trường này bắt buộc điền' };
 
     return (
         <>
@@ -144,8 +107,8 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quan ly benh an</h1>
-                                <p className="text-slate-500 text-sm mt-1">Thong tin tiep nhan, kham benh va dieu tri.</p>
+                                <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý bệnh án</h1>
+                                <p className="text-slate-500 text-sm mt-1">Thông tin tiếp nhận, khám bệnh và điều trị.</p>
                             </div>
                         </div>
 
@@ -162,11 +125,11 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     label={<span className="text-sm font-medium text-slate-700">Thoi gian vao vien <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                     getValueFromEvent={() => form.getFieldValue('arrivalTime')}
+                                    getValueProps={(val) => ({ value: stringToDayjs(val) })}
                                 >
                                     <DatePicker
                                         locale={locale}
                                         format="DD/MM/YYYY"
-                                        value={stringToDayjs(form.getFieldValue('arrivalTime'))}
                                         onChange={handleDateChange('arrivalTime')}
                                         placeholder="ngay/thang/nam"
                                         className="w-full h-11"
@@ -175,14 +138,14 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                                 <Form.Item
                                     name="dischargeTime"
-                                    label={<span className="text-sm font-medium text-slate-700">Thoi gian ra vien <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                     getValueFromEvent={() => form.getFieldValue('dischargeTime')}
+                                    getValueProps={(val) => ({ value: stringToDayjs(val) })}
                                 >
                                     <DatePicker
                                         locale={locale}
                                         format="DD/MM/YYYY"
-                                        value={stringToDayjs(form.getFieldValue('dischargeTime'))}
                                         onChange={handleDateChange('dischargeTime')}
                                         placeholder="ngay/thang/nam"
                                         className="w-full h-11"
@@ -191,7 +154,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                                 <Form.Item
                                     name="reason"
-                                    label={<span className="text-sm font-medium text-slate-700">Ly do vao vien</span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Lý do vào viện</span>}
                                     className="col-span-2"
                                 >
                                     <Input
@@ -202,34 +165,34 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                                 <Form.Item
                                     name="department"
-                                    label={<span className="text-sm font-medium text-slate-700">Khoa tiep nhan <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Khoa tiếp nhận <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                 >
                                     <Input
-                                        placeholder="VD: Khoa Chinh hinh"
+                                        placeholder="VD: Khoa chỉnh hình"
                                         className="h-11 rounded-lg"
                                     />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="admissionMethod"
-                                    label={<span className="text-sm font-medium text-slate-700">Truc tiep vao <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Trực tiếp vào <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                 >
                                     <Select
-                                        placeholder="-- Vao theo hinh thuc --"
+                                        placeholder="-- Vào theo hình thức --"
                                         className="h-11 rounded-lg"
                                         options={[
-                                            { value: 'CC', label: 'Cap cuu' },
-                                            { value: 'KKB', label: 'Kham benh' },
-                                            { value: 'KDT', label: 'Kham theo yeu cau' },
+                                            { value: 'CC', label: 'Cấp cứu' },
+                                            { value: 'KKB', label: 'Khám bệnh' },
+                                            { value: 'KDT', label: 'Khám theo yêu cầu' },
                                         ]}
                                     />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="referralSource"
-                                    label={<span className="text-sm font-medium text-slate-700">Noi gioi thieu</span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Nơi giới thiệu</span>}
                                 >
                                     <Input
                                         placeholder="VD: Benh vien tuyen duoi"
@@ -288,25 +251,6 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                 </div>
             </div>
 
-            {/* Fixed Footer with buttons */}
-            {mode === 'wizard' && (
-                <div className="absolute bottom-0 w-full bg-white border-t border-slate-200 p-4 px-8 flex items-center justify-between z-20 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                    <button
-                        onClick={onPrev}
-                        className="px-6 py-3 font-medium text-slate-600 hover:text-slate-900 transition-colors flex items-center gap-2 border border-slate-200 rounded-lg bg-red-100 hover:bg-red-200"
-                    >
-                        <span className="material-symbols-outlined text-[18px]">arrow_back</span> Quay lai
-                    </button>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={onNext}
-                            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-bold text-white hover:bg-blue-600 shadow-lg shadow-blue-500/20 transition-all active:scale-95"
-                        >
-                            Tiep tuc <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-                        </button>
-                    </div>
-                </div>
-            )}
         </>
     );
 };

@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Drawer, Tabs, Button, Spin, message, notification } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
-import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './S2MedicalExamination';
+import dayjs from 'dayjs';
+import { MedicalExamination, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './MedicalExamination';
 import { MedicalHistoryPage } from './MedicalHistory';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
 import { Antibiogram, AntibioticRow } from './Antibiogram';
@@ -41,6 +42,7 @@ import {
     callUpdateCultureResult,
     callDeleteCultureResult,
     callCreateSensitivityResult,
+    callUpdateSensitivityResult,
     callDeleteSensitivityResult,
 } from '@/apis/api';
 import { useClinicForm, useAppDispatch } from '@/redux/hook';
@@ -67,7 +69,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
-    const antibioticsRef = useRef<AntibioticRow[]>([]);
+    const antibioticsRef = useRef<Record<string, AntibioticRow[]>>({});
     const { form } = useClinicForm();
     const dispatch = useAppDispatch();
 
@@ -204,12 +206,16 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const toUpdate = formSurgeries.filter(s => s.id && dbIds.has(String(s.id)));
             const toCreate = formSurgeries.filter(s => !s.id || !dbIds.has(String(s.id)));
 
-            const deletePromises = toDelete.map(s => callDeleteSurgery(String(s.id!)));
+            const formatSurgeryDate = (date: unknown): string => {
+                if (!date) return '';
+                if (dayjs.isDayjs(date)) return date.format('DD-MM-YYYY');
+                return dayjs(date as string).format('DD-MM-YYYY');
+            };
 
             const updatePromises = toUpdate.map(s => {
                 const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'> = {
                     episodeId: Number(episodeId),
-                    surgeryDate: s.surgeryDate,
+                    surgeryDate: formatSurgeryDate(s.surgeryDate),
                     surgeryType: s.surgeryType,
                     findings: s.findings || undefined,
                 };
@@ -219,13 +225,13 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const createPromises = toCreate.map(s => {
                 const payload: Omit<ISurgery, 'id' | 'createdAt' | 'updatedAt'> = {
                     episodeId: Number(episodeId),
-                    surgeryDate: s.surgeryDate,
+                    surgeryDate: formatSurgeryDate(s.surgeryDate),
                     surgeryType: s.surgeryType,
                     findings: s.findings || undefined,
                 };
                 return callCreateSurgery(payload);
             });
-
+            const deletePromises = toDelete.map(s => callDeleteSurgery(String(s.id!)));
             await Promise.all([...deletePromises, ...updatePromises, ...createPromises]);
 
             // 4. Save Lab Results — TestItem → ILabResult conversion stays (save boundary)
@@ -340,7 +346,28 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 return callCreateCultureResult(payload as ICultureResult);
             });
 
-            await Promise.all([...deleteCulturePromises, ...updateCulturePromises, ...createCulturePromises]);
+            // Delete sensitivities for cultures being removed (avoid FK constraint)
+            const sensCleanupPromises = culturesToDelete.flatMap(c => {
+                const sens = sensitivityMap[String(c.id)] || [];
+                return sens.filter(s => s.id).map(s => callDeleteSensitivityResult(String(s.id!)));
+            });
+            await Promise.all(sensCleanupPromises);
+
+            // Execute culture delete/update, then create (capture new IDs)
+            await Promise.all([...deleteCulturePromises, ...updateCulturePromises]);
+            const createCultureResults = await Promise.all(createCulturePromises);
+
+            // Build mapping: form key (_tempId or id) → actual DB culture id
+            const cultureKeyToDbId: Record<string, string> = {};
+            culturesToUpdate.forEach(c => {
+                const key = String(c.id);
+                cultureKeyToDbId[key] = key;
+            });
+            culturesToCreate.forEach((c, i) => {
+                const tempId = String((c as any)._tempId || c.id || '');
+                const newId = createCultureResults[i]?.data?.id;
+                if (tempId && newId) cultureKeyToDbId[tempId] = String(newId);
+            });
 
             // 7. Save Image Results — form.formImages → IImageResult conversion stays (fileMetadata JSON)
             const formImages = form.formImages || [];
@@ -378,31 +405,50 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
             await Promise.all([...deleteImagePromises, ...updateImagePromises, ...createImagePromises]);
 
-            // 8. Save Sensitivity Results (Antibiogram) — delete all existing, then recreate from antibioticsRef
-            if (cultureResults.length > 0 && cultureResults[0].id) {
-                const activeCultureId = cultureResults[0].id;
-                const existingSensitivities = sensitivityMap[activeCultureId] || [];
+            // 8. Save Sensitivity Results (Antibiogram) — sync per culture (1-N)
+            const antibioticsData = antibioticsRef.current;
+            const allSensPromises: Promise<any>[] = [];
 
-                // Delete all existing sensitivity results for this culture
-                await Promise.all(
-                    existingSensitivities
-                        .filter(s => s.id)
-                        .map(s => callDeleteSensitivityResult(String(s.id!)))
+            for (const [formKey, rows] of Object.entries(antibioticsData)) {
+                const dbCultureId = cultureKeyToDbId[formKey];
+                if (!dbCultureId) continue;
+
+                const validRows = rows.filter(r => r.name.trim());
+                const existingSens = sensitivityMap[dbCultureId] || [];
+
+                const dbSensIds = new Set(existingSens.map(s => String(s.id)));
+                const formRealIds = new Set(
+                    validRows.filter(r => r.id && dbSensIds.has(r.id)).map(r => r.id!)
                 );
 
-                // Create new sensitivity results from the antibiogram form
-                const formAntibiotics = antibioticsRef.current.filter(row => row.name.trim());
-                await Promise.all(
-                    formAntibiotics.map(row =>
-                        callCreateSensitivityResult({
-                            cultureId: Number(activeCultureId),
-                            antibioticName: row.name,
-                            micValue: row.mic || undefined,
-                            sensitivityCode: row.interpretation || undefined,
+                const sensToDelete = existingSens.filter(s => !formRealIds.has(String(s.id)));
+                const sensToUpdate = validRows.filter(r => r.id && dbSensIds.has(r.id));
+                const sensToCreate = validRows.filter(r => !r.id || !dbSensIds.has(r.id));
+
+                allSensPromises.push(
+                    ...sensToDelete.filter(s => s.id).map(s =>
+                        callDeleteSensitivityResult(String(s.id!))
+                    ),
+                    ...sensToUpdate.map(r =>
+                        callUpdateSensitivityResult(r.id!, {
+                            cultureId: Number(dbCultureId),
+                            antibioticName: r.name,
+                            micValue: r.mic || undefined,
+                            sensitivityCode: r.interpretation || undefined,
                         } as ISensitivityResult)
-                    )
+                    ),
+                    ...sensToCreate.map(r =>
+                        callCreateSensitivityResult({
+                            cultureId: Number(dbCultureId),
+                            antibioticName: r.name,
+                            micValue: r.mic || undefined,
+                            sensitivityCode: r.interpretation || undefined,
+                        } as ISensitivityResult)
+                    ),
                 );
             }
+
+            await Promise.all(allSensPromises);
 
             message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
             onClose();
@@ -454,9 +500,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             children: (
                 <Antibiogram
                     mode="standalone"
-                    cultureResults={cultureResults}
+                    cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults.map(c => ({ ...c, _tempId: String(c.id) }))}
                     sensitivityMap={sensitivityMap}
-                    onAntibioticsChange={(rows) => { antibioticsRef.current = rows; }}
+                    onAntibioticsChange={(data) => { antibioticsRef.current = data; }}
                 />
             ),
         },
