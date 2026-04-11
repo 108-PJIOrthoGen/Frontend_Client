@@ -163,7 +163,7 @@ export interface ILabResult {
     mono?: IMeasurement;
     eos?: IMeasurement;
     rbc?: IMeasurement;
-    rdw?: IMeasurement;
+    leu?: IMeasurement;
     ig?: IMeasurement;
     mcv?: IMeasurement;
     mch?: IMeasurement;

@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
     Layout, Menu, Button, Row, Col, Form, Input, Switch, message, Modal, notification, Typography,
 } from "antd";
@@ -65,9 +65,13 @@ const profile = [
 const LoginPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useAppDispatch();
     const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Redirect target: saved location from ProtectedRoute, or "/" as fallback
+    const from = location.state?.from?.pathname || "/";
 
     useEffect(() => {
         // If we landed on /login but there's a token in localStorage,
@@ -79,8 +83,8 @@ const LoginPage = () => {
 
     useEffect(() => {
         if (isAuthenticated) {
-            // Auto-redirect back instead of showing modal
-            navigate("/", { replace: true });
+            // Auto-redirect back to where the user was, not always "/"
+            navigate(from, { replace: true });
         }
     }, [isAuthenticated]);
 
@@ -93,7 +97,7 @@ const onFinish = async (values) => {
         localStorage.setItem('access_token', res.data.access_token);
         dispatch(runLoginAction(res.data.user))
         message.success("Đăng nhập thành công");
-        navigate("/")
+        navigate(from, { replace: true })
     } else {
         notification.error({
             message: "Có lỗi xảy ra",

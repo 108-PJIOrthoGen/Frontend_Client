@@ -3,7 +3,7 @@ import { IEpisode } from '@/types/backend';
 import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
 import locale from 'antd/es/date-picker/locale/en_US';
 import dayjs, { Dayjs } from 'dayjs';
-import { parseDateFromApi } from '@/config/utils';
+import { parseDateFromApi, stringToDayjs } from '@/config/utils';
 
 export interface EpisodeFormData {
     arrivalTime: string;
@@ -65,14 +65,6 @@ export function formDataToEpisodeRequest(form: EpisodeFormData) {
 }
 
 
-
-// Convert string date DD/MM/YYYY to Dayjs for DatePicker
-const stringToDayjs = (dateStr: string): Dayjs | null => {
-    if (!dateStr) return null;
-    const parsed = dayjs(dateStr, 'DD/MM/YYYY');
-    return parsed.isValid() ? parsed : null;
-};
-
 export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
     episodeData,
     onFormChange,
@@ -122,7 +114,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Form.Item
                                     name="arrivalTime"
-                                    label={<span className="text-sm font-medium text-slate-700">Thoi gian vao vien <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Thời gian vào viện <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                     getValueFromEvent={() => form.getFieldValue('arrivalTime')}
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
@@ -147,7 +139,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                         locale={locale}
                                         format="DD/MM/YYYY"
                                         onChange={handleDateChange('dischargeTime')}
-                                        placeholder="ngay/thang/nam"
+                                        placeholder="dd/mm/yyyy"
                                         className="w-full h-11"
                                     />
                                 </Form.Item>
@@ -195,18 +187,18 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     label={<span className="text-sm font-medium text-slate-700">Nơi giới thiệu</span>}
                                 >
                                     <Input
-                                        placeholder="VD: Benh vien tuyen duoi"
+                                        placeholder="VD: BV tuyến dưới"
                                         className="h-11 rounded-lg"
                                     />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="treatmentDays"
-                                    label={<span className="text-sm font-medium text-slate-700">Tong so ngay dieu tri</span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Tổng số ngày điều trị</span>}
                                     rules={[
                                         {
                                             pattern: /^\d*$/,
-                                            message: 'Vui long nhap so',
+                                            message: 'Chỉ nhập số',
                                         },
                                     ]}
                                 >
@@ -221,7 +213,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                                 <Form.Item
                                     name="treatmentResult"
-                                    label={<span className="text-sm font-medium text-slate-700">Ket qua dieu tri <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Kết quả điều trị <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                 >
                                     <Input
@@ -232,16 +224,16 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                                 <Form.Item
                                     name="status"
-                                    label={<span className="text-sm font-medium text-slate-700">Trang thai ho so <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ <span className="text-red-500">*</span></span>}
                                     rules={[requiredRule]}
                                 >
                                     <Select
-                                        placeholder="-- Trang thai ho so --"
+                                        placeholder="-- Trạng thái hồ sơ --"
                                         className="h-11 rounded-lg"
                                         options={[
-                                            { value: 'normal', label: 'Dang dieu tri' },
-                                            { value: 'bad', label: 'Hoan thanh' },
-                                            { value: 'worse', label: 'Da huy' },
+                                            { value: 'Đang điều trị', label: 'Đang điều trị' },
+                                            { value: 'Hoàn thành điều trị', label: 'Hoàn thành' },
+                                            { value: 'Hồ sơ bị hoãn', label: 'Đã hủy' },
                                         ]}
                                     />
                                 </Form.Item>

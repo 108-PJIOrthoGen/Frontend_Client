@@ -1,6 +1,6 @@
 
 import { grey, green, blue, red, orange } from '@ant-design/colors';
-import dayjs from 'dayjs';
+import dayjs, { Dayjs } from 'dayjs';
 export function colorMethod(method: "POST" | "PUT" | "GET" | "DELETE" | string) {
     switch (method) {
         case "POST":
@@ -87,4 +87,17 @@ export const parseDateFromApi = (dateValue: any): string => {
 
     // If nothing works, return empty
     return '';
+};
+
+// Convert date string (any common format) to Dayjs for DatePicker
+export const stringToDayjs = (dateStr: string): Dayjs | null => {
+    if (!dateStr) return null;
+    const formats = ['DD/MM/YYYY', 'DD-MM-YYYY', 'YYYY-MM-DD', 'YYYY-MM-DDTHH:mm:ss'];
+    for (const fmt of formats) {
+        const parsed = dayjs(dateStr, fmt);
+        if (parsed.isValid()) return parsed;
+    }
+    // let dayjs try native parsing (handles ISO 8601)
+    const fallback = dayjs(dateStr);
+    return fallback.isValid() ? fallback : null;
 };

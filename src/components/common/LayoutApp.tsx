@@ -1,8 +1,7 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
-import { fetchAccount, setRefreshTokenAction } from "@/redux/slice/accountSlice";
+import { runLogoutAction, setRefreshTokenAction } from "@/redux/slice/accountSlice";
 import { message } from "antd";
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 
 interface IProps {
     children: React.ReactNode
@@ -10,15 +9,15 @@ interface IProps {
 const LayoutApp = (props: IProps) => {
     const isRefreshToken = useAppSelector(state => state.account.isRefreshToken);
     const errorRefreshToken = useAppSelector(state => state.account.errorRefreshToken);
-    const navigate = useNavigate();
     const dispatch = useAppDispatch();
 
     useEffect(() => {
         if (isRefreshToken === true) {
-            localStorage.removeItem('access_token');
             message.error(errorRefreshToken);
             dispatch(setRefreshTokenAction({ status: false, message: "" }));
-            navigate("/login", { replace: true });
+            // Clear auth state — ProtectedRoute will handle the redirect to /login
+            // and preserve the current location so the user returns after re-login
+            dispatch(runLogoutAction({}));
         }
     }, [isRefreshToken]);
 

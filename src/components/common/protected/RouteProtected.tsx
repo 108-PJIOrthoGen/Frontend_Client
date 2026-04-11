@@ -19,7 +19,8 @@ const RoleCheck = (props) => {
 const ProtectedRoute = (props) => {
     const isAuthenticated = useAppSelector((state) => state.account.isAuthenticated)
     const isLoading = useAppSelector((state) => state.account.isLoading)
-    console.log(isAuthenticated)
+    const location = useLocation();
+
     if (isLoading) {
         return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>
     }
@@ -29,7 +30,7 @@ const ProtectedRoute = (props) => {
             {isAuthenticated === true ?
                 <>
                     <RoleCheck>{props.children}</RoleCheck>
-                </> : <Navigate to="/login" replace={true} />
+                </> : <Navigate to="/login" state={{ from: location }} replace={true} />
             }
         </>
     )

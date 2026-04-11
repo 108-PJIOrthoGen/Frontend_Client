@@ -267,7 +267,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 rbc: getLab('RBC'),
                 mcv: getLab('MCV'),
                 mch: getLab('MCH'),
-                rdw: getLab('RDW-CV'),
+                leu: getLab('Leukocyte Esterase'),
                 ig: getLab('IG%'),
                 dimer: getLab('D-dimer'),
                 alphaDefensin: getLab('Alpha Defensin'),

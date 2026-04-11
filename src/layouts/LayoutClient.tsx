@@ -61,35 +61,32 @@ export const LayoutClient = () => {
           {/* Header */}
           <div className="flex items-center gap-3 px-6 py-6">
             <div style={{ width: "5rem", height: "4rem" }} className="flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Image src={"/unnamed.gif"} alt="Logo" preview={false} />
+              <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
             </div>
             <div>
-              <h1 className="text-slate-900 text-lg font-bold leading-tight">108 MC Hospital</h1>
+              <h1 className="text-slate-900 text-lg font-bold leading-tight">108 POG</h1>
               <p className="text-slate-500 text-xs font-medium">Bộ chẩn đoán PJI</p>
             </div>
           </div>
 
           {/* Current Case */}
-          <div className={`mx-4 mb-6 mt-2 rounded-xl p-4 ${
-            currentCase
+          <div className={`mx-4 mb-6 mt-2 rounded-xl p-4 ${currentCase
               ? 'bg-green-50 border border-green-200'
               : 'bg-slate-50 border border-slate-100'
-          }`}>
+            }`}>
             <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${
-                currentCase
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${currentCase
                   ? 'bg-green-200 text-green-700'
                   : 'bg-slate-200 text-slate-500'
-              }`}>
+                }`}>
                 {currentCase
                   ? currentCase.patient.fullName?.split(' ').map(n => n[0]).join('') || '?'
                   : <span className="material-symbols-outlined text-lg">person_off</span>
                 }
               </div>
               <div className="flex flex-col">
-                <span className={`text-xs uppercase tracking-wider font-semibold ${
-                  currentCase ? 'text-green-600' : 'text-slate-500'
-                }`}>Ca bệnh hiện tại</span>
+                <span className={`text-xs uppercase tracking-wider font-semibold ${currentCase ? 'text-green-600' : 'text-slate-500'
+                  }`}>Ca bệnh hiện tại</span>
                 {currentCase ? (
                   <>
                     <h2 className="text-green-900 text-sm font-bold">{currentCase.patient.fullName}</h2>

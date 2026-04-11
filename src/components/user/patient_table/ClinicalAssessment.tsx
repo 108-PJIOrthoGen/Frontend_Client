@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Form, Input, Select, InputNumber, Checkbox } from 'antd';
+import { Form, Input, Select, InputNumber, Checkbox, message, Modal } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { ILabResult, IClinicalRecord, ICultureResult, IImageResult, IPatient } from '@/types/backend';
 import { TestItem } from '@/types/types';
@@ -25,6 +25,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
   const { form: clinicForm, setForm } = useClinicForm();
   const [uploading, setUploading] = useState(false);
   const [antForm] = Form.useForm();
+  const [imageTypeModalOpen, setImageTypeModalOpen] = useState(false);
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [selectedImageType, setSelectedImageType] = useState('X-ray');
 
   // Populate clinicalRecord from API
   useEffect(() => {
@@ -84,7 +87,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         if (lab.rbc?.value != null) hTests = setVal(hTests, 'RBC', lab.rbc.value);
         if (lab.mcv?.value != null) hTests = setVal(hTests, 'MCV', lab.mcv.value);
         if (lab.mch?.value != null) hTests = setVal(hTests, 'MCH', lab.mch.value);
-        if (lab.rdw?.value != null) hTests = setVal(hTests, 'RDW-CV', lab.rdw.value);
+        if (lab.leu?.value != null) hTests = setVal(hTests, 'Leukocyte Esterase', lab.leu.value);
         if (lab.ig?.value != null) hTests = setVal(hTests, 'IG%', lab.ig.value);
         if (lab.dimer?.value != null) hTests = setVal(hTests, 'D-dimer', lab.dimer.value);
         if (lab.serumIl6?.value != null) hTests = setVal(hTests, 'Serum IL-6', lab.serumIl6.value);
@@ -346,18 +349,18 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                           { value: 'DELAYED', label: 'Nhiễm trùng muộn / trì hoãn' },
                           { value: 'LATE_HEMATOGENOUS', label: 'Nhiễm trùng đường máu (hơn 24 tháng)' },
                           { value: 'ACUTE_HEMATOGENOUS', label: 'Nhiễm trùng cấp đường máu' },
-                          { value: 'CHRONIC', label: 'Nhiem trung man tinh' },
-                          { value: 'UNKNOWN', label: 'Chua ro' },
+                          { value: 'CHRONIC', label: 'Nhiễm trung mãn tính' },
+                          { value: 'UNKNOWN', label: 'Chưa rõ' },
                         ]}
                       />
                     </Form.Item>
 
                     <Form.Item
                       name="softTissue"
-                      label={<span className="text-sm font-medium text-slate-700">Tinh trang mo mem</span>}
+                      label={<span className="text-sm font-medium text-slate-700">Tình trạng mô mềm</span>}
                     >
                       <Input
-                        placeholder="Vi du:"
+                        placeholder="Ví dụ:"
                         value={clinicForm.clinicalRecord.softTissue ?? ''}
                         onChange={(e) => handleClinicalRecordChange('softTissue', e.target.value)}
                         className="h-11 rounded-lg"
@@ -374,10 +377,10 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                         placeholder="Chọn tình trạng"
                         className="h-11 rounded-lg"
                         options={[
-                          { value: 'stable', label: 'On dinh' },
-                          { value: 'loose', label: 'Long leo' },
-                          { value: 'slightly_loose', label: 'Hoi long leo' },
-                          { value: 'unknown', label: 'Chua ro' },
+                          { value: 'stable', label: 'Ổn định' },
+                          { value: 'loose', label: 'Lỏng lẻo' },
+                          { value: 'slightly_loose', label: 'Hơi lỏng lẻo' },
+                          { value: 'unknown', label: 'Chưa rõ' },
                         ]}
                       />
                     </Form.Item>
@@ -501,7 +504,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                       <span className="flex items-center justify-center w-5 h-5 rounded bg-green-500/10 text-green-600 text-xs font-bold">
                         2
                       </span>
-                      Xet nghiem sinh hoa
+                      Xét nghiệm sinh hóa
                     </h4>
                   </div>
                   <div className="overflow-x-auto">
@@ -632,7 +635,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                       >
                                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                                           <span className="font-bold text-slate-800 text-sm">
-                                            Mau {sample.sampleNumber}
+                                            Mẫu {sample.sampleNumber}
                                           </span>
                                           <button
                                             type="button"
@@ -649,13 +652,13 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                             className="text-red-500 hover:text-red-700 text-xs font-semibold flex items-center gap-1"
                                           >
                                             <span className="material-symbols-outlined text-[16px]">delete</span>
-                                            Xoa
+                                            Xóa
                                           </button>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                           <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-slate-700">Ket qua</label>
+                                            <label className="text-xs font-semibold text-slate-700">Kết quả</label>
                                             <Select
                                               value={sample.result || undefined}
                                               onChange={(val) => {
@@ -666,16 +669,16 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                               placeholder="-- Chon ket qua --"
                                               className="w-full"
                                               options={[
-                                                { value: 'POSITIVE', label: 'Duong tinh (POSITIVE)' },
-                                                { value: 'NEGATIVE', label: 'Am tinh (NEGATIVE)' },
-                                                { value: 'CONTAMINATED', label: 'Nhiem ban (CONTAMINATED)' },
-                                                { value: 'PENDING', label: 'Dang cho (PENDING)' },
+                                                { value: 'POSITIVE', label: 'Dương tính' },
+                                                { value: 'NEGATIVE', label: 'Âm tính' },
+                                                { value: 'CONTAMINATED', label: 'Nhiễm bẩn' },
+                                                { value: 'PENDING', label: 'Đang chờ kết quả' },
                                               ]}
                                             />
                                           </div>
 
                                           <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-slate-700">Ten vi khuan</label>
+                                            <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
                                             <Input
                                               value={sample.name || ''}
                                               onChange={(e) => {
@@ -686,12 +689,12 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                 };
                                                 setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                                               }}
-                                              placeholder="Nhap ten vi khuan..."
+                                              placeholder="Nhập tên..."
                                             />
                                           </div>
 
                                           <div className="flex flex-col gap-1.5">
-                                            <label className="text-xs font-semibold text-slate-700">Nhuom Gram</label>
+                                            <label className="text-xs font-semibold text-slate-700">Nhuộm Gram</label>
                                             <Select
                                               value={sample.gramType || undefined}
                                               onChange={(val) => {
@@ -699,12 +702,12 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                 newSamples[sampleIdx] = { ...newSamples[sampleIdx], gramType: val };
                                                 setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                                               }}
-                                              placeholder="-- Chon loai --"
+                                              placeholder="-- Chọn loại --"
                                               className="w-full"
                                               options={[
-                                                { value: 'Gram Duong', label: 'Gram Duong' },
-                                                { value: 'Gram Am', label: 'Gram Am' },
-                                                { value: 'Chua ro', label: 'Chua ro' },
+                                                { value: 'Gram Dương', label: 'Gram Dương' },
+                                                { value: 'Gram Âm', label: 'Gram Âm' },
+                                                { value: 'Chưa rõ', label: 'Chưa rõ' },
                                               ]}
                                             />
                                           </div>
@@ -723,7 +726,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                 };
                                                 setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                                               }}
-                                              placeholder="Vi du: 3"
+                                              placeholder="VD: 3"
                                               className="w-full"
                                               min={0}
                                               controls={false}
@@ -764,7 +767,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                   };
                                                   setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                                                 }}
-                                                placeholder="Vi du: 7"
+                                                placeholder="VD: 7"
                                                 className="w-full"
                                                 min={0}
                                                 controls={false}
@@ -786,7 +789,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                                 };
                                                 setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                                               }}
-                                              placeholder="Ghi chu them..."
+                                              placeholder="note..."
                                             />
                                           </div>
                                         </div>
@@ -873,7 +876,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                   {/* Image Upload */}
                   <div className="flex flex-col gap-2">
-                    <label className="text-sm font-semibold text-slate-700">Hinh anh dinh kem</label>
+                    <label className="text-sm font-semibold text-slate-700">Ảnh đính kèm</label>
                     <div className="grid grid-cols-4 gap-4">
                       {clinicForm.formImages?.map((image, index) => (
                         <div key={image.id} className="relative group">
@@ -906,7 +909,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                           {uploading ? 'hourglass_top' : 'add_photo_alternate'}
                         </span>
                         <span className="text-xs text-slate-500 font-medium">
-                          {uploading ? 'Dang tai...' : 'Them anh moi'}
+                          {uploading ? 'Đang tải...' : 'Thêm ảnh'}
                         </span>
                         <input
                           type="file"
@@ -918,7 +921,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                               const file = e.target.files[0];
 
                               if (file.size > 3 * 1024 * 1024) {
-                                alert('Anh khong duoc vuot qua 3MB');
+                                message.error('Ảnh không vượt quá 3MB');
                                 e.target.value = '';
                                 return;
                               }
@@ -931,42 +934,14 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                 'application/dicom',
                               ];
                               if (!validImageTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.dcm')) {
-                                alert('Vui long chon dung dinh dang anh y te (JPG, PNG, WEBP, DICOM)');
+                                message.error('Chưa đúng định dạng hỗ trợ (JPG, PNG, WEBP, DICOM)');
                                 e.target.value = '';
                                 return;
                               }
 
-                              const type = prompt('Chon loai hinh anh (X-ray, CT, Ultrasound):', 'X-ray');
-                              if (type) {
-                                const validTypes = ['X-ray', 'CT', 'Ultrasound'];
-                                const selectedType = validTypes.includes(type) ? type : 'X-ray';
-
-                                const previewUrl = URL.createObjectURL(file);
-
-                                setUploading(true);
-                                try {
-                                  const res = await callUploadImage(file, 'clinical-images');
-                                  const uploadedFileName =
-                                    (res as any)?.fileName || (res as any)?.data?.fileName;
-                                  if (uploadedFileName) {
-                                    const newImage = {
-                                      id: Math.random().toString(36).substring(2, 11),
-                                      url: uploadedFileName,
-                                      previewUrl: previewUrl,
-                                      type: selectedType,
-                                      name: file.name,
-                                    };
-                                    setForm((prev) => ({
-                                      ...prev,
-                                      formImages: [...prev.formImages, newImage],
-                                    }));
-                                  }
-                                } catch {
-                                  alert('Khong the tai anh len. Vui long thu lai.');
-                                } finally {
-                                  setUploading(false);
-                                }
-                              }
+                              setPendingImageFile(file);
+                              setSelectedImageType('X-ray');
+                              setImageTypeModalOpen(true);
                               e.target.value = '';
                             }
                           }}
@@ -980,6 +955,58 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
           </div>
         </div>
       </div>
+      <Modal
+        title="Chọn loại ảnh"
+        open={imageTypeModalOpen}
+        onOk={async () => {
+          if (!pendingImageFile) return;
+          const previewUrl = URL.createObjectURL(pendingImageFile);
+          setUploading(true);
+          setImageTypeModalOpen(false);
+          try {
+            const res = await callUploadImage(pendingImageFile, 'clinical-images');
+            const uploadedFileName =
+              (res as any)?.fileName || (res as any)?.data?.fileName;
+            if (uploadedFileName) {
+              const newImage = {
+                id: Math.random().toString(36).substring(2, 11),
+                url: uploadedFileName,
+                previewUrl: previewUrl,
+                type: selectedImageType,
+                name: pendingImageFile.name,
+              };
+              setForm((prev) => ({
+                ...prev,
+                formImages: [...prev.formImages, newImage],
+              }));
+            }
+          } catch {
+            message.error('Xảy ra lỗi! Hãy thử lại');
+          } finally {
+            setUploading(false);
+            setPendingImageFile(null);
+          }
+        }}
+        onCancel={() => {
+          setImageTypeModalOpen(false);
+          setPendingImageFile(null);
+        }}
+        okText="Xác nhận"
+        cancelText="Hủy"
+        destroyOnHidden
+      >
+        <Select
+          value={selectedImageType}
+          onChange={setSelectedImageType}
+          style={{ width: '100%' }}
+          options={[
+            { value: 'X-ray', label: 'X-Quang' },
+            { value: 'CT', label: 'Chụp cắt lớp vi tính (CT-scan)' },
+            { value: 'Ultrasound', label: 'Siêu âm' },
+            { value: 'MRI', label: 'Chụp cộng hưởng từ (MRI)' },
+          ]}
+        />
+      </Modal>
     </>
   );
 };

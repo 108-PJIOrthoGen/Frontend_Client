@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Form, Input, Checkbox, DatePicker, Button } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IMedicalHistory, ISurgery } from '@/types/backend';
+import { stringToDayjs } from '@/config/utils';
 
 const { TextArea } = Input;
 
@@ -314,7 +315,9 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                                   {index + 1}
                                 </td>
                                 <td className="p-0 border-r border-slate-200">
-                                  <Form.Item {...restField} name={[name, 'surgeryDate']} className="mb-0">
+                                  <Form.Item
+                                    getValueProps={(val) => ({ value: stringToDayjs(val) })}
+                                    {...restField} name={[name, 'surgeryDate']} className="mb-0">
                                     <DatePicker
                                       className="w-full border-none"
                                       placeholder="dd/mm/yyyy"

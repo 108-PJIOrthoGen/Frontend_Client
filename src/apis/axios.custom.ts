@@ -36,7 +36,15 @@ const handleRefreshToken = async (): Promise<string | null> => {
 
 // Request interceptor — attach access token
 instance.interceptors.request.use(function (config) {
-    if (typeof window !== "undefined" && window && window.localStorage && window.localStorage.getItem('access_token')) {
+    // Skip Authorization for refresh — the endpoint uses the HTTP-only cookie,
+    // and sending an expired access_token causes Spring Security's
+    // BearerTokenAuthenticationFilter to reject with 401 before the controller runs.
+    if (
+        config.url !== '/api/v1/auth/refresh'
+        && typeof window !== "undefined"
+        && window && window.localStorage
+        && window.localStorage.getItem('access_token')
+    ) {
         config.headers.Authorization = 'Bearer ' + window.localStorage.getItem('access_token');
     }
     if (!config.headers.Accept && config.headers["Content-Type"]) {
@@ -80,13 +88,14 @@ instance.interceptors.response.use(
         }
 
         // 401 on the refresh endpoint itself — refresh token is expired
+        // Reject so handleRefreshToken returns null; the calling 401 handler
+        // will dispatch setRefreshTokenAction with the proper error message.
         if (
             status === 401
             && error.config
             && error.config.url === '/api/v1/auth/refresh'
         ) {
-            const message = error?.response?.data?.error ?? "Có lỗi xảy ra, vui lòng login.";
-            dispatch(setRefreshTokenAction({ status: true, message }));
+            return Promise.reject(error);
         }
 
         if (status === 403) {
