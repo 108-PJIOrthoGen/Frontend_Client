@@ -115,7 +115,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
               format="DD/MM/YYYY"
               placeholder="Chọn ngày sinh"
               style={{ width: '100%' }}
-              needConfirm
             />
           </Form.Item>
         </Col>
@@ -229,7 +228,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
               format="DD/MM/YYYY"
               placeholder="Chọn ngày hết hạn"
               style={{ width: '100%' }}
-              needConfirm
             />
           </Form.Item>
         </Col>

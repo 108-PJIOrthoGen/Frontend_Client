@@ -59,25 +59,22 @@ export const LayoutClient = () => {
       <aside className="flex w-72 flex-col justify-between border-r border-slate-200 bg-white flex-shrink-0 z-20 h-full">
         <div className="flex flex-col">
           {/* Header */}
-          <div className="flex items-center gap-3 px-6 py-6">
-            <div style={{ width: "5rem", height: "4rem" }} className="flex items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
-            </div>
-            <div>
-              <h1 className="text-slate-900 text-lg font-bold leading-tight">108 POG</h1>
-              <p className="text-slate-500 text-xs font-medium">Bộ chẩn đoán PJI</p>
-            </div>
+          <div className="flex flex-col items-center gap-1 px-6 py-6">
+            {/* <div style={{ width: "5rem", height: "5rem" }} className="flex items-center justify-center"> */}
+            <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
+            {/* </div> */}
+
           </div>
 
           {/* Current Case */}
-          <div className={`mx-4 mb-6 mt-2 rounded-xl p-4 ${currentCase
-              ? 'bg-green-50 border border-green-200'
-              : 'bg-slate-50 border border-slate-100'
+          <div className={`mx-4 mb-6 mt-0 rounded-xl p-4 ${currentCase
+            ? 'bg-green-50 border border-green-200'
+            : 'bg-slate-50 border border-slate-100'
             }`}>
             <div className="flex items-start gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${currentCase
-                  ? 'bg-green-200 text-green-700'
-                  : 'bg-slate-200 text-slate-500'
+                ? 'bg-green-200 text-green-700'
+                : 'bg-slate-200 text-slate-500'
                 }`}>
                 {currentCase
                   ? currentCase.patient.fullName?.split(' ').map(n => n[0]).join('') || '?'

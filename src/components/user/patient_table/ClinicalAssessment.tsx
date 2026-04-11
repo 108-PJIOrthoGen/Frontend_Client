@@ -24,12 +24,11 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 }) => {
   const { form: clinicForm, setForm } = useClinicForm();
   const [uploading, setUploading] = useState(false);
-  const [antForm] = Form.useForm();
   const [imageTypeModalOpen, setImageTypeModalOpen] = useState(false);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [selectedImageType, setSelectedImageType] = useState('X-ray');
 
-  // Populate clinicalRecord from API
+  // Populate clinicalRecord from API, or reset when switching episodes
   useEffect(() => {
     if (clinicalRecord) {
       setForm((prev) => ({
@@ -54,20 +53,13 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
           notations: clinicalRecord.notations ?? '',
         },
       }));
-
-      // Sync to Ant Form
-      antForm.setFieldsValue({
-        illnessOnsetDate: clinicalRecord.illnessOnsetDate ?? '',
-        bmi: clinicalRecord.bmi,
-        suspectedInfectionType: clinicalRecord.suspectedInfectionType ?? '',
-        softTissue: clinicalRecord.softTissue ?? '',
-        implantStability: clinicalRecord.implantStability ?? '',
-        daysSinceIndexArthroplasty: clinicalRecord.daysSinceIndexArthroplasty,
-        prosthesisJoint: clinicalRecord.prosthesisJoint ?? '',
-        notations: clinicalRecord.notations ?? '',
-      });
+    } else {
+      setForm((prev) => ({
+        ...prev,
+        clinicalRecord: {},
+      }));
     }
-  }, [clinicalRecord, setForm, antForm]);
+  }, [clinicalRecord, setForm]);
 
   // Populate lab tests from API
   useEffect(() => {
@@ -297,10 +289,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     Khám lâm sàng chi tiết
                   </h3>
                 </div>
-                <Form form={antForm} layout="vertical" className="p-6">
+                <Form layout="vertical" className="p-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <Form.Item
-                      name="illnessOnsetDate"
                       label={<span className="text-sm font-medium text-slate-700">Ngày khởi phát triệu chứng</span>}
                     >
                       <Input
@@ -311,9 +302,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                       />
                       <div className="flex flex-col gap-1.5">
                         <span className="text-xs text-slate-500">
-                          Phan loai:{' '}
+                          Phân loại:{' '}
                           <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
-                            {clinicForm.isAcute ? 'CAP TINH (<3 tuan)' : 'MAN TINH (>3 tuan)'}
+                            {clinicForm.isAcute ? 'Cấp tính (<3 tuần)' : 'Mãn tính (>3 tuần)'}
                           </span>
                         </span>
                       </div>
@@ -321,9 +312,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
 
                     <Form.Item
-                      name="bmi"
                       label={<span className="text-sm font-medium text-slate-700">BMI</span>}
-                      rules={[{ type: 'number', message: 'Vui long nhap so hop le' }]}
                     >
                       <InputNumber
                         step={0.01}
@@ -336,7 +325,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     </Form.Item>
 
                     <Form.Item
-                      name="suspectedInfectionType"
                       label={<span className="text-sm font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}
                     >
                       <Select
@@ -356,7 +344,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     </Form.Item>
 
                     <Form.Item
-                      name="softTissue"
                       label={<span className="text-sm font-medium text-slate-700">Tình trạng mô mềm</span>}
                     >
                       <Input
@@ -368,7 +355,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     </Form.Item>
 
                     <Form.Item
-                      name="implantStability"
                       label={<span className="text-sm font-medium text-slate-700">Độ ổn định cấy ghép</span>}
                     >
                       <Select
@@ -377,18 +363,16 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                         placeholder="Chọn tình trạng"
                         className="h-11 rounded-lg"
                         options={[
-                          { value: 'stable', label: 'Ổn định' },
-                          { value: 'loose', label: 'Lỏng lẻo' },
-                          { value: 'slightly_loose', label: 'Hơi lỏng lẻo' },
-                          { value: 'unknown', label: 'Chưa rõ' },
+                          { value: 'STABLE', label: 'Ổn định' },
+                          { value: 'POSSIBLY_LOOSE', label: 'Có thể lỏng' },
+                          { value: 'LOOSE', label: 'Lỏng lẻo' },
+                          { value: 'UNKNOWN', label: 'Chưa rõ' },
                         ]}
                       />
                     </Form.Item>
 
                     <Form.Item
-                      name="daysSinceIndexArthroplasty"
                       label={<span className="text-sm font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>}
-                      rules={[{ type: 'number', message: 'Vui lòng nhập số hợp lệ' }]}
                     >
                       <InputNumber
                         placeholder="Ví dụ: 70"
@@ -401,7 +385,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     </Form.Item>
 
                     <Form.Item
-                      name="prosthesisJoint"
                       label={<span className="text-sm font-medium text-slate-700">Khớp nhân tạo</span>}
                       className="col-span-3"
                     >
@@ -414,7 +397,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                     </Form.Item>
 
                     <Form.Item
-                      name="notations"
                       label={<span className="text-sm font-medium text-slate-700">Khám bệnh toàn thân</span>}
                       className="col-span-3"
                     >

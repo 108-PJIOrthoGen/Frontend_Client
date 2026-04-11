@@ -57,6 +57,7 @@ interface MedicalExamDetailProps {
 
 const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId }) => {
     const [loading, setLoading] = useState(false);
+    const latestFetchRequestRef = useRef(0);
 
     // Fetched data for tabs
     const [labResults, setLabResults] = useState<ILabResult[]>([]);
@@ -87,6 +88,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         if (!open) return;
 
         if (examData?.id) {
+            resetData();
             fetchAllData(examData.id);
         } else {
             // New episode — reset all
@@ -106,6 +108,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     };
 
     const fetchAllData = async (episodeId: string) => {
+        const requestId = ++latestFetchRequestRef.current;
         setLoading(true);
         try {
             const [labRes, clinicalRes, cultureRes, mhRes, surgeryRes, imageRes] = await Promise.all([
@@ -116,6 +119,10 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 callFetchSurgeriesByEpisode(episodeId, 'page=0&size=50&sort=surgeryDate,asc'),
                 callFetchImageResultsByEpisode(episodeId, 'page=0&size=50')
             ]);
+
+            if (requestId !== latestFetchRequestRef.current) {
+                return;
+            }
 
             const labs = labRes?.data?.result ?? [];
             setLabResults(labs);
@@ -137,6 +144,10 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     } catch { /* ignore */ }
                 })
             );
+
+            if (requestId !== latestFetchRequestRef.current) {
+                return;
+            }
             setSensitivityMap(sensMap);
 
             const images = imageRes?.data?.result ?? [];
@@ -145,9 +156,14 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             setMedicalHistory(mhRes?.data ?? null);
             setSurgeries(surgeryRes?.data?.result ?? []);
         } catch {
+            if (requestId !== latestFetchRequestRef.current) {
+                return;
+            }
             message.error('Không thể tải dữ liệu bệnh án');
         } finally {
-            setLoading(false);
+            if (requestId === latestFetchRequestRef.current) {
+                setLoading(false);
+            }
         }
     };
 
@@ -461,6 +477,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         {
             key: '1',
             label: 'Quản lý bệnh án',
+            forceRender: true,
             children: (
                 <MedicalExamination
                     mode="standalone"
@@ -472,6 +489,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         {
             key: '2',
             label: 'Tiền sử bệnh',
+            forceRender: true,
             children: (
                 <MedicalHistoryPage
                     mode="standalone"
@@ -483,6 +501,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         {
             key: '3',
             label: 'Lâm sàng & CLS',
+            forceRender: true,
             children: (
                 <ClinicalAssessmentPage
                     mode="standalone"
@@ -497,6 +516,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         {
             key: '4',
             label: 'Kháng sinh đồ',
+            forceRender: true,
             children: (
                 <Antibiogram
                     mode="standalone"

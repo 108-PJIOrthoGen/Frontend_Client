@@ -114,7 +114,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <Form.Item
                                     name="arrivalTime"
-                                    label={<span className="text-sm font-medium text-slate-700">Thời gian vào viện <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Thời gian vào viện</span>}
                                     rules={[requiredRule]}
                                     getValueFromEvent={() => form.getFieldValue('arrivalTime')}
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
@@ -123,14 +123,14 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                         locale={locale}
                                         format="DD/MM/YYYY"
                                         onChange={handleDateChange('arrivalTime')}
-                                        placeholder="ngay/thang/nam"
+                                        placeholder="dd/mm/yyyy"
                                         className="w-full h-11"
                                     />
                                 </Form.Item>
 
                                 <Form.Item
                                     name="dischargeTime"
-                                    label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện <span className="text-red-500">*</span></span>}
+                                    label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện </span>}
                                     rules={[requiredRule]}
                                     getValueFromEvent={() => form.getFieldValue('dischargeTime')}
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
@@ -150,7 +150,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     className="col-span-2"
                                 >
                                     <Input
-                                        placeholder="VD: Bi dau va han che..."
+                                        placeholder="VD:Bị đau ở vai gáy"
                                         className="h-11 rounded-lg"
                                     />
                                 </Form.Item>

@@ -23,7 +23,7 @@ const router = createBrowserRouter([
                 <LayoutClient />
             </LayoutApp>
 
-        ), // thêm layoutApp sau
+        ),
         errorElement: <Error404 />,
         children: [
             {
