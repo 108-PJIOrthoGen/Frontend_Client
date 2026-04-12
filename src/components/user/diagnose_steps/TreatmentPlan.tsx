@@ -3,10 +3,13 @@ import { Button, Input, Drawer, Spin, Modal, Result, message, Select } from 'ant
 import { SendOutlined } from '@ant-design/icons';
 
 import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
+import type { SurgerySectionHandle } from '../rag_diagnose/rag_surgery/SurgerySection';
 import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
 import type { SystemicAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
 import type { LocalAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
+import ReactMarkdown from 'react-markdown';
+import hardenReactMarkdown from 'harden-react-markdown';
 import type {
     SurgeryPlanData,
     SystemicPlanData,
@@ -61,6 +64,8 @@ const mapCitations = (citations?: IAiRagCitation[]): CitationData[] => {
     }));
 };
 
+const HardenedMarkdown = hardenReactMarkdown(ReactMarkdown);
+
 export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -72,6 +77,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const currentCase = useSelector((state: RootState) => state.patient.currentCase);
     const episodeId = currentCase?.episode?.id;
 
+    const surgeryRef = useRef<SurgerySectionHandle>(null);
     const systemicRef = useRef<SystemicAntibioticTreatmentHandle>(null);
     const localRef = useRef<LocalAntibioticTreatmentHandle>(null);
     const runIdRef = useRef<string | null>(null);
@@ -237,18 +243,20 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
         setIsReviewModalOpen(false);
         setIsSaving(true);
         try {
+            const currentSurgery = surgeryRef.current?.getData() ?? null;
             const currentSystemic = systemicRef.current?.getData() ?? null;
             const currentLocal = localRef.current?.getData() ?? null;
 
             const hasModification =
+                (currentSurgery && JSON.stringify(currentSurgery) !== JSON.stringify(surgeryPlan)) ||
                 (currentSystemic && JSON.stringify(currentSystemic) !== JSON.stringify(systemicPlan)) ||
                 (currentLocal && JSON.stringify(currentLocal) !== JSON.stringify(localPlan));
             const reviewStatus = rejectionReason ? 'REJECTED' : hasModification ? 'MODIFIED' : 'ACCEPTED';
 
             const modificationJson: Record<string, any> = {};
+            if (currentSurgery) modificationJson.surgery = currentSurgery;
             if (currentSystemic) modificationJson.systemicAntibiotic = currentSystemic;
             if (currentLocal) modificationJson.localAntibiotic = currentLocal;
-            if (surgeryPlan) modificationJson.surgery = surgeryPlan;
 
             await callCreateDoctorReview(String(episodeId), {
                 runId: Number(runIdRef.current),
@@ -307,7 +315,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 useRunContext: true,
                 useChatHistory: true
             });
-            
+
             if (res?.data) {
                 const aiData = res.data;
                 const aiMsg: Message = {
@@ -380,7 +388,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 {/* Left Panel: Treatment Plan Draft */}
                 <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-2xl">
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                        {surgeryPlan && <SurgerySection surgeryPlan={surgeryPlan} />}
+                        {surgeryPlan && <SurgerySection ref={surgeryRef} surgeryPlan={surgeryPlan} />}
                         {systemicPlan && (
                             <SystemicAntibioticTreatment ref={systemicRef} guidelinePlan={systemicPlan} />
                         )}
@@ -398,9 +406,9 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                             <div className="p-4 border-b border-slate-200 flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <span className="material-symbols-outlined text-purple-600">smart_toy</span>
-                                    <h3 className="font-bold text-slate-900 text-sm">Co so bang chung (RAG)</h3>
+                                    <h3 className="font-bold text-slate-900 text-sm">Cơ sở bằng chứng (Guideline)</h3>
                                 </div>
-                                <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Tạo bởi AI</span>
+                                <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded">RAG</span>
                             </div>
                             <div className="p-4 flex-1 space-y-3 max-h-[calc(100vh-220px)] overflow-y-auto">
                                 {citations.length > 0 ? (
@@ -421,7 +429,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                                 rel="noreferrer"
                                                 className="inline-flex mt-2 text-xs text-blue-600 hover:underline"
                                             >
-                                                Xem tai lieu
+                                                Xem tài liệu
                                             </a>
                                         </article>
                                     ))
@@ -498,7 +506,13 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                     ? 'bg-blue-500 text-white rounded-tr-none'
                                     : 'bg-slate-100 text-slate-900 rounded-tl-none border border-slate-200'
                                     }`}>
-                                    <p className="whitespace-pre-wrap leading-relaxed text-sm">{msg.content}</p>
+                                    {msg.role === 'assistant' ? (
+                                        <div className="ai-markdown">
+                                            <HardenedMarkdown>{msg.content}</HardenedMarkdown>
+                                        </div>
+                                    ) : (
+                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                    )}
                                     <span className={`text-[10px] mt-1 block ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
                                         {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                     </span>

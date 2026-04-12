@@ -43,10 +43,11 @@ const MPatientCreateAndUpdate = (props: IProps) => {
   };
 
   const onFinish = async (values: any) => {
+    console.log("Tôi đây")
     const formatted = {
       ...values,
-      dateOfBirth: values.dateOfBirth?.format('DD-MM-YYYY'),
-      insuranceExpired: values.insuranceExpired?.format('DD-MM-YYYY'),
+      dateOfBirth: values.dateOfBirth ? dayjs(values.dateOfBirth).format('DD-MM-YYYY') : undefined,
+      insuranceExpired: values.insuranceExpired ? dayjs(values.insuranceExpired).format('DD-MM-YYYY') : undefined,
     };
 
     if (isEdit) {
