@@ -250,15 +250,11 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const deletePromises = toDelete.map(s => callDeleteSurgery(String(s.id!)));
             await Promise.all([...deletePromises, ...updatePromises, ...createPromises]);
 
-            // 4. Save Lab Results — TestItem → ILabResult conversion stays (save boundary)
-            const getLab = (name: string) => {
-                const test = form.hematologyTests?.find(t => t.name.toLowerCase() === name.toLowerCase());
-                return test && test.result ? { value: Number(test.result), unit: test.unit } : undefined;
-            };
-            const getFluid = (name: string) => {
-                const test = form.fluidAnalysis?.find(t => t.name.toLowerCase() === name.toLowerCase());
-                return test && test.result ? { value: Number(test.result), unit: test.unit } : undefined;
-            };
+            // 4. Save Lab Results — convert TestItem[] to ILabTestItem[] for JSONB storage
+            const toLabTestItems = (tests: typeof form.hematologyTests) =>
+                tests
+                    .filter(t => t.result)
+                    .map(t => ({ id: t.id, name: t.name, value: t.result, unit: t.unit, normalRange: t.normalRange }));
 
             const reverseBioMapping: Record<string, string> = {
                 'bc_4': 'glucose',
@@ -276,21 +272,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
             const labPayload: Partial<ILabResult> = {
                 episodeId: Number(episodeId),
-                esr: getLab('Máu lắng'),
-                wbcBlood: getLab('wbc'),
-                neut: getLab('%NEUT'),
-                mono: getLab('%MONO'),
-                rbc: getLab('RBC'),
-                mcv: getLab('MCV'),
-                mch: getLab('MCH'),
-                leu: getLab('Leukocyte Esterase'),
-                ig: getLab('IG%'),
-                dimer: getLab('D-dimer'),
-                alphaDefensin: getLab('Alpha Defensin'),
-                serumIl6: getLab('Serum IL-6'),
-                crp: getFluid('Định lượng CRP (Dịch)'),
-                synovialWbc: getFluid('Bạch cầu (Dịch)'),
-                synovialPmn: getFluid('%PMN (Dịch)'),
+                hematologyTests: toLabTestItems(form.hematologyTests),
+                fluidAnalysis: toLabTestItems(form.fluidAnalysis),
                 biochemicalData: form.biochemistryTests?.reduce((acc, test) => {
                     if (test.result) {
                         const backendKey = reverseBioMapping[test.id] || test.id;

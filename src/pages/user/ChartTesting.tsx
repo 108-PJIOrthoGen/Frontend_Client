@@ -57,14 +57,18 @@ const ChartTesting: React.FC = () => {
                 const labs: ILabResult[] = res?.data?.result || [];
                 const epId = allEpisodes[idx]?.id || '';
                 labs.forEach((lab) => {
+                    const findTest = (items: any[] | undefined, name: string) => {
+                        const item = items?.find((t: any) => t.name?.toLowerCase() === name.toLowerCase());
+                        return item?.value ?? null;
+                    };
                     points.push({
                         date: lab.updatedAt
                             ? dayjs(lab.updatedAt).format('DD/MM/YYYY')
                             : 'N/A',
-                        wbc: lab.wbcBlood?.value ?? null,
-                        neu: lab.neut?.value ?? null,
-                        esr: lab.esr?.value ?? null,
-                        crp: lab.crp?.value ?? null,
+                        wbc: findTest(lab.hematologyTests, 'wbc'),
+                        neu: findTest(lab.hematologyTests, '%NEUT'),
+                        esr: findTest(lab.hematologyTests, 'Máu lắng'),
+                        crp: findTest(lab.fluidAnalysis, 'Định lượng CRP (Dịch)'),
                         episodeId: epId,
                     });
                 });

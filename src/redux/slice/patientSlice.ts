@@ -120,9 +120,6 @@ export const patientSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setActiveMenu: (state, action) => {
-            // state.activeMenu = action.payload;
-        },
         setCurrentCase: (state, action: PayloadAction<ICurrentCase>) => {
             state.currentCase = action.payload;
             localStorage.setItem('pji_currentCase', JSON.stringify(action.payload));
@@ -163,7 +160,6 @@ export const patientSlice = createSlice({
 });
 
 export const {
-    setActiveMenu,
     setCurrentCase,
     clearCurrentCase,
     setClinicForm,

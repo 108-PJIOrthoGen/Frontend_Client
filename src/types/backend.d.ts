@@ -154,25 +154,19 @@ export interface IMeasurement {
     unit?: string;
 }
 
+export interface ILabTestItem {
+    id: string;
+    name: string;
+    value?: string | null;
+    unit: string;
+    normalRange: string;
+}
+
 export interface ILabResult {
     id?: string;
     episodeId?: number;
-    esr?: IMeasurement;
-    wbcBlood?: IMeasurement;
-    neut?: IMeasurement;
-    mono?: IMeasurement;
-    eos?: IMeasurement;
-    rbc?: IMeasurement;
-    leu?: IMeasurement;
-    ig?: IMeasurement;
-    mcv?: IMeasurement;
-    mch?: IMeasurement;
-    crp?: IMeasurement;
-    dimer?: IMeasurement;
-    serumIl6?: IMeasurement;
-    alphaDefensin?: IMeasurement;
-    synovialWbc?: IMeasurement;
-    synovialPmn?: IMeasurement;
+    hematologyTests?: ILabTestItem[];
+    fluidAnalysis?: ILabTestItem[];
     biochemicalData?: Record<string, any>;
     createdAt?: string;
     updatedAt?: string;

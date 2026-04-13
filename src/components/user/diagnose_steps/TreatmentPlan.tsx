@@ -359,117 +359,171 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     }
 
     return (
-        <div className="flex flex-col h-full relative">
-            <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10 flex-shrink-0">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
-                <div>
-                    <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <span className="material-symbols-outlined text-green-400">psychology</span>
-                        Gợi ý Phác đồ Phẫu thuật & Kháng sinh
-                    </h1>
+        <div className="flex flex-col flex-1 w-full relative bg-slate-50 min-h-full">
+            {/* Premium Header */}
+            <header className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b justify-between border-slate-200/60 px-6 py-4 flex items-center shadow-sm z-20 sticky top-0 w-full transition-all">
+                <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-600"></div>
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md shadow-emerald-500/30">
+                        <span className="material-symbols-outlined text-white text-2xl">psychology</span>
+                    </div>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
+                            Gợi ý Phác đồ Điều trị & Phẫu thuật
+                        </h1>
+                        <p className="text-xs text-slate-500 font-medium tracking-wide">
+                            Dựa trên phân tích RAG & Hướng dẫn y khoa
+                        </p>
+                    </div>
                 </div>
-                <div className="flex items-center gap-3 z-10">
+                
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={onPrev} 
+                        className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all bg-white border border-slate-300 shadow-sm rounded-xl hover:shadow hover:bg-slate-50"
+                    >
+                        Quay lại
+                    </button>
                     <Button
-                        size="small"
+                        size="large"
                         type="primary"
                         onClick={openReviewModal}
                         loading={isSaving}
-                        className="bg-green-700 hover:!bg-green-400 border-none flex items-center gap-1.5"
+                        className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-none shadow-md shadow-emerald-500/30 rounded-xl font-bold px-6 h-[42px] flex items-center gap-2 transform hover:-translate-y-0.5 transition-all"
                     >
-                        Xác nhận <span className="material-symbols-outlined text-[14px]">save</span>
+                        Khóa Phác Đồ <span className="material-symbols-outlined text-[18px]">verified</span>
                     </Button>
-                    <button onClick={onPrev} className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors bg-slate-800 border border-slate-600 hover:border-slate-500 rounded-lg">Quay lại</button>
                 </div>
             </header>
 
-            {/* Dark Theme Container */}
-            <div className="flex-1 overflow-hidden p-6 flex gap-6 text-slate-200">
+            {/* Hybrid Container */}
+            <div className="flex-1 overflow-hidden p-6 flex gap-6 text-slate-800 max-w-[1800px] mx-auto w-full">
 
-                {/* Left Panel: Treatment Plan Draft */}
-                <div className="flex-1 bg-white border border-slate-200 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                {/* Left Panel: Treatment Plan Draft (Light & Clean) */}
+                <div className="flex-[3] bg-white border border-slate-200 rounded-2xl flex flex-col overflow-hidden shadow-xl shadow-slate-200/50">
+                    <div className="bg-slate-50/80 border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+                        <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-emerald-500">receipt_long</span>
+                            Chi tiết phác đồ
+                        </h2>
+                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest bg-white px-2 py-1 border border-slate-200 rounded">DRAFT MODE</span>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar bg-slate-50/30">
                         {surgeryPlan && <SurgerySection ref={surgeryRef} surgeryPlan={surgeryPlan} />}
                         {systemicPlan && (
                             <SystemicAntibioticTreatment ref={systemicRef} guidelinePlan={systemicPlan} />
                         )}
                         {localPlan && <LocalAntibioticTreatment ref={localRef} localPlan={localPlan} />}
                         {!surgeryPlan && !systemicPlan && !localPlan && (
-                            <Result status="info" title="Không có dữ liệu phác đồ điều trị cho ca bệnh này." />
+                            <div className="flex flex-col items-center justify-center p-12 text-center h-full">
+                                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                                     <span className="material-symbols-outlined text-4xl text-slate-300">hourglass_empty</span>
+                                </div>
+                                <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có dữ liệu phác đồ</h3>
+                                <p className="text-slate-500 text-sm">Không tìm thấy gợi ý điều trị cho ca bệnh này trong hệ thống RAG.</p>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                {/* Right Panel: Evidence */}
-                <div className="w-96 flex flex-col gap-4 h-full">
-                    <div className="bg-slate-800 border border-slate-700 rounded-xl flex flex-col overflow-hidden shadow-2xl">
-                        <div className="bg-slate-50 rounded-xl border border-slate-200 flex flex-col">
-                            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <span className="material-symbols-outlined text-purple-600">smart_toy</span>
-                                    <h3 className="font-bold text-slate-900 text-sm">Cơ sở bằng chứng (Guideline)</h3>
+                {/* Right Panel: Evidence (Glassy Dark Mode) */}
+                <div className="flex-[1] min-w-[380px] max-w-[450px] flex flex-col h-full">
+                    <div className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative h-full">
+                        {/* Decorative dark bg */}
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none"></div>
+                        
+                        <div className="p-5 border-b border-white/10 flex items-center justify-between relative z-10 bg-black/20 backdrop-blur-sm">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
+                                    <span className="material-symbols-outlined text-[18px]">library_books</span>
                                 </div>
-                                <span className="text-[10px] font-bold uppercase bg-purple-100 text-purple-700 px-2 py-0.5 rounded">RAG</span>
+                                <h3 className="font-bold text-indigo-50 text-sm tracking-wide">Cơ Sở Bằng Chứng</h3>
                             </div>
-                            <div className="p-4 flex-1 space-y-3 max-h-[calc(100vh-220px)] overflow-y-auto">
-                                {citations.length > 0 ? (
-                                    citations.map((citation, idx) => (
-                                        <article key={citation.sourceUri || idx} className="rounded-lg border border-slate-200 bg-white p-3">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="text-[10px] uppercase font-semibold tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
-                                                    {citation.sourceType}
-                                                </span>
-                                                <span className="text-[10px] text-slate-500">Relevance {citation.relevanceScore.toFixed(2)}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(99,102,241,0.2)]">AI RAG</span>
+                        </div>
+                        
+                        <div className="flex-1 p-5 space-y-4 overflow-y-auto custom-scrollbar relative z-10">
+                            {citations.length > 0 ? (
+                                citations.map((citation, idx) => (
+                                    <article key={citation.sourceUri || idx} className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md hover:bg-white/10 transition-colors group">
+                                        <div className="flex items-center justify-between gap-2 mb-3">
+                                            <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300">
+                                                {citation.sourceType}
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                                <span className="material-symbols-outlined text-[12px] text-emerald-400">radar</span>
+                                                <span className="text-[10px] text-emerald-400/80 font-mono">{(citation.relevanceScore * 100).toFixed(0)}% Match</span>
                                             </div>
-                                            <p className="text-xs font-semibold text-slate-900 mt-2 leading-relaxed">{citation.sourceTitle}</p>
-                                            <p className="text-xs text-slate-600 mt-1 italic">"{citation.snippet}"</p>
-                                            <p className="text-xs text-slate-700 mt-2"><span className="font-semibold">Cited for:</span> {citation.citedFor}</p>
+                                        </div>
+                                        <h4 className="text-sm font-bold text-slate-200 mb-2 leading-tight group-hover:text-white transition-colors">{citation.sourceTitle}</h4>
+                                        <div className="relative">
+                                            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500/50 rounded-full"></div>
+                                            <p className="text-xs text-slate-400 italic pl-3 leading-relaxed mb-3">"{citation.snippet}"</p>
+                                        </div>
+                                        
+                                        <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
+                                            <p className="text-[11px] text-slate-300"><span className="text-slate-500 font-semibold mr-1 uppercase text-[10px] tracking-wider">Trích dẫn cho:</span> {citation.citedFor}</p>
                                             <a
                                                 href={citation.sourceUri}
                                                 target="_blank"
                                                 rel="noreferrer"
-                                                className="inline-flex mt-2 text-xs text-blue-600 hover:underline"
+                                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 hover:underline w-max"
                                             >
-                                                Xem tài liệu
+                                                Xem tài liệu gốc <span className="material-symbols-outlined text-[12px]">open_in_new</span>
                                             </a>
-                                        </article>
-                                    ))
-                                ) : (
-                                    <p className="text-sm text-slate-500 text-center py-4">Không có citation</p>
-                                )}
-                            </div>
+                                        </div>
+                                    </article>
+                                ))
+                            ) : (
+                                <div className="flex flex-col items-center justify-center h-full opacity-50">
+                                    <span className="material-symbols-outlined text-4xl mb-2 text-slate-500">search_off</span>
+                                    <p className="text-sm text-slate-500 font-medium">Không tìm thấy tài liệu dẫn chứng</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Floating Chat Button */}
-            <button
-                onClick={() => setIsChatOpen(true)}
-                className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 z-40"
-                title="Hỏi AI"
-            >
-                <span className="material-symbols-outlined text-[24px]">forum</span>
-            </button>
+            {/* Glowing Floating Chat Button */}
+            <div className="fixed bottom-8 right-8 z-40 group">
+                <div className="absolute inset-0 bg-blue-500 rounded-full blur-lg opacity-40 group-hover:opacity-70 group-hover:scale-110 transition-all duration-300"></div>
+                <button
+                    onClick={() => setIsChatOpen(true)}
+                    className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-xl flex items-center justify-center transition-transform hover:-translate-y-1 border border-blue-400/30"
+                    title="Trợ lý AI"
+                >
+                    <span className="material-symbols-outlined text-[28px]">smart_toy</span>
+                </button>
+            </div>
 
-            {/* Chat Drawer */}
+            {/* Premium Chat Drawer */}
             <Drawer
                 title={
-                    <div className="flex items-center justify-between w-full pr-6">
-                        <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-blue-500">forum</span>
-                            <span className="font-semibold text-slate-800 hidden sm:block">Trợ lý AI</span>
+                    <div className="flex items-center justify-between w-full pr-8">
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-blue-600 text-[18px]">forum</span>
+                            </div>
+                            <div>
+                                <span className="font-bold text-slate-800 text-sm block leading-none mb-1">Trợ lý AI Y Khoa</span>
+                                <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1 uppercase tracking-wider">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
+                                </span>
+                            </div>
                         </div>
                         <div className="flex items-center gap-2">
                             <Select
                                 value={currentSessionId}
                                 onChange={(val) => setCurrentSessionId(val)}
-                                className="w-52"
+                                className="w-48 chat-select-custom"
                                 size="small"
                                 loading={isFetchingSessions}
                                 placeholder="Chọn phiên chat"
+                                bordered={false}
                                 options={sessions.map(s => ({ value: String(s.id), label: s.title || `Session #${s.id}` }))}
                             />
-                            <Button size="small" type="dashed" onClick={handleCreateNewSession} icon={<span className="material-symbols-outlined text-[14px]">add</span>} loading={isFetchingSessions}>
+                            <Button size="small" className="bg-slate-100 border-none text-slate-600 hover:bg-blue-50 hover:text-blue-600" onClick={handleCreateNewSession} icon={<span className="material-symbols-outlined text-[14px]">add</span>} loading={isFetchingSessions}>
                                 Mới
                             </Button>
                         </div>
@@ -477,114 +531,144 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 }
                 onClose={() => setIsChatOpen(false)}
                 open={isChatOpen}
-                width={500}
+                width={550}
                 bodyStyle={{ padding: '0px', display: 'flex', flexDirection: 'column', height: '100%' }}
-                headerStyle={{ borderBottom: '1px solid #e5e7eb', padding: '12px 16px' }}
+                headerStyle={{ borderBottom: '1px solid #e2e8f0', padding: '16px 20px', background: '#f8fafc' }}
+                closeIcon={<span className="material-symbols-outlined text-slate-400 hover:text-slate-800 transition-colors">close</span>}
             >
-                <div className="flex flex-col h-full bg-slate-50">
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4 text-sm">
+                <div className="flex flex-col h-full bg-[#f4f7f9] relative">
+                    <div className="flex-1 overflow-y-auto p-5 space-y-6 text-sm custom-scrollbar scroll-smooth">
                         {isFetchingMessages ? (
-                            <div className="flex items-center justify-center p-8">
-                                <Spin tip="Đang tải lịch sử chat..." />
+                            <div className="flex flex-col items-center justify-center p-8 h-full opacity-50">
+                                <Spin />
+                                <span className="mt-2 text-xs text-slate-500">Đang đồng bộ giao tiếp...</span>
                             </div>
                         ) : messages.map((msg) => (
                             <div
                                 key={msg.id}
-                                className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+                                className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'} animate-fade-in`}
                             >
-                                <span className={`text-xs font-semibold flex items-center gap-1 ${msg.role === 'user' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                                <span className={`text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 ${msg.role === 'user' ? 'text-blue-500' : 'text-indigo-500'}`}>
                                     {msg.role === 'user' ? (
-                                        <>Bạn</>
+                                        <>Bác sĩ</>
                                     ) : (
                                         <>
-                                            <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                                            AI Assistant
+                                            <span className="material-symbols-outlined text-[14px]">smart_toy</span>
+                                            Cố Vấn AI
                                         </>
                                     )}
+                                    <span className="text-slate-400 font-normal lowercase tracking-normal px-1">—</span>
+                                    <span className="text-slate-400 font-normal lowercase tracking-normal">
+                                         {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
                                 </span>
-                                <div className={`p-3 rounded-lg max-w-[90%] ${msg.role === 'user'
-                                    ? 'bg-blue-500 text-white rounded-tr-none'
-                                    : 'bg-slate-100 text-slate-900 rounded-tl-none border border-slate-200'
+                                <div className={`px-4 py-3 max-w-[85%] shadow-sm ${msg.role === 'user'
+                                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
+                                    : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-200/60'
                                     }`}>
                                     {msg.role === 'assistant' ? (
-                                        <div className="ai-markdown">
+                                        <div className="ai-markdown prose prose-sm prose-slate max-w-none">
                                             <HardenedMarkdown>{msg.content}</HardenedMarkdown>
                                         </div>
                                     ) : (
-                                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                        <p className="whitespace-pre-wrap leading-relaxed text-[15px]">{msg.content}</p>
                                     )}
-                                    <span className={`text-[10px] mt-1 block ${msg.role === 'user' ? 'text-blue-100' : 'text-slate-500'}`}>
-                                        {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                                    </span>
                                 </div>
                             </div>
                         ))}
                         {isChatLoading && (
-                            <div className="flex items-center gap-2 text-slate-600">
-                                <span className="material-symbols-outlined text-[14px]">auto_awesome</span>
-                                <span>AI đang suy nghĩ...</span>
-                                <Spin size="small" />
+                            <div className="flex items-center gap-3 text-slate-500 bg-white w-max px-4 py-2.5 rounded-2xl rounded-tl-sm border border-slate-200/60 shadow-sm animate-pulse">
+                                <span className="flex gap-1">
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                                </span>
+                                <span className="text-xs font-semibold">AI đang phân tích...</span>
                             </div>
                         )}
                         <div ref={messagesEndRef} />
                     </div>
 
-                    <div className="p-4 border-t border-slate-200 bg-white flex-shrink-0">
-                        <div className="flex gap-2">
-                            <Input
-                                placeholder="Nhập câu hỏi..."
+                    <div className="p-4 bg-white border-t border-slate-200 flex-shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.03)] z-10">
+                        <div className="flex items-end gap-2 bg-slate-50 border border-slate-200 rounded-2xl p-1.5 focus-within:border-blue-400 focus-within:bg-white transition-colors">
+                            <Input.TextArea
+                                placeholder="Nhập câu hỏi hoặc yêu cầu điều chỉnh phác đồ..."
                                 value={inputValue}
                                 onChange={(e) => setInputValue(e.target.value)}
-                                onPressEnter={() => handleSendMessage(inputValue)}
+                                onPressEnter={(e) => {
+                                    if (!e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSendMessage(inputValue);
+                                    }
+                                }}
                                 disabled={isChatLoading}
-                                className="flex-1"
-                                allowClear
+                                className="flex-1 bg-transparent border-none shadow-none focus:ring-0 min-h-[40px] max-h-[120px] py-2 px-3 text-sm resize-none custom-scrollbar"
+                                autoSize={{ minRows: 1, maxRows: 4 }}
                             />
                             <Button
                                 type="primary"
-                                icon={<SendOutlined />}
                                 onClick={() => handleSendMessage(inputValue)}
                                 loading={isChatLoading}
                                 disabled={!inputValue.trim() || isChatLoading}
-                                className="bg-blue-500 hover:bg-blue-600"
-                            />
+                                className="bg-blue-600 hover:bg-blue-700 h-10 w-10 p-0 rounded-xl flex items-center justify-center shrink-0 border-none shadow-md shadow-blue-500/20"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">send</span>
+                            </Button>
+                        </div>
+                        <div className="text-center mt-2">
+                             <p className="text-[10px] text-slate-400 font-medium">AI có thể mắc lỗi. Vui lòng kiểm tra lại phác đồ trước khi lưu.</p>
                         </div>
                     </div>
                 </div>
             </Drawer>
 
-            {/* Review Modal */}
+            {/* Review Modal - Stylized */}
             <Modal
-                title="Xác nhận phác đồ điều trị"
+                title={
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-emerald-500">verified_user</span>
+                        Phê duyệt Phác đồ & Lưu
+                    </div>
+                }
                 open={isReviewModalOpen}
                 onCancel={() => setIsReviewModalOpen(false)}
                 onOk={handleConfirmTreatment}
-                okText="Lưu"
-                cancelText="Hủy"
+                okText="Xác Nhan & Lưu"
+                cancelText="Hủy bỏ"
                 confirmLoading={isSaving}
+                okButtonProps={{ className: 'bg-emerald-600 hover:bg-emerald-700 border-none px-6' }}
                 destroyOnClose
             >
-                <div className="space-y-4 py-2">
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Ghi chú của bác sĩ
-                        </label>
-                        <Input.TextArea
-                            rows={3}
-                            placeholder="Nhập ghi chú về phác đồ điều trị..."
-                            value={reviewNote}
-                            onChange={(e) => setReviewNote(e.target.value)}
-                        />
+                <div className="space-y-5 py-4">
+                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex gap-3 items-start">
+                        <span className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
+                        <p className="text-sm text-blue-800 leading-relaxed">
+                            Bằng việc nhấn "Lưu", phác đồ điều trị này (bao gồm cả các điểm bạn vừa chỉnh sửa so với bản nháp của AI) sẽ được lưu vào bệnh án chính thức.
+                        </p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1">
-                            Lý do từ chối (nếu có)
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Ghi chú bổ sung (Tùy chọn)
                         </label>
                         <Input.TextArea
                             rows={3}
-                            placeholder="Nhập lý do từ chối nếu không đồng ý với phác đồ..."
+                            placeholder="Ghi chú thêm về quyết định điều trị này..."
+                            value={reviewNote}
+                            onChange={(e) => setReviewNote(e.target.value)}
+                            className="rounded-xl border-slate-300 text-sm p-3"
+                        />
+                    </div>
+                    <div className="border-t border-slate-100 pt-5">
+                        <label className="block text-sm font-semibold text-red-600 mb-2 flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-[16px]">warning</span>
+                            Lý do từ chối phác đồ AI (Nếu có)
+                        </label>
+                        <Input.TextArea
+                            rows={2}
+                            placeholder="Điền vào đây nếu bạn hoàn toàn từ chối phác đồ này..."
                             value={rejectionReason}
                             onChange={(e) => setRejectionReason(e.target.value)}
+                            className="rounded-xl border-red-200 bg-red-50 focus:bg-white text-sm p-3"
                         />
                     </div>
                 </div>
@@ -597,19 +681,27 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 closable={true}
                 open={isSuccessModalOpen}
                 onCancel={() => backToHomepage()}
-                width={500}
+                width={450}
                 centered
+                bodyStyle={{ padding: '40px 24px' }}
             >
-                <Result
-                    status="success"
-                    title="Xác nhận phác đồ điều trị thành công!"
-                    subTitle="Dữ liệu điều trị của bạn đã được lưu thành công. Hãy tiếp tục bước tiếp theo."
-                    extra={
-                        <Button type="primary" onClick={() => backToHomepage()}>
-                            Đóng
-                        </Button>
-                    }
-                />
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6">
+                        <span className="material-symbols-outlined text-[40px] text-emerald-500">check_circle</span>
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800 mb-2">Xác nhận thành công!</h2>
+                    <p className="text-slate-500 text-sm mb-8">
+                        Phác đồ điều trị đã được phê duyệt và lưu vào hồ sơ bệnh nhân.
+                    </p>
+                    <Button 
+                        type="primary" 
+                        size="large"
+                        onClick={() => backToHomepage()}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 border-none rounded-xl font-bold"
+                    >
+                        Trở về Trang chủ Bệnh nhân
+                    </Button>
+                </div>
             </Modal>
         </div>
     );

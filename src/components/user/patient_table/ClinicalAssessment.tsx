@@ -61,34 +61,33 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
     }
   }, [clinicalRecord, setForm]);
 
-  // Populate lab tests from API
+  // Populate lab tests from API (JSONB arrays)
   useEffect(() => {
     if (labResults && labResults.length > 0) {
       const lab = labResults[0];
       setForm((prev) => {
-        const setVal = (tests: TestItem[], name: string, value?: number) =>
-          tests.map((t) =>
-            t.name.toLowerCase() === name.toLowerCase() ? { ...t, result: value != null ? String(value) : '' } : t
-          );
+        // Merge backend JSONB items into default TestItem[] by id, preserving defaults for missing items
+        const mergeTests = (defaults: TestItem[], backendItems?: { id: string; name: string; value?: number | null; unit: string; normalRange: string }[]) => {
+          if (!backendItems || backendItems.length === 0) return defaults;
+          const backendMap = new Map(backendItems.map(item => [item.id, item]));
+          // Update existing defaults with backend values
+          const merged = defaults.map(d => {
+            const b = backendMap.get(d.id);
+            if (b) {
+              backendMap.delete(d.id);
+              return { ...d, result: b.value != null ? String(b.value) : '', unit: b.unit || d.unit, normalRange: b.normalRange || d.normalRange };
+            }
+            return d;
+          });
+          // Append extra items that were dynamically added by the user
+          backendMap.forEach(b => {
+            merged.push({ id: b.id, name: b.name, result: b.value != null ? String(b.value) : '', unit: b.unit, normalRange: b.normalRange });
+          });
+          return merged;
+        };
 
-        let hTests = [...prev.hematologyTests];
-        if (lab.wbcBlood?.value != null) hTests = setVal(hTests, 'wbc', lab.wbcBlood.value);
-        if (lab.neut?.value != null) hTests = setVal(hTests, '%NEUT', lab.neut.value);
-        if (lab.mono?.value != null) hTests = setVal(hTests, '%MONO', lab.mono.value);
-        if (lab.esr?.value != null) hTests = setVal(hTests, 'Máu lắng', lab.esr.value);
-        if (lab.rbc?.value != null) hTests = setVal(hTests, 'RBC', lab.rbc.value);
-        if (lab.mcv?.value != null) hTests = setVal(hTests, 'MCV', lab.mcv.value);
-        if (lab.mch?.value != null) hTests = setVal(hTests, 'MCH', lab.mch.value);
-        if (lab.leu?.value != null) hTests = setVal(hTests, 'Leukocyte Esterase', lab.leu.value);
-        if (lab.ig?.value != null) hTests = setVal(hTests, 'IG%', lab.ig.value);
-        if (lab.dimer?.value != null) hTests = setVal(hTests, 'D-dimer', lab.dimer.value);
-        if (lab.serumIl6?.value != null) hTests = setVal(hTests, 'Serum IL-6', lab.serumIl6.value);
-        if (lab.alphaDefensin?.value != null) hTests = setVal(hTests, 'Alpha Defensin', lab.alphaDefensin.value);
-
-        let fTests = [...prev.fluidAnalysis];
-        if (lab.synovialWbc?.value != null) fTests = setVal(fTests, 'Bạch cầu (Dịch)', lab.synovialWbc.value);
-        if (lab.crp?.value != null) fTests = setVal(fTests, 'Định lượng CRP (Dịch)', lab.crp.value);
-        if (lab.synovialPmn?.value != null) fTests = setVal(fTests, '%PMN (Dịch)', lab.synovialPmn.value);
+        const hTests = mergeTests(prev.hematologyTests, lab.hematologyTests as any);
+        const fTests = mergeTests(prev.fluidAnalysis, lab.fluidAnalysis as any);
 
         let bTests = [...prev.biochemistryTests];
         if (lab.biochemicalData) {
@@ -225,19 +224,10 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
   return (
     <>
-      {mode === 'wizard' && (
-        <header className="flex-shrink-0 bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="text-slate-800 text-md font-mono bg-slate-100 px-2 py-0.5 rounded">Du lieu xet nghiem</span>
-            </div>
-            <button className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400">
-              <span className="material-symbols-outlined text-md">accessibility_new</span>
-              Import nhanh
-            </button>
-          </div>
-        </header>
-      )}
+      <button className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400">
+        <span className="material-symbols-outlined text-md">accessibility_new</span>
+        Import nhanh
+      </button>
 
       <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
         <div className="max-w-7xl mx-auto h-full">
@@ -415,22 +405,33 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
               <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
                   <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      2
-                    </span>
                     Xét nghiệm chẩn đoán PJI
                   </h3>
                 </div>
 
                 {/* 2.1 Hematology Tests */}
                 <div className="border-b border-slate-200">
-                  <div className="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-3 border-b border-blue-100">
+                  <div className="bg-gradient-to-r from-blue-50 to-slate-50 px-6 py-3 border-b border-blue-100 flex items-center justify-between">
                     <h4 className="text-blue-900 font-bold text-base flex items-center gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded bg-blue-500/10 text-blue-600 text-xs font-bold">
                         1
                       </span>
                       Xét nghiệm huyết học
                     </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newId = `ht_custom_${Date.now()}`;
+                        setForm((prev) => ({
+                          ...prev,
+                          hematologyTests: [...prev.hematologyTests, { id: newId, name: '', result: '', normalRange: '', unit: '' }],
+                        }));
+                      }}
+                      className="text-blue-600 hover:text-blue-800 text-xs font-semibold flex items-center gap-1 px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px] text-green-600">add_circle</span>
+                      Thêm xét nghiệm
+                    </button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-700">
@@ -440,40 +441,106 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                           <th className="px-4 py-3 border-r border-slate-200 w-32">Kết quả</th>
                           <th className="px-4 py-3 border-r border-slate-200 w-16 text-center">Ghi chú</th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
-                          <th className="px-4 py-3">Đơn vị</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Đơn vị</th>
+                          <th className="px-4 py-3 w-16">Sửa</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {clinicForm.hematologyTests?.map((test, index) => (
-                          <tr key={test.id} className="hover:bg-slate-50/50">
-                            <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">{test.name}</td>
-                            <td className="px-4 py-2 border-r border-slate-200 p-0">
-                              <Input
-                                type="text"
-                                value={test.result}
-                                onChange={(e) => {
-                                  const newTests = clinicForm.hematologyTests.map((t, i) =>
-                                    i === index ? { ...t, result: e.target.value } : t
-                                  );
-                                  setForm((prev) => ({ ...prev, hematologyTests: newTests }));
-                                }}
-                                className="w-full h-full px-4 py-2 border-none bg-transparent"
-                              />
-                            </td>
-                            <td className="px-4 py-2 border-r border-slate-200 text-center font-bold">
-                              {(() => {
-                                const status = getTestStatus(test.result, test.normalRange);
-                                return status ? (
-                                  <span className={status === 'H' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'}>
-                                    {status}
-                                  </span>
-                                ) : null;
-                              })()}
-                            </td>
-                            <td className="px-4 py-2 border-r border-slate-200 text-slate-700">{test.normalRange}</td>
-                            <td className="px-4 py-2 text-slate-500 bg-slate-50/30">{test.unit}</td>
-                          </tr>
-                        ))}
+                        {clinicForm.hematologyTests?.map((test, index) => {
+                          const isCustom = test.id.startsWith('ht_custom_');
+                          return (
+                            <tr key={test.id} className="hover:bg-slate-50/50">
+                              <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.name}
+                                    placeholder="Tên xét nghiệm"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.hematologyTests.map((t, i) =>
+                                        i === index ? { ...t, name: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, hematologyTests: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.name}
+                              </td>
+                              <td className="px-4 py-2 border-r border-slate-200 p-0">
+                                <Input
+                                  type="text"
+                                  value={test.result}
+                                  onChange={(e) => {
+                                    const newTests = clinicForm.hematologyTests.map((t, i) =>
+                                      i === index ? { ...t, result: e.target.value } : t
+                                    );
+                                    setForm((prev) => ({ ...prev, hematologyTests: newTests }));
+                                  }}
+                                  className="w-full h-full px-4 py-2 border-none bg-transparent"
+                                />
+                              </td>
+                              <td className="px-4 py-2 border-r border-slate-200 text-center font-bold">
+                                {(() => {
+                                  const status = getTestStatus(test.result, test.normalRange);
+                                  return status ? (
+                                    <span className={status === 'H' ? 'text-red-600 font-bold' : 'text-yellow-600 font-bold'}>
+                                      {status}
+                                    </span>
+                                  ) : null;
+                                })()}
+                              </td>
+                              <td className="px-4 py-2 border-r border-slate-200 text-slate-700">
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.normalRange}
+                                    placeholder="VD: 40 - 74"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.hematologyTests.map((t, i) =>
+                                        i === index ? { ...t, normalRange: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, hematologyTests: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.normalRange}
+                              </td>
+                              <td className="px-4 py-2 text-slate-500 bg-slate-50/30 border-r border-slate-200">
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.unit}
+                                    placeholder="VD: mg/L"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.hematologyTests.map((t, i) =>
+                                        i === index ? { ...t, unit: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, hematologyTests: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.unit}
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        hematologyTests: prev.hematologyTests.filter((_, i) => i !== index),
+                                      }));
+                                    }}
+                                    className="text-red-400 hover:text-red-600 transition-colors"
+                                    title="Xóa xét nghiệm"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">close</span>
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -581,13 +648,27 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
                 {/* 2.3 Xet nghiem vi sinh */}
                 <div>
-                  <div className="bg-gradient-to-r from-amber-50 to-slate-50 px-6 py-3 border-b border-amber-100">
+                  <div className="bg-gradient-to-r from-amber-50 to-slate-50 px-6 py-3 border-b border-amber-100 flex items-center justify-between">
                     <h4 className="text-amber-900 font-bold text-base flex items-center gap-2">
                       <span className="flex items-center justify-center w-5 h-5 rounded bg-amber-500/10 text-amber-600 text-xs font-bold">
                         3
                       </span>
                       Xét nghiệm vi sinh
                     </h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newId = `fa_custom_${Date.now()}`;
+                        setForm((prev) => ({
+                          ...prev,
+                          fluidAnalysis: [...prev.fluidAnalysis, { id: newId, name: '', result: '', normalRange: '', unit: '' }],
+                        }));
+                      }}
+                      className="text-amber-600 hover:text-amber-800 text-xs font-semibold flex items-center gap-1 px-2 py-1 rounded hover:bg-amber-50 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">add_circle</span>
+                      Thêm xét nghiệm
+                    </button>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-700">
@@ -596,16 +677,31 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                           <th className="px-4 py-3 border-r border-slate-200">Tên xét nghiệm</th>
                           <th className="px-4 py-3 border-r border-slate-200">Kết quả</th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
-                          <th className="px-4 py-3">Đơn vị</th>
+                          <th className="px-4 py-3 border-r border-slate-200">Đơn vị</th>
+                          <th className="px-4 py-3 w-12"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
                         {clinicForm.fluidAnalysis?.map((test, index) => {
                           if (test.name === 'Nhuộm Gram') return null;
+                          const isCustom = test.id.startsWith('fa_custom_');
                           return (
                             <tr key={test.id} className="hover:bg-slate-50/50">
                               <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">
-                                {test.name}
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.name}
+                                    placeholder="Tên xét nghiệm"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.fluidAnalysis.map((t, i) =>
+                                        i === index ? { ...t, name: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, fluidAnalysis: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.name}
                               </td>
                               <td className="px-4 py-2 border-r border-slate-200 p-0">
                                 {test.name === 'Cấy khuẩn' ? (
@@ -817,8 +913,55 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
                                   />
                                 )}
                               </td>
-                              <td className="px-4 py-2 border-r border-slate-200 text-slate-700">{test.normalRange}</td>
-                              <td className="px-4 py-2 text-slate-500 bg-slate-50/30">{test.unit}</td>
+                              <td className="px-4 py-2 border-r border-slate-200 text-slate-700">
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.normalRange}
+                                    placeholder="VD: 40 - 74"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.fluidAnalysis.map((t, i) =>
+                                        i === index ? { ...t, normalRange: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, fluidAnalysis: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.normalRange}
+                              </td>
+                              <td className="px-4 py-2 text-slate-500 bg-slate-50/30 border-r border-slate-200">
+                                {isCustom ? (
+                                  <Input
+                                    type="text"
+                                    value={test.unit}
+                                    placeholder="VD: mg/L"
+                                    onChange={(e) => {
+                                      const newTests = clinicForm.fluidAnalysis.map((t, i) =>
+                                        i === index ? { ...t, unit: e.target.value } : t
+                                      );
+                                      setForm((prev) => ({ ...prev, fluidAnalysis: newTests }));
+                                    }}
+                                    className="w-full border-none bg-transparent px-0"
+                                  />
+                                ) : test.unit}
+                              </td>
+                              <td className="px-4 py-2 text-center">
+                                {isCustom && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setForm((prev) => ({
+                                        ...prev,
+                                        fluidAnalysis: prev.fluidAnalysis.filter((_, i) => i !== index),
+                                      }));
+                                    }}
+                                    className="text-red-400 hover:text-red-600 transition-colors"
+                                    title="Xóa xét nghiệm"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">close</span>
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           );
                         })}
