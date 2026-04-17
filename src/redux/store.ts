@@ -4,6 +4,7 @@ import accountReducer from './slice/accountSlice';
 import permissionReducer from './slice/permissionSlice';
 import userReducer from './slice/userSlice';
 import patientReducer from './slice/patientSlice';
+import pendingLabTaskReducer from './slice/pendingLabTaskSlice';
 import { injectStore } from '../apis/axios.custom';
 
 
@@ -14,6 +15,7 @@ export const store = configureStore({
         permission: permissionReducer,
         user: userReducer,
         patient: patientReducer,
+        pendingLabTask: pendingLabTaskReducer,
     }
 })
 injectStore(store.dispatch);

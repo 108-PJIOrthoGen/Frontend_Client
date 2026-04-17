@@ -293,6 +293,36 @@ export interface IAiRecommendationRun {
     modelName?: string;
     latencyMs?: number;
     errorMessage?: string;
+    dataCompletenessJson?: IDataCompleteness;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IDataCompleteness {
+    is_complete?: boolean;
+    missing_items?: IMissingItem[];
+    completeness_score?: string;
+    impact_note?: string;
+}
+
+export interface IMissingItem {
+    field?: string;
+    category?: string;
+    importance?: string;
+    message?: string;
+}
+
+export interface IPendingLabTask {
+    id?: number;
+    episode?: { id?: number };
+    patient?: { id?: number; fullName?: string; patientCode?: string };
+    assignedToUserId?: number;
+    field?: string;
+    category?: string;
+    importance?: string;
+    message?: string;
+    status?: string;
+    createdFromRunId?: number;
     createdAt?: string;
     updatedAt?: string;
 }

@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, MenuProps, Avatar, Image, message } from 'antd';
+import { Dropdown, MenuProps, Avatar, Image, message, Badge, Tooltip } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
+import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
 import { RootState } from '@/redux/store';
+import PendingLabTasksDrawer from '@/components/user/pending_lab_tasks/PendingLabTasksDrawer';
 
 export const LayoutClient = () => {
   const location = useLocation();
@@ -12,9 +15,25 @@ export const LayoutClient = () => {
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.account?.user);
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
+  const pendingCount = useSelector((state: RootState) => state.pendingLabTask.count);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    dispatch(fetchMyPendingCount() as any);
+  }, [dispatch]);
+
+  const handleOpenDrawer = () => {
+    dispatch(fetchMyPendingTasks() as any);
+    setDrawerOpen(true);
+  };
+
+  const handleRefreshTasks = () => {
+    dispatch(fetchMyPendingTasks() as any);
+    dispatch(fetchMyPendingCount() as any);
+  };
 
   const handleLogout = async () => {
-    // You can dispatch existing logout action here if you want
     await LogoutAPI();
     dispatch(runLogoutAction(null));
     message.success("Đăng xuất thành công");
@@ -46,7 +65,6 @@ export const LayoutClient = () => {
     { path: '/compare-result', label: 'So sánh kết quả', icon: 'compare', step: "Kết quả của AI và bác sĩ" },
   ];
 
-  // Helper to check if a route is active (or if it's the root path)
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
@@ -60,10 +78,7 @@ export const LayoutClient = () => {
         <div className="flex flex-col">
           {/* Header */}
           <div className="flex flex-col items-center gap-1 px-6 py-6">
-            {/* <div style={{ width: "5rem", height: "5rem" }} className="flex items-center justify-center"> */}
             <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
-            {/* </div> */}
-
           </div>
 
           {/* Current Case */}
@@ -77,7 +92,7 @@ export const LayoutClient = () => {
                 : 'bg-slate-200 text-slate-500'
                 }`}>
                 {currentCase
-                  ? currentCase.patient.fullName?.split(' ').map(n => n[0]).join('') || '?'
+                  ? currentCase.patient.fullName?.split(' ').map((n: string) => n[0]).join('') || '?'
                   : <span className="material-symbols-outlined text-lg">person_off</span>
                 }
               </div>
@@ -127,22 +142,47 @@ export const LayoutClient = () => {
           </nav>
         </div>
 
-        {/* User Profile Footer */}
-        <div className="p-4 border-t border-slate-200">
-          <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="topLeft">
-            <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200">
-              <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
-              <div className="flex flex-col flex-1 min-w-0">
-                <span className="text-lg font-bold text-slate-900 truncate">
-                  {user?.name}
+        {/* Footer: Pending tasks + User profile */}
+        <div className="border-t border-slate-200">
+          {/* Pending Lab Tasks Button */}
+          <div className="px-4 pt-3 pb-1">
+            <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
+              <button
+                onClick={handleOpenDrawer}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
+                  hover:bg-amber-50 transition-colors text-left border
+                  border-transparent hover:border-amber-200 group"
+              >
+                <Badge count={pendingCount} size="small" offset={[-2, 2]}>
+                  <span className="material-symbols-outlined text-amber-600 text-xl
+                    group-hover:text-amber-700">
+                    science
+                  </span>
+                </Badge>
+                <span className="text-sm font-medium text-slate-600 group-hover:text-amber-700">
+                  Xét nghiệm chờ bổ sung
                 </span>
-                <span className="text-xs font-medium text-slate-500 truncate">
-                  {'Bác sĩ chuyên khoa'}
-                </span>
+              </button>
+            </Tooltip>
+          </div>
+
+          {/* User Profile */}
+          <div className="p-4 pt-1">
+            <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="topLeft">
+              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200">
+                <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
+                <div className="flex flex-col flex-1 min-w-0">
+                  <span className="text-lg font-bold text-slate-900 truncate">
+                    {user?.name}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500 truncate">
+                    {'Bác sĩ chuyên khoa'}
+                  </span>
+                </div>
+                <span className="material-symbols-outlined text-slate-400 text-[20px]">expand_more</span>
               </div>
-              <span className="material-symbols-outlined text-slate-400 text-[20px]">expand_more</span>
-            </div>
-          </Dropdown>
+            </Dropdown>
+          </div>
         </div>
       </aside>
 
@@ -150,6 +190,13 @@ export const LayoutClient = () => {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <Outlet />
       </main>
+
+      {/* Pending Lab Tasks Drawer */}
+      <PendingLabTasksDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onRefresh={handleRefreshTasks}
+      />
     </div>
   );
 };
