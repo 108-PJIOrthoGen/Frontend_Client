@@ -58,11 +58,14 @@ export const LayoutClient = () => {
     },
   ];
 
-  const menuItems = [
-    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
+  const recordMenuItems = [
     { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
-    { path: '/chart-testing', label: 'Biểu đồ chỉ số viêm', icon: 'history', step: "Giám sát kết quả" },
-    { path: '/compare-result', label: 'So sánh kết quả', icon: 'compare', step: "Kết quả của AI và bác sĩ" },
+  ];
+
+  const aiPredictionMenuItems = [
+    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
+    { path: '/chart-testing', label: 'Biểu đồ chỉ số viêm', icon: 'history', step: "Giám sát kết quả", requiresCurrentCase: true },
+    { path: '/compare-result', label: 'So sánh kết quả', icon: 'compare', step: "Kết quả của AI và bác sĩ", requiresCurrentCase: true },
   ];
 
   const isActive = (path: string) => {
@@ -118,8 +121,8 @@ export const LayoutClient = () => {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-1 px-4">
-            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chức năng</p>
-            {menuItems.map((item) => (
+            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Bệnh án</p>
+            {recordMenuItems.map((item) => (
               <NavLink
                 key={item.path}
                 to={item.path}
@@ -139,6 +142,35 @@ export const LayoutClient = () => {
                 </div>
               </NavLink>
             ))}
+
+            <div className="my-3 border-t border-slate-100" />
+            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Dự đoán AI</p>
+            {aiPredictionMenuItems.map((item) => {
+              const shouldDim = item.requiresCurrentCase && !currentCase;
+
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
+                    ? 'bg-primary/10 text-primary border-primary'
+                    : shouldDim
+                      ? 'text-slate-400 hover:bg-slate-50 border-transparent'
+                      : 'text-slate-600 hover:bg-slate-50 border-transparent'
+                    }`}
+                >
+                  <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
+                    {item.icon}
+                  </span>
+                  <div className="flex flex-col">
+                    <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
+                      {item.label}
+                    </span>
+                    <span className={`text-xs ${shouldDim ? 'opacity-60' : 'opacity-80'}`}> {item.step} </span>
+                  </div>
+                </NavLink>
+              );
+            })}
           </nav>
         </div>
 

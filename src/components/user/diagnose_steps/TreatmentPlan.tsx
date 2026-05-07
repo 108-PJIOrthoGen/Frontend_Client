@@ -24,6 +24,7 @@ import type { IAiRecommendationRunDetail, IAiRagCitation, IAiChatSession, IAiCha
 
 interface Step5Props {
     onPrev: () => void;
+    onBackToFirstStep: () => void;
 }
 
 interface Message {
@@ -46,10 +47,43 @@ const snakeToCamel = (obj: any): any => {
     return obj;
 };
 
+// Camel-case keys whose values must render as arrays. If the LLM drifts and
+// emits a string (e.g. "monitoring": "Theo dõi CRP mỗi tuần"), coerce it so
+// downstream `.map(...)` calls don't blow up the page. Stale items already
+// persisted in localStorage / DB pass through this same path on read.
+const ARRAY_FIELDS = new Set([
+    'monitoring',
+    'contraindications',
+    'antibiotics',
+    'phases',
+    'stages',
+    'risksAndComplications',
+    'preconditions',
+    'items',
+    'warnings',
+]);
+
+const coerceListFields = (obj: any): any => {
+    if (Array.isArray(obj)) return obj.map(coerceListFields);
+    if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj).map(([k, v]) => {
+                const recursed = coerceListFields(v);
+                if (ARRAY_FIELDS.has(k) && !Array.isArray(recursed)) {
+                    if (recursed === null || recursed === undefined || recursed === '') return [k, []];
+                    return [k, [recursed]];
+                }
+                return [k, recursed];
+            })
+        );
+    }
+    return obj;
+};
+
 const parseItemJson = (item: { itemJson?: Record<string, any> } | undefined) => {
     if (!item?.itemJson) return null;
     const raw = typeof item.itemJson === 'string' ? JSON.parse(item.itemJson) : item.itemJson;
-    return snakeToCamel(raw);
+    return coerceListFields(snakeToCamel(raw));
 };
 
 const mapCitations = (citations?: IAiRagCitation[]): CitationData[] => {
@@ -66,7 +100,7 @@ const mapCitations = (citations?: IAiRagCitation[]): CitationData[] => {
 
 const HardenedMarkdown = hardenReactMarkdown(ReactMarkdown);
 
-export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
+export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onBackToFirstStep }) => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [reviewNote, setReviewNote] = useState('');
@@ -277,11 +311,10 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
     const backToHomepage = () => {
         localStorage.removeItem('pji_aiRunId');
         localStorage.removeItem('pji_aiRunDetail');
-        localStorage.clear();
+        localStorage.removeItem('pji_selectedPatientId');
+        localStorage.removeItem('pji_selectedExamId');
         dispatch(clearCurrentCase());
-        for (let i = 0; i < 2; i++) {
-            onPrev();
-        }
+        onBackToFirstStep();
     };
 
     const scrollToBottom = () => {
@@ -376,10 +409,10 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         </p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
-                    <button 
-                        onClick={onPrev} 
+                    <button
+                        onClick={onPrev}
                         className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-all bg-white border border-slate-300 shadow-sm rounded-xl hover:shadow hover:bg-slate-50"
                     >
                         Quay lại
@@ -417,7 +450,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         {!surgeryPlan && !systemicPlan && !localPlan && (
                             <div className="flex flex-col items-center justify-center p-12 text-center h-full">
                                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                                     <span className="material-symbols-outlined text-4xl text-slate-300">hourglass_empty</span>
+                                    <span className="material-symbols-outlined text-4xl text-slate-300">hourglass_empty</span>
                                 </div>
                                 <h3 className="text-lg font-bold text-slate-700 mb-2">Chưa có dữ liệu phác đồ</h3>
                                 <p className="text-slate-500 text-sm">Không tìm thấy gợi ý điều trị cho ca bệnh này trong hệ thống RAG.</p>
@@ -431,7 +464,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     <div className="bg-gradient-to-br from-slate-900 to-indigo-950 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative h-full">
                         {/* Decorative dark bg */}
                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[60px] pointer-events-none"></div>
-                        
+
                         <div className="p-5 border-b border-white/10 flex items-center justify-between relative z-10 bg-black/20 backdrop-blur-sm">
                             <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center border border-indigo-500/30">
@@ -441,7 +474,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(99,102,241,0.2)]">AI RAG</span>
                         </div>
-                        
+
                         <div className="flex-1 p-5 space-y-4 overflow-y-auto custom-scrollbar relative z-10">
                             {citations.length > 0 ? (
                                 citations.map((citation, idx) => (
@@ -460,7 +493,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                             <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500/50 rounded-full"></div>
                                             <p className="text-xs text-slate-400 italic pl-3 leading-relaxed mb-3">"{citation.snippet}"</p>
                                         </div>
-                                        
+
                                         <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
                                             <p className="text-[11px] text-slate-300"><span className="text-slate-500 font-semibold mr-1 uppercase text-[10px] tracking-wider">Trích dẫn cho:</span> {citation.citedFor}</p>
                                             <a
@@ -559,7 +592,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                                     )}
                                     <span className="text-slate-400 font-normal lowercase tracking-normal px-1">—</span>
                                     <span className="text-slate-400 font-normal lowercase tracking-normal">
-                                         {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                        {msg.timestamp.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                                     </span>
                                 </span>
                                 <div className={`px-4 py-3 max-w-[85%] shadow-sm ${msg.role === 'user'
@@ -579,9 +612,9 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                         {isChatLoading && (
                             <div className="flex items-center gap-3 text-slate-500 bg-white w-max px-4 py-2.5 rounded-2xl rounded-tl-sm border border-slate-200/60 shadow-sm animate-pulse">
                                 <span className="flex gap-1">
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
-                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                                    <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
                                 </span>
                                 <span className="text-xs font-semibold">AI đang phân tích...</span>
                             </div>
@@ -616,7 +649,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                             </Button>
                         </div>
                         <div className="text-center mt-2">
-                             <p className="text-[10px] text-slate-400 font-medium">AI có thể mắc lỗi. Vui lòng kiểm tra lại phác đồ trước khi lưu.</p>
+                            <p className="text-[10px] text-slate-400 font-medium">AI có thể mắc lỗi. Vui lòng kiểm tra lại phác đồ trước khi lưu.</p>
                         </div>
                     </div>
                 </div>
@@ -633,7 +666,7 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                 open={isReviewModalOpen}
                 onCancel={() => setIsReviewModalOpen(false)}
                 onOk={handleConfirmTreatment}
-                okText="Xác Nhan & Lưu"
+                okText="Xác Nhận & Lưu"
                 cancelText="Hủy bỏ"
                 confirmLoading={isSaving}
                 okButtonProps={{ className: 'bg-emerald-600 hover:bg-emerald-700 border-none px-6' }}
@@ -693,8 +726,8 @@ export const Step5TreatmentPlan: React.FC<Step5Props> = ({ onPrev }) => {
                     <p className="text-slate-500 text-sm mb-8">
                         Phác đồ điều trị đã được phê duyệt và lưu vào hồ sơ bệnh nhân.
                     </p>
-                    <Button 
-                        type="primary" 
+                    <Button
+                        type="primary"
                         size="large"
                         onClick={() => backToHomepage()}
                         className="w-full bg-emerald-600 hover:bg-emerald-700 border-none rounded-xl font-bold"

@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { Drawer, List, Tag, Button, Empty, Popconfirm, Spin } from 'antd';
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useState } from 'react';
+import { Drawer, List, Tag, Button, Empty, Popconfirm, Spin, Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
+import { DeleteOutlined, DownOutlined, EditOutlined } from '@ant-design/icons';
 import { useAppSelector } from '@/redux/hook';
 import { callDismissPendingLabTask } from '@/apis/api';
 import QuickLabEntryModal from './QuickLabEntryModal';
@@ -24,17 +25,64 @@ const categoryLabel = (cat?: string) => {
   return 'Lâm sàng';
 };
 
+interface TaskGroup {
+  key: string;
+  patientName: string;
+  episodeLabel: string;
+  tasks: IPendingLabTask[];
+}
+
 const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) => {
   const { tasks, isLoading } = useAppSelector(state => state.pendingLabTask);
   const [selectedTask, setSelectedTask] = useState<IPendingLabTask | null>(null);
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
+  const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
 
-  const grouped = tasks.reduce<Record<string, IPendingLabTask[]>>((acc, task) => {
-    const key = task.patient?.fullName ?? `Bệnh nhân #${task.patient?.id ?? '?'}`;
-    if (!acc[key]) acc[key] = [];
-    acc[key].push(task);
-    return acc;
-  }, {});
+  const taskGroups = useMemo(() => {
+    const groupMap = new Map<string, TaskGroup>();
+    tasks.forEach((task) => {
+      const episodeId = task.episode?.id;
+      const patientId = task.patient?.id;
+      const key = episodeId != null
+        ? `episode-${episodeId}`
+        : `patient-${patientId ?? 'unknown'}`;
+      const patientName = task.patient?.fullName ?? `Bệnh nhân #${patientId ?? '?'}`;
+      const episodeLabel = episodeId != null ? `BA #${episodeId}` : 'Bệnh án chưa rõ';
+
+      if (!groupMap.has(key)) {
+        groupMap.set(key, {
+          key,
+          patientName,
+          episodeLabel,
+          tasks: [],
+        });
+      }
+      groupMap.get(key)!.tasks.push(task);
+    });
+    return Array.from(groupMap.values());
+  }, [tasks]);
+
+  const selectedGroup = taskGroups.find((group) => group.key === selectedGroupKey);
+
+  const recordMenuItems: MenuProps['items'] = taskGroups.map((group) => ({
+    key: group.key,
+    label: (
+      <div className="flex flex-col">
+        <span className="font-semibold text-slate-700">{group.episodeLabel}</span>
+        <span className="text-xs text-slate-500">{group.patientName}</span>
+      </div>
+    ),
+  }));
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedGroupKey(null);
+      return;
+    }
+    if (selectedGroupKey && !taskGroups.some((group) => group.key === selectedGroupKey)) {
+      setSelectedGroupKey(null);
+    }
+  }, [open, selectedGroupKey, taskGroups]);
 
   const handleDismiss = async (taskId: number) => {
     await callDismissPendingLabTask(taskId);
@@ -60,15 +108,41 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
         ) : tasks.length === 0 ? (
           <Empty description="Không có xét nghiệm nào chờ bổ sung" />
         ) : (
-          Object.entries(grouped).map(([patientName, patientTasks]) => (
-            <div key={patientName} className="mb-4">
-              <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-                <span className="material-symbols-outlined text-base">person</span>
-                {patientName}
-              </h4>
+          <div className="flex flex-col gap-4">
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: recordMenuItems,
+                onClick: ({ key }) => setSelectedGroupKey(String(key)),
+              }}
+            >
+              <Button className="w-full h-auto justify-between py-2">
+                <span className="flex min-w-0 flex-col items-start text-left">
+                  <span className="text-sm font-semibold text-slate-700">
+                    {selectedGroup?.episodeLabel ?? 'Chọn bệnh án'}
+                  </span>
+                  <span className="max-w-full truncate text-xs text-slate-500">
+                    {selectedGroup?.patientName ?? 'Chọn tên bệnh nhân và mã bệnh án để xem xét nghiệm'}
+                  </span>
+                </span>
+                <DownOutlined className="text-xs text-slate-400" />
+              </Button>
+            </Dropdown>
+
+            {!selectedGroup ? (
+              <Empty description="Chọn một bệnh án để xem xét nghiệm chờ bổ sung" />
+            ) : (
+              <div>
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-slate-500">person</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-700">{selectedGroup.patientName}</div>
+                    <div className="text-xs text-slate-500">{selectedGroup.episodeLabel}</div>
+                  </div>
+                </div>
               <List
                 size="small"
-                dataSource={patientTasks}
+                dataSource={selectedGroup.tasks}
                 renderItem={(task) => (
                   <List.Item
                     className="!px-3 !py-2 rounded-lg hover:bg-slate-50 transition-colors"
@@ -115,8 +189,9 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
                   </List.Item>
                 )}
               />
-            </div>
-          ))
+              </div>
+            )}
+          </div>
         )}
       </Drawer>
 

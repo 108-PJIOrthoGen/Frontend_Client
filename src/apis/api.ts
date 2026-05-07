@@ -20,6 +20,26 @@ export const callUploadImage = (file: any, folder: string) => {
         },
     });
 }
+
+export const callCreateExtractImageJob = (files: File[], episodeId?: string | number) => {
+    const body = new FormData();
+    files.forEach((file) => body.append('files', file));
+    if (episodeId !== undefined && episodeId !== null && episodeId !== '') {
+        body.append('episodeId', String(episodeId));
+    }
+    return instance({
+        method: 'post',
+        url: '/api/v1/extract-images/jobs',
+        data: body,
+        headers: {
+            "Content-Type": "multipart/form-data",
+        },
+    });
+}
+
+export const callFetchExtractImageJob = (jobId: string) => {
+    return instance.get(`/api/v1/extract-images/jobs/${jobId}`);
+}
 // authentication
 export const registerAPI = (username: string, email: string, password: string, roleId: IRole) => {
     return instance.post(`/api/v1/auth/register`, {
@@ -31,6 +51,12 @@ export const registerAPI = (username: string, email: string, password: string, r
 }
 export const loginAPI = (username: string, password: string) => {
     return instance.post(`/api/v1/auth/login`, { username, password })
+}
+export const forgotPasswordAPI = (email: string) => {
+    return instance.post(`/api/v1/auth/forgot-password`, { email })
+}
+export const resetPasswordAPI = (email: string, otp: string, newPassword: string) => {
+    return instance.post(`/api/v1/auth/reset-password`, { email, otp, newPassword })
 }
 export const callFetchAccountAPI = () => {
     return instance.get(`/api/v1/auth/account`)
@@ -388,7 +414,6 @@ export const callCreatePendingLabTasksFromCompleteness = (
 ): Promise<IBackendRes<void>> => {
     return instance.post(`/api/v1/episodes/${episodeId}/pending-lab-tasks/from-completeness`, data);
 };
-
 
 
 

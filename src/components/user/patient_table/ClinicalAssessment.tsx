@@ -1,9 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Form, Input, Select, InputNumber, Checkbox, message, Modal } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { ILabResult, IClinicalRecord, ICultureResult, IImageResult, IPatient } from '@/types/backend';
 import { TestItem } from '@/types/types';
-import { callUploadImage } from '@/apis/api';
+import {
+  callUploadImage,
+  callCreateExtractImageJob,
+  callFetchExtractImageJob,
+} from '@/apis/api';
+import {
+  ExtractApplyCandidate,
+  ExtractedMedicalResult,
+  ExtractImageJobStatus,
+} from '@/types/extractImages';
+import {
+  applyExtractCandidatesToClinicForm,
+  buildCandidatesFromExtracted,
+  normalizeUpstreamExtracted,
+} from '@/utils/extractImagesMapper';
+import QuickImportImagesModal from './QuickImportImagesModal';
+import QuickImportReviewModal from './QuickImportReviewModal';
 
 interface ClinicalAssessmentProps {
   mode?: 'wizard' | 'standalone';
@@ -12,7 +28,13 @@ interface ClinicalAssessmentProps {
   cultureResults?: ICultureResult[];
   imageResults?: IImageResult[];
   patient?: IPatient | null;
+  episodeId?: string | number;
 }
+
+type QuickImportStatus = ExtractImageJobStatus | 'idle' | 'uploading';
+
+const QUICK_IMPORT_POLL_INTERVAL_MS = 2_500;
+const QUICK_IMPORT_MAX_POLL_MS = 10 * 60_000;
 
 export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
   mode = 'wizard',
@@ -21,12 +43,111 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
   cultureResults,
   imageResults,
   patient,
+  episodeId,
 }) => {
   const { form: clinicForm, setForm } = useClinicForm();
   const [uploading, setUploading] = useState(false);
   const [imageTypeModalOpen, setImageTypeModalOpen] = useState(false);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [selectedImageType, setSelectedImageType] = useState('X-ray');
+
+  const [quickImportOpen, setQuickImportOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [quickImportStatus, setQuickImportStatus] = useState<QuickImportStatus>('idle');
+  const [quickImportError, setQuickImportError] = useState<string | null>(null);
+  const [extractCandidates, setExtractCandidates] = useState<ExtractApplyCandidate[]>([]);
+  const [extractedRaw, setExtractedRaw] = useState<ExtractedMedicalResult | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+  const pollStartRef = useRef<number>(0);
+
+  const stopPolling = () => {
+    if (pollTimerRef.current != null) {
+      window.clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => () => stopPolling(), []);
+
+  const handleQuickImportClose = () => {
+    if (quickImportStatus === 'uploading' || quickImportStatus === 'queued' || quickImportStatus === 'processing') {
+      stopPolling();
+    }
+    setQuickImportOpen(false);
+    setQuickImportStatus('idle');
+    setQuickImportError(null);
+  };
+
+  const handleQuickImportSubmit = async (files: File[]) => {
+    setQuickImportStatus('uploading');
+    setQuickImportError(null);
+    try {
+      const res: any = await callCreateExtractImageJob(files, episodeId);
+      const jobId: string | undefined = res?.data?.jobId || res?.data?.data?.jobId;
+      if (!jobId) {
+        throw new Error('Không nhận được jobId từ server');
+      }
+      setQuickImportStatus('queued');
+      pollStartRef.current = Date.now();
+      pollTimerRef.current = window.setInterval(() => pollExtractJob(jobId), QUICK_IMPORT_POLL_INTERVAL_MS);
+    } catch (err: any) {
+      setQuickImportStatus('failed');
+      setQuickImportError(err?.message || 'Không thể tạo job trích xuất');
+    }
+  };
+
+  const pollExtractJob = async (jobId: string) => {
+    try {
+      const res: any = await callFetchExtractImageJob(jobId);
+      const job = res?.data?.data || res?.data;
+      const status: ExtractImageJobStatus = job?.status;
+
+      if (status === 'completed') {
+        stopPolling();
+        const normalized = normalizeUpstreamExtracted(job?.extracted);
+        const candidates = buildCandidatesFromExtracted(normalized, clinicForm);
+        setExtractedRaw(normalized);
+        setExtractCandidates(candidates);
+        setQuickImportStatus('completed');
+        setQuickImportOpen(false);
+        setReviewOpen(true);
+        return;
+      }
+
+      if (status === 'failed') {
+        stopPolling();
+        setQuickImportStatus('failed');
+        setQuickImportError(job?.error || 'Trích xuất thất bại');
+        return;
+      }
+
+      if (status === 'processing' || status === 'queued') {
+        setQuickImportStatus(status);
+      }
+
+      if (Date.now() - pollStartRef.current > QUICK_IMPORT_MAX_POLL_MS) {
+        stopPolling();
+        setQuickImportStatus('failed');
+        setQuickImportError('Quá trình trích xuất vẫn chưa hoàn tất sau 10 phút. Vui lòng thử lại.');
+      }
+    } catch {
+      stopPolling();
+      setQuickImportStatus('failed');
+      setQuickImportError('Không thể lấy kết quả trích xuất');
+    }
+  };
+
+  const handleApplyCandidates = (candidates: ExtractApplyCandidate[]) => {
+    if (!extractedRaw) {
+      setReviewOpen(false);
+      return;
+    }
+    setForm((prev) => applyExtractCandidatesToClinicForm(prev, candidates, extractedRaw));
+    message.success('Đã áp dụng dữ liệu trích xuất vào form');
+    setReviewOpen(false);
+    setExtractCandidates([]);
+    setExtractedRaw(null);
+  };
 
   // Populate clinicalRecord from API, or reset when switching episodes
   useEffect(() => {
@@ -224,10 +345,36 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
   return (
     <>
-      <button className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400">
+      <button
+        type="button"
+        onClick={() => {
+          setQuickImportError(null);
+          setQuickImportStatus('idle');
+          setQuickImportOpen(true);
+        }}
+        className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400"
+      >
         <span className="material-symbols-outlined text-md">accessibility_new</span>
         Import nhanh
       </button>
+
+      <QuickImportImagesModal
+        open={quickImportOpen}
+        onClose={handleQuickImportClose}
+        onSubmit={handleQuickImportSubmit}
+        status={quickImportStatus}
+        errorMessage={quickImportError}
+      />
+      <QuickImportReviewModal
+        open={reviewOpen}
+        candidates={extractCandidates}
+        onCancel={() => {
+          setReviewOpen(false);
+          setExtractCandidates([]);
+          setExtractedRaw(null);
+        }}
+        onApply={handleApplyCandidates}
+      />
 
       <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
         <div className="max-w-7xl mx-auto h-full">

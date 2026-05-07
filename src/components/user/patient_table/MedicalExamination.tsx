@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { IEpisode } from '@/types/backend';
 import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
 import locale from 'antd/es/date-picker/locale/en_US';
-import dayjs, { Dayjs } from 'dayjs';
 import { parseDateFromApi, stringToDayjs } from '@/config/utils';
 
 export interface EpisodeFormData {
@@ -82,14 +81,6 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
         onFormChange?.(allValues);
     };
 
-    // Handle DatePicker changes (convert Dayjs to string)
-    const handleDateChange = (field: keyof EpisodeFormData) => (_date: Dayjs | null, dateString: string | string[]) => {
-        const value = Array.isArray(dateString) ? dateString[0] : dateString;
-        form.setFieldValue(field, value);
-        const allValues = form.getFieldsValue();
-        onFormChange?.(allValues);
-    };
-
     const requiredRule = { required: true, message: 'Trường này bắt buộc điền' };
 
     return (
@@ -116,13 +107,12 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     name="arrivalTime"
                                     label={<span className="text-sm font-medium text-slate-700">Thời gian vào viện</span>}
                                     rules={[requiredRule]}
-                                    getValueFromEvent={() => form.getFieldValue('arrivalTime')}
+                                    getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
                                 >
                                     <DatePicker
                                         locale={locale}
                                         format="DD/MM/YYYY"
-                                        onChange={handleDateChange('arrivalTime')}
                                         placeholder="dd/mm/yyyy"
                                         className="w-full h-11"
                                     />
@@ -132,13 +122,12 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     name="dischargeTime"
                                     label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện </span>}
                                     rules={[requiredRule]}
-                                    getValueFromEvent={() => form.getFieldValue('dischargeTime')}
+                                    getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
                                 >
                                     <DatePicker
                                         locale={locale}
                                         format="DD/MM/YYYY"
-                                        onChange={handleDateChange('dischargeTime')}
                                         placeholder="dd/mm/yyyy"
                                         className="w-full h-11"
                                     />

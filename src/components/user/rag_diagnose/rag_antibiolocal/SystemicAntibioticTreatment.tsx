@@ -5,7 +5,7 @@ import {
     SystemicPlanData,
     SystemicPhaseData,
     TemplateAntibiotic,
-} from '@/components/user/diagnose_steps/treatmentType';
+} from '@/types/treatmentType';
 
 export interface SystemicAntibioticTreatmentHandle {
     getData: () => SystemicPlanData;
@@ -18,7 +18,7 @@ interface SystemicAntibioticTreatmentProps {
 export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmentHandle, SystemicAntibioticTreatmentProps>(({
     guidelinePlan,
 }, ref) => {
-    const [phases, setPhases] = useState<SystemicPhaseData[]>(() => guidelinePlan.phases);
+    const [phases, setPhases] = useState<SystemicPhaseData[]>(() => guidelinePlan.phases ?? []);
     const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
     const [editingAbxKey, setEditingAbxKey] = useState<string | null>(null);
 
@@ -92,7 +92,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
             setPhases(prev =>
                 prev.map(p => {
                     if (p.phaseOrder !== phaseOrder) return p;
-                    const updatedAbx = p.antibiotics.map((a, i) =>
+                    const updatedAbx = (p.antibiotics ?? []).map((a, i) =>
                         i === abxIndex ? { ...a, [field]: value } : a
                     );
                     return { ...p, antibiotics: updatedAbx };
@@ -106,7 +106,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
         setPhases(prev =>
             prev.map(p => {
                 if (p.phaseOrder !== phaseOrder) return p;
-                return { ...p, antibiotics: p.antibiotics.filter((_, i) => i !== abxIndex) };
+                return { ...p, antibiotics: (p.antibiotics ?? []).filter((_, i) => i !== abxIndex) };
             })
         );
         setEditingAbxKey(null);
@@ -124,7 +124,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                     role: '',
                     notes: '',
                 };
-                return { ...p, antibiotics: [...p.antibiotics, newAbx] };
+                return { ...p, antibiotics: [...(p.antibiotics ?? []), newAbx] };
             })
         );
     }, []);
@@ -223,7 +223,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
 
                                     {/* Antibiotics list */}
                                     <div className="space-y-2">
-                                        {phase.antibiotics.map((abx, index) => {
+                                        {(phase.antibiotics ?? []).map((abx, index) => {
                                             const key = abxKey(phase.phaseOrder, index);
                                             const isAbxEditing = editingAbxKey === key;
 
@@ -373,7 +373,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                             <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
                             <ul className="space-y-1">
-                                {guidelinePlan.monitoring.map((item) => (
+                                {(guidelinePlan.monitoring ?? []).map((item) => (
                                     <li key={item} className="text-md text-slate-800">- {item}</li>
                                 ))}
                             </ul>
@@ -381,14 +381,14 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                         <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
                             <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
                             <ul className="space-y-1">
-                                {guidelinePlan.contraindications.map((item) => (
+                                {(guidelinePlan.contraindications ?? []).map((item) => (
                                     <li key={item} className="text-md text-slate-800">- {item}</li>
                                 ))}
                             </ul>
                         </div>
                     </div>
 
-                    <p className="text-xs leading-relaxed bg-yellow-200 border border-slate-200 rounded-lg px-3 py-2">
+                    <p className="text-xs leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         <span className="font-semibold text-red-700">Lưu ý:</span> {guidelinePlan.notes}
                     </p>
                 </div>

@@ -4,7 +4,7 @@ import { fetchUser } from "@/redux/slice/userSlice";
 import { IModelPaginate, IUser } from "@/types/backend";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
-import { Button, Popconfirm, Space, message, notification } from "antd";
+import { Button, Popconfirm, Space, Switch, Tag, message, notification } from "antd";
 import { useState, useRef } from "react";
 import dayjs from "dayjs";
 import queryString from "query-string";
@@ -13,7 +13,7 @@ import ViewDetailUser from "@/components/admin/manage_user/UserView";
 import Access from "@/components/common/Access";
 import { ALL_PERMISSIONS } from "@/constants/permission";
 import { sfLike } from "spring-filter-query-builder";
-import { callDeleteUser } from "@/apis/api";
+import { callDeleteUser, callUpdateUser } from "@/apis/api";
 
 const UserPage = () => {
     const [openModal, setOpenModal] = useState<boolean>(false);
@@ -30,7 +30,7 @@ const UserPage = () => {
     const handleDeleteUser = async (id: string | undefined) => {
         if (id) {
             const res = await callDeleteUser(id);
-            if (+res.statusCode === 200) {
+            if (+res.status === 200) {
                 message.success("Xóa User thành công");
                 reloadTable();
             } else {
@@ -39,6 +39,32 @@ const UserPage = () => {
                     description: res.message,
                 });
             }
+        }
+    };
+
+    const handleToggleActive = async (record: IUser, checked: boolean) => {
+        if (!record.id) return;
+        const payload: IUser = {
+            id: record.id,
+            fullName: record.fullName,
+            email: record.email,
+            phone: record.phone,
+            department: record.department,
+            avatar: record.avatar,
+            status: checked ? "ACTIVE" : "INACTIVE",
+            role: record.role
+                ? { id: record.role.id, name: record.role.name }
+                : undefined,
+        };
+        const res = await callUpdateUser(payload);
+        if (+res.status === 200 || res.data) {
+            message.success(checked ? "Đã kích hoạt user" : "Đã ngưng user");
+            reloadTable();
+        } else {
+            notification.error({
+                message: "Có lỗi xảy ra",
+                description: res.message,
+            });
         }
     };
 
@@ -73,6 +99,43 @@ const UserPage = () => {
             dataIndex: ["role", "name"],
             sorter: true,
             hideInSearch: true,
+        },
+        {
+            title: "Trạng thái",
+            dataIndex: "status",
+            width: 140,
+            hideInSearch: true,
+            align: "center",
+            render: (_text, record) => {
+                const isActive = record.status === "ACTIVE";
+                return (
+                    <Space size="small" direction="vertical" align="center">
+                        <Switch
+                            checked={isActive}
+                            onChange={(checked) => handleToggleActive(record, checked)}
+                            checkedChildren="ON"
+                            unCheckedChildren="OFF"
+                        />
+                        {record.status === "NONE" && (
+                            <Tag color="default">Chưa kích hoạt</Tag>
+                        )}
+                    </Space>
+                );
+            },
+        },
+        {
+            title: "Đăng nhập gần nhất",
+            dataIndex: "lastLogin",
+            width: 200,
+            sorter: true,
+            hideInSearch: true,
+            render: (_text, record) => (
+                <>
+                    {record.lastLogin
+                        ? dayjs(record.lastLogin).format("DD-MM-YYYY HH:mm:ss")
+                        : "Chưa đăng nhập"}
+                </>
+            ),
         },
 
         {
@@ -187,6 +250,12 @@ const UserPage = () => {
                 sort.updatedAt === "ascend"
                     ? "sort=updatedAt,asc"
                     : "sort=updatedAt,desc";
+        }
+        if (sort && sort.lastLogin) {
+            sortBy =
+                sort.lastLogin === "ascend"
+                    ? "sort=lastLogin,asc"
+                    : "sort=lastLogin,desc";
         }
 
         //mặc định sort theo updated time

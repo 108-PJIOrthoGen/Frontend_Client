@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Button, Form, Input, Switch, message, Modal, notification,
   Typography, Card, Space, Flex,
@@ -112,10 +112,13 @@ const LoginPage = () => {
             valuePropName="checked"
             style={{ marginBottom: 16 }}
           >
-            <Space>
-              <Switch defaultChecked size="small" />
-              <Text type="secondary">Ghi nhớ đăng nhập</Text>
-            </Space>
+            <Flex justify="space-between" align="center">
+              <Space>
+                <Switch defaultChecked size="small" />
+                <Text type="secondary">Ghi nhớ đăng nhập</Text>
+              </Space>
+              <Link to="/forgot-password">Quên mật khẩu?</Link>
+            </Flex>
           </Form.Item>
 
           <Form.Item style={{ marginBottom: 16 }}>

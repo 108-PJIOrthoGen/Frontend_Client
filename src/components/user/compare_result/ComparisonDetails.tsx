@@ -55,8 +55,9 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
 
     const { run, items = [], citations = [] } = runDetail;
     const runIndex = runs.findIndex(r => r.id === selectedRunId);
-    const runNumber = runs.length - runIndex;
+    const runNumber = runIndex === -1 ? runs.length : runs.length - runIndex;
     const isLatest = runIndex === 0;
+    const hasPreviousRun = runIndex >= 0 && runIndex < runs.length - 1;
 
 
 
@@ -270,7 +271,7 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({ runDetail, runs, 
             </div>
 
             {/* Run Comparison Table - show difference between this run and previous run */}
-            {runIndex < runs.length - 1 && (
+            {hasPreviousRun && (
                 <RunDiffNotice
                     currentRun={run}
                     previousRun={runs[runIndex + 1]}

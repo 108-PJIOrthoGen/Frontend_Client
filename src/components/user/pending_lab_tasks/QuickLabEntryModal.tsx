@@ -36,7 +36,13 @@ const QuickLabEntryModal: React.FC<Props> = ({ task, open, onClose, onSuccess })
   };
 
   const handleSubmit = async () => {
-    const values = await form.validateFields();
+    let values: { value: number | string };
+    try {
+      values = await form.validateFields();
+    } catch {
+      // Validation errors are surfaced inline by Form.Item rules
+      return;
+    }
     setLoading(true);
     try {
       await callQuickEntryPendingLabTask(task.id!, {

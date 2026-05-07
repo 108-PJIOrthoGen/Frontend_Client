@@ -21,17 +21,17 @@ const ScalpelIcon = () => (
 const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
   surgeryPlan,
 }, ref) => {
-  const [stages, setStages] = useState<SurgeryStageData[]>(() => surgeryPlan.stages);
+  const [stages, setStages] = useState<SurgeryStageData[]>(() => surgeryPlan.stages ?? []);
   const [editingStageId, setEditingStageId] = useState<number | null>(null);
   const [risksAndComplications, setRisksAndComplications] = useState<string[]>(
-    () => surgeryPlan.risksAndComplications
+    () => surgeryPlan.risksAndComplications ?? []
   );
-  const [strategyRationale, setStrategyRationale] = useState(surgeryPlan.strategyRationale);
-  const [priorityNote, setPriorityNote] = useState(surgeryPlan.priorityNote);
+  const [strategyRationale, setStrategyRationale] = useState(surgeryPlan.strategyRationale ?? '');
+  const [priorityNote, setPriorityNote] = useState(surgeryPlan.priorityNote ?? '');
   const [estimatedTotalTreatmentTime, setEstimatedTotalTreatmentTime] = useState(
-    surgeryPlan.estimatedTotalTreatmentTime
+    surgeryPlan.estimatedTotalTreatmentTime ?? ''
   );
-  const [notes, setNotes] = useState(surgeryPlan.notes);
+  const [notes, setNotes] = useState(surgeryPlan.notes ?? '');
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [newRisk, setNewRisk] = useState('');
 
@@ -126,12 +126,12 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
               PHÁC ĐỒ PHẪU THUẬT
             </div>
             <div style={{ fontSize: '10px', color: '#64748b', letterSpacing: '0.03em' }}>
-              {surgeryPlan.surgeryStrategyType.replaceAll('_', ' ')}
+              {surgeryPlan.surgeryStrategyType?.replaceAll('_', ' ') || '—'}
             </div>
           </div>
         </div>
         <span className="text-[10px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-          Ưu tiên {surgeryPlan.priorityLevel}
+          Ưu tiên {surgeryPlan.priorityLevel || '—'}
         </span>
       </div>
 
@@ -173,7 +173,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
           ) : (
             <>
               <p className="text-sm text-slate-700 mt-1 leading-relaxed">{strategyRationale}</p>
-              <p className="text-xs text-amber-700 mt-2 bg-yellow-200 border border-yellow-500 rounded-md px-2 py-1">
+              <p className="text-xs text-amber-900 mt-2 bg-amber-50 border border-amber-300 rounded-md px-2 py-1">
                 {priorityNote}
               </p>
             </>
@@ -192,7 +192,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                   className="rounded-lg border border-slate-200 bg-white p-3 group/stage"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold px-2 py-1 rounded-md bg-cyan-100 text-green-700 border border-green-200">
+                    <span className="text-xs font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                       Giai đoạn {stage.stageOrder}
                     </span>
 

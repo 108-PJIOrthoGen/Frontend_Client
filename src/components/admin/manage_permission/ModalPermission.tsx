@@ -132,6 +132,8 @@ const ModalPermission = (props: IProps) => {
                                 LAB_RESULTS: 'LAB_RESULTS',
                                 IMAGE_RESULTS: 'IMAGE_RESULTS',
                                 CULTURE_RESULTS: 'CULTURE_RESULTS',
+                                EXTRACT_IMAGE: 'EXTRACT_IMAGE',
+                                VOICE: 'VOICE',
                                 SENSITIVITY_RESULTS: 'SENSITIVITY_RESULTS',
                                 FILES: 'FILES'
                             }}

@@ -57,6 +57,7 @@ interface MedicalExamDetailProps {
 
 const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId }) => {
     const [loading, setLoading] = useState(false);
+    const [saving, setSaving] = useState(false);
     const latestFetchRequestRef = useRef(0);
 
     // Fetched data for tabs
@@ -168,6 +169,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     };
 
     const handleSave = async () => {
+        if (saving) return;
+        setSaving(true);
         try {
             let episodeId = examData?.id;
 
@@ -225,7 +228,14 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const formatSurgeryDate = (date: unknown): string => {
                 if (!date) return '';
                 if (dayjs.isDayjs(date)) return date.format('DD-MM-YYYY');
-                return dayjs(date as string).format('DD-MM-YYYY');
+                const str = String(date);
+                // Picker now stores strings as DD/MM/YYYY — convert to backend's DD-MM-YYYY shape
+                if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str.replaceAll('/', '-');
+                // Already in DD-MM-YYYY (legacy data)
+                if (/^\d{2}-\d{2}-\d{4}$/.test(str)) return str;
+                // Fallback to dayjs native parsing for ISO/timestamp strings
+                const parsed = dayjs(str);
+                return parsed.isValid() ? parsed.format('DD-MM-YYYY') : '';
             };
 
             const updatePromises = toUpdate.map(s => {
@@ -453,6 +463,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             onClose();
         } catch {
             message.error('Không thể lưu bệnh án');
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -493,6 +505,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     cultureResults={cultureResults}
                     imageResults={imageResults}
                     patient={examData?.patient}
+                    episodeId={examData?.id}
                 />
             ),
         },
@@ -525,8 +538,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             destroyOnClose
             footer={
                 <div className="flex justify-end gap-3 py-2">
-                    <Button onClick={onClose}>Đóng</Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={loading}>
+                    <Button onClick={onClose} disabled={saving}>Đóng</Button>
+                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} disabled={loading || saving}>
                         Lưu bệnh án
                     </Button>
                 </div>

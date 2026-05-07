@@ -17,7 +17,8 @@ const TimelineHistory: React.FC<TimelineHistoryProps> = ({ runs, selectedRunId, 
         const isSelected = run.id === selectedRunId;
 
         switch (run.status) {
-            case 'completed':
+            case 'SUCCESS':
+            case 'PARTIAL':
                 if (isLatest) return {
                     dotBorder: 'border-blue-600',
                     cardBorder: isSelected ? 'border-blue-300 shadow-[0_4px_12px_rgba(37,99,235,0.1)]' : 'border-[#dbe3ef]',
@@ -30,26 +31,27 @@ const TimelineHistory: React.FC<TimelineHistoryProps> = ({ runs, selectedRunId, 
                     dotBorder: 'border-slate-400',
                     cardBorder: isSelected ? 'border-blue-300 shadow-[0_4px_12px_rgba(37,99,235,0.1)]' : 'border-[#dbe3ef]',
                     cardBg: isSelected ? 'bg-blue-50/50' : 'bg-[#fbfdff]',
-                    badge: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Hoàn thành' },
+                    badge: { bg: 'bg-slate-100', text: 'text-slate-600', label: run.status === 'PARTIAL' ? 'Một phần' : 'Hoàn thành' },
                     titleColor: 'text-[#1b2430]',
                     timeColor: 'text-[#607086]',
                 };
-            case 'failed':
+            case 'FAILED':
+            case 'TIMEOUT':
                 return {
                     dotBorder: 'border-red-500',
                     cardBorder: isSelected ? 'border-red-300' : 'border-red-200',
                     cardBg: 'bg-red-50/30',
-                    badge: { bg: 'bg-red-100', text: 'text-red-700', label: 'Thất bại' },
+                    badge: { bg: 'bg-red-100', text: 'text-red-700', label: run.status === 'TIMEOUT' ? 'Hết thời gian' : 'Thất bại' },
                     titleColor: 'text-red-800',
                     timeColor: 'text-red-400',
                 };
-            case 'processing':
-            case 'pending':
+            case 'PROCESSING':
+            case 'QUEUED':
                 return {
                     dotBorder: 'border-amber-500',
                     cardBorder: 'border-amber-200',
                     cardBg: 'bg-amber-50/30',
-                    badge: { bg: 'bg-amber-100', text: 'text-amber-700', label: 'Đang xử lý' },
+                    badge: { bg: 'bg-amber-100', text: 'text-amber-700', label: run.status === 'QUEUED' ? 'Đang chờ' : 'Đang xử lý' },
                     titleColor: 'text-amber-800',
                     timeColor: 'text-amber-400',
                 };
@@ -86,7 +88,7 @@ const TimelineHistory: React.FC<TimelineHistoryProps> = ({ runs, selectedRunId, 
                         const config = getRunStatusConfig(run, index);
                         const runNumber = runs.length - index;
                         const isSelected = run.id === selectedRunId;
-                        const isClickable = run.status === 'completed' && run.id;
+                        const isClickable = (run.status === 'SUCCESS' || run.status === 'PARTIAL') && !!run.id;
 
                         return (
                             <div key={run.id || index} className="relative pl-[18px] mb-[18px] last:mb-0">
@@ -116,8 +118,17 @@ const TimelineHistory: React.FC<TimelineHistoryProps> = ({ runs, selectedRunId, 
                                     {/* Run info */}
                                     <div className="grid grid-cols-[130px_1fr] gap-2 text-[13px] my-1.5">
                                         <div className="text-[#607086]">Trạng thái</div>
-                                        <div className={`font-medium ${run.status === 'completed' ? 'text-emerald-600' : run.status === 'failed' ? 'text-red-600' : 'text-amber-600'}`}>
-                                            {run.status === 'completed' ? 'Hoàn thành' : run.status === 'failed' ? 'Thất bại' : run.status === 'processing' ? 'Đang xử lý' : run.status || '—'}
+                                        <div className={`font-medium ${run.status === 'SUCCESS' ? 'text-emerald-600'
+                                            : run.status === 'PARTIAL' ? 'text-emerald-600'
+                                                : run.status === 'FAILED' || run.status === 'TIMEOUT' ? 'text-red-600'
+                                                    : 'text-amber-600'}`}>
+                                            {run.status === 'SUCCESS' ? 'Hoàn thành'
+                                                : run.status === 'PARTIAL' ? 'Một phần'
+                                                    : run.status === 'FAILED' ? 'Thất bại'
+                                                        : run.status === 'TIMEOUT' ? 'Hết thời gian'
+                                                            : run.status === 'PROCESSING' ? 'Đang xử lý'
+                                                                : run.status === 'QUEUED' ? 'Đang chờ'
+                                                                    : run.status || '—'}
                                         </div>
                                     </div>
 

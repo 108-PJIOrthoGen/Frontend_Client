@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { Input } from 'antd';
 import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { LocalPlanData, TemplateAntibiotic } from '@/components/user/diagnose_steps/treatmentType';
+import { LocalPlanData, TemplateAntibiotic } from '@/types/treatmentType';
 
 export interface LocalAntibioticTreatmentHandle {
     getData: () => LocalPlanData;
@@ -12,8 +12,9 @@ interface LocalAntibioticTreatmentProps {
 }
 
 const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan }, ref) => {
-    const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics);
+    const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics ?? []);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
+    const deliveryInfo = localPlan.deliveryInfo;
 
     useImperativeHandle(ref, () => ({
         getData: () => ({ ...localPlan, antibiotics }),
@@ -191,17 +192,17 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                         <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Gợi ý về spacer</p>
                         <div className="space-y-1.5 text-xs text-blue-900">
-                            <p><span className="font-semibold">Delivery:</span> {localPlan.deliveryInfo.deliveryMethod}</p>
-                            <p><span className="font-semibold">Spacer:</span> {localPlan.deliveryInfo.spacerType}</p>
-                            <p><span className="font-semibold">Xi măng gợi ý:</span> {localPlan.deliveryInfo.cementBrandSuggestion}</p>
-                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {localPlan.deliveryInfo.mixingRatio}</p>
+                            <p><span className="font-semibold">Delivery:</span> {deliveryInfo?.deliveryMethod || '—'}</p>
+                            <p><span className="font-semibold">Spacer:</span> {deliveryInfo?.spacerType || '—'}</p>
+                            <p><span className="font-semibold">Xi măng gợi ý:</span> {deliveryInfo?.cementBrandSuggestion || '—'}</p>
+                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {deliveryInfo?.mixingRatio || '—'}</p>
                         </div>
                     </div>
 
                     <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                         <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
                         <ul className="space-y-1">
-                            {localPlan.monitoring.map((item) => (
+                            {(localPlan.monitoring ?? []).map((item) => (
                                 <li key={item} className="text-xs text-amber-800">- {item}</li>
                             ))}
                         </ul>
@@ -213,7 +214,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                 <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
                     <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
                     <ul className="space-y-1">
-                        {localPlan.contraindications.map((item) => (
+                        {(localPlan.contraindications ?? []).map((item) => (
                             <li key={item} className="text-xs text-rose-800">- {item}</li>
                         ))}
                     </ul>

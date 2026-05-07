@@ -43,7 +43,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
   };
 
   const onFinish = async (values: any) => {
-    console.log("Tôi đây")
     const formatted = {
       ...values,
       dateOfBirth: values.dateOfBirth ? dayjs(values.dateOfBirth).format('DD-MM-YYYY') : undefined,

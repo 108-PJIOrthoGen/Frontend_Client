@@ -7,6 +7,12 @@ interface AccessTokenResponse {
     access_token: string;
 }
 const NO_RETRY_HEADER = 'x-no-retry';
+const PUBLIC_AUTH_URLS = [
+    '/api/v1/auth/login',
+    '/api/v1/auth/refresh',
+    '/api/v1/auth/forgot-password',
+    '/api/v1/auth/reset-password',
+];
 
 const instance = axios.create({
     baseURL: import.meta.env.VITE_BACKEND_URL as string,
@@ -39,8 +45,9 @@ instance.interceptors.request.use(function (config) {
     // Skip Authorization for refresh — the endpoint uses the HTTP-only cookie,
     // and sending an expired access_token causes Spring Security's
     // BearerTokenAuthenticationFilter to reject with 401 before the controller runs.
+    const isPublicAuthUrl = config.url ? PUBLIC_AUTH_URLS.includes(config.url) : false;
     if (
-        config.url !== '/api/v1/auth/refresh'
+        !isPublicAuthUrl
         && typeof window !== "undefined"
         && window && window.localStorage
         && window.localStorage.getItem('access_token')
@@ -69,8 +76,7 @@ instance.interceptors.response.use(
         if (
             status === 401
             && error.config
-            && error.config.url !== '/api/v1/auth/login'
-            && error.config.url !== '/api/v1/auth/refresh'
+            && !PUBLIC_AUTH_URLS.includes(error.config.url)
             && !error.config.headers[NO_RETRY_HEADER]
         ) {
             const access_token = await handleRefreshToken();

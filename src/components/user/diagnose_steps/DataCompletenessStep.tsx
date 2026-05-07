@@ -3,7 +3,7 @@ import { Button, Tag, message, Empty, Alert } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { callCreatePendingLabTasksFromCompleteness } from '@/apis/api';
-import { fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
+import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
 import type { IDataCompleteness, IMissingItem } from '@/types/backend';
 
 interface Props {
@@ -35,6 +35,19 @@ const categoryLabel = (cat?: string) => {
   return 'Lâm sàng';
 };
 
+const SAVED_REMINDER_KEY_PREFIX = 'pji_savedPendingLabReminder';
+
+const toNumberId = (value?: string | number | null): number | undefined => {
+  if (value == null || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+const getSavedReminderKey = (episodeId?: string | number, runId?: string | null): string | null => {
+  if (episodeId == null || episodeId === '') return null;
+  return `${SAVED_REMINDER_KEY_PREFIX}:${episodeId}:${runId || 'no-run'}`;
+};
+
 const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
   const [completeness, setCompleteness] = useState<IDataCompleteness | null>(null);
   const [saving, setSaving] = useState(false);
@@ -43,6 +56,11 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
   const currentCase = useAppSelector(state => state.patient.currentCase);
 
   useEffect(() => {
+    setCompleteness(null);
+    const runId = localStorage.getItem('pji_aiRunId');
+    const savedKey = getSavedReminderKey(currentCase?.episode?.id, runId);
+    setSaved(savedKey ? localStorage.getItem(savedKey) === 'true' : false);
+
     const cachedDetail = localStorage.getItem('pji_aiRunDetail');
     if (cachedDetail) {
       try {
@@ -51,26 +69,33 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
         if (dc) setCompleteness(dc);
       } catch { /* ignore */ }
     }
-  }, []);
+  }, [currentCase?.episode?.id]);
 
   const missingItems = completeness?.missing_items ?? [];
   const isComplete = completeness?.is_complete ?? missingItems.length === 0;
 
   const handleSaveReminders = async () => {
-    if (!currentCase?.episode?.id) return;
+    if (saved || saving) return;
+
+    const episodeId = toNumberId(currentCase?.episode?.id);
+    if (!episodeId) return;
 
     setSaving(true);
     try {
       const runId = localStorage.getItem('pji_aiRunId');
+      const runIdNumber = toNumberId(runId);
       await callCreatePendingLabTasksFromCompleteness(
-        currentCase.episode.id,
+        episodeId,
         {
-          patientId: currentCase.patient?.id,
-          runId: runId ? Number(runId) : undefined,
-          missingItems: missingItems as Record<string, any>[],
+          patientId: toNumberId(currentCase?.patient?.id),
+          runId: runIdNumber,
+          missingItems: missingItems as Record<string, unknown>[],
         }
       );
       setSaved(true);
+      const savedKey = getSavedReminderKey(currentCase?.episode?.id, runId);
+      if (savedKey) localStorage.setItem(savedKey, 'true');
+      dispatch(fetchMyPendingTasks());
       dispatch(fetchMyPendingCount());
       message.success('Đã lưu nhắc nhở xét nghiệm');
     } catch {
@@ -212,7 +237,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
                       type="primary"
                       onClick={handleSaveReminders}
                       loading={saving}
-                      disabled={saved}
+                      disabled={saved || saving}
                       icon={saved
                         ? <CheckCircleOutlined />
                         : <span className="material-symbols-outlined text-[16px]">bookmark_add</span>}

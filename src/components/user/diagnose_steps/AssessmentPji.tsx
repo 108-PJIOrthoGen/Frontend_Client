@@ -12,7 +12,7 @@ interface ClinicalAssessmentProps {
 }
 
 const POLL_INTERVAL_MS = 3000;
-const MAX_POLL_ATTEMPTS = 60;
+const MAX_POLL_ATTEMPTS = 100;
 
 export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => {
   const [isAILoading, setIsAILoading] = useState(false);

@@ -2,6 +2,7 @@ import { LayoutClient } from "@/layouts/LayoutClient";
 import { createBrowserRouter } from "react-router-dom";
 
 import LoginPage from "@/pages/auth/LoginPage";
+import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
 import AiDiagnosisSuggestion from "@/pages/user/AiDiagnoseSuggestion";
 import Error404 from "@/pages/errors/NotFoundPage";
 import PatientTable from "@/pages/user/PatientTable";
@@ -75,6 +76,10 @@ const router = createBrowserRouter([
     {
         path: "/login",
         element: <LoginPage />,
+    },
+    {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
     },
 ]);
 export default router

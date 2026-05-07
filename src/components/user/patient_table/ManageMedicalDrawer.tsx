@@ -118,7 +118,10 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
                 <Button
                     type="link"
                     icon={<FolderOpenOutlined />}
-                    onClick={() => handleOpenDetail(record)}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenDetail(record);
+                    }}
                 >
                     Xem chi tiết
                 </Button>

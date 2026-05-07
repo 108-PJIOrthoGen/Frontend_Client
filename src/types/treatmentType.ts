@@ -1,10 +1,10 @@
 export interface TemplateAntibiotic {
-  antibioticName: string;
-  dosage: string;
-  frequency: string;
-  route: string;
-  role: string;
-  notes: string;
+  antibioticName?: string;
+  dosage?: string;
+  frequency?: string;
+  route?: string;
+  role?: string;
+  notes?: string;
 }
 
 export interface LocalPlanData {
@@ -14,16 +14,16 @@ export interface LocalPlanData {
   indication: string;
   durationDays: number;
   durationNote: string;
-  deliveryInfo: {
-    deliveryMethod: string;
-    spacerType: string;
-    cementBrandSuggestion: string;
-    mixingRatio: string;
+  deliveryInfo?: {
+    deliveryMethod?: string;
+    spacerType?: string;
+    cementBrandSuggestion?: string;
+    mixingRatio?: string;
   };
-  antibiotics: TemplateAntibiotic[];
-  monitoring: string[];
-  contraindications: string[];
-  notes: string;
+  antibiotics?: TemplateAntibiotic[];
+  monitoring?: string[];
+  contraindications?: string[];
+  notes?: string;
 }
 
 export interface SystemicPhaseData {
@@ -31,7 +31,7 @@ export interface SystemicPhaseData {
   phaseOrder: number;
   durationWeeks: number;
   durationNote: string;
-  antibiotics: TemplateAntibiotic[];
+  antibiotics?: TemplateAntibiotic[];
 }
 
 export interface SystemicPlanData {
@@ -40,10 +40,10 @@ export interface SystemicPlanData {
   regimenName: string;
   indication: string;
   totalDurationWeeks: number;
-  phases: SystemicPhaseData[];
-  monitoring: string[];
-  contraindications: string[];
-  notes: string;
+  phases?: SystemicPhaseData[];
+  monitoring?: string[];
+  contraindications?: string[];
+  notes?: string;
 }
 
 export interface SurgeryStepData {
@@ -60,14 +60,14 @@ export interface SurgeryStageData {
 
 export interface SurgeryPlanData {
   category: string;
-  surgeryStrategyType: string;
-  strategyRationale: string;
-  priorityLevel: string;
-  priorityNote: string;
-  stages: SurgeryStageData[];
-  estimatedTotalTreatmentTime: string;
-  risksAndComplications: string[];
-  notes: string;
+  surgeryStrategyType?: string;
+  strategyRationale?: string;
+  priorityLevel?: string;
+  priorityNote?: string;
+  stages?: SurgeryStageData[];
+  estimatedTotalTreatmentTime?: string;
+  risksAndComplications?: string[];
+  notes?: string;
 }
 
 export interface CitationData {
@@ -78,4 +78,3 @@ export interface CitationData {
   relevanceScore: number;
   citedFor: string;
 }
-

@@ -1,5 +1,5 @@
-import { ModalForm, ProForm, ProFormText } from "@ant-design/pro-components";
-import { Col, Form, Row, Select, message, notification } from "antd";
+import { ModalForm, ProForm, ProFormSelect, ProFormText } from "@ant-design/pro-components";
+import { Col, Form, Row, message, notification } from "antd";
 import { useState, useEffect } from "react";
 import { callCreateUser, callFetchRole, callUpdateUser } from "@/apis/api";
 import { DebounceSelect } from "./debounce.select";
@@ -40,19 +40,24 @@ const ModalUser = (props: IProps) => {
     }, [dataInit]);
 
     const submitUser = async (valuesForm: any) => {
-        const { username, email, password, role } = valuesForm;
+        const { fullName, email, password, phone, department, status, role } = valuesForm;
+        const basePayload = {
+            fullName,
+            email,
+            phone,
+            department,
+            status: status ?? "ACTIVE",
+            role: { id: role.value, name: "" },
+        };
         if (dataInit?.id) {
-            //update
             const user = {
                 id: dataInit.id,
-                username: username,
-                email,
-                password,
-                role: { id: role.value, name: "" },
+                ...basePayload,
+                ...(password ? { password } : {}),
             }
 
-            const res = await callUpdateUser(user);
-            if (res.data) {
+            const res = await callUpdateUser(user as any);
+            if (res.status) {
                 message.success("Cập nhật user thành công");
                 handleReset();
                 reloadTable();
@@ -63,14 +68,11 @@ const ModalUser = (props: IProps) => {
                 });
             }
         } else {
-            //create
             const user = {
-                username: username,
-                email,
+                ...basePayload,
                 password,
-                role: { id: role.value, name: "" },
             }
-            const res = await callCreateUser(user);
+            const res = await callCreateUser(user as any);
             if (res.data) {
                 message.success("Thêm mới user thành công");
                 handleReset();
@@ -124,9 +126,25 @@ const ModalUser = (props: IProps) => {
                 preserve={false}
                 form={form}
                 onFinish={submitUser}
-                initialValues={dataInit?.id ? dataInit : {}}
+                initialValues={dataInit?.id
+                    ? {
+                        ...dataInit,
+                        status: dataInit.status ?? "ACTIVE",
+                        role: dataInit.role
+                            ? { label: dataInit.role.name, value: dataInit.role.id, key: dataInit.role.id }
+                            : undefined,
+                    }
+                    : { status: "ACTIVE" }}
             >
                 <Row gutter={16}>
+                    <Col lg={12} md={12} sm={24} xs={24}>
+                        <ProFormText
+                            label="Họ & Tên"
+                            name="fullName"
+                            rules={[{ required: true, message: 'Vui lòng không bỏ trống' }]}
+                            placeholder="Nhập tên hiển thị"
+                        />
+                    </Col>
                     <Col lg={12} md={12} sm={24} xs={24}>
                         <ProFormText
                             label="Email"
@@ -147,15 +165,37 @@ const ModalUser = (props: IProps) => {
                             placeholder="Nhập password"
                         />
                     </Col>
-                    <Col lg={6} md={6} sm={24} xs={24}>
+                    <Col lg={12} md={12} sm={24} xs={24}>
                         <ProFormText
-                            label="Họ & Tên"
-                            name="username"
-                            rules={[{ required: true, message: 'Vui lòng không bỏ trống' }]}
-                            placeholder="Nhập tên hiển thị"
+                            label="Số điện thoại"
+                            name="phone"
+                            rules={[
+                                { required: true, message: 'Vui lòng không bỏ trống' },
+                                { pattern: /^(\+?\d{1,3})?[\s.-]?\d{9,11}$/, message: 'Số điện thoại không hợp lệ' }
+                            ]}
+                            placeholder="Nhập số điện thoại"
                         />
                     </Col>
-
+                    <Col lg={12} md={12} sm={24} xs={24}>
+                        <ProFormText
+                            label="Khoa / Phòng ban"
+                            name="department"
+                            rules={[{ required: true, message: 'Vui lòng không bỏ trống' }]}
+                            placeholder="Nhập khoa hoặc phòng ban"
+                        />
+                    </Col>
+                    <Col lg={6} md={6} sm={24} xs={24}>
+                        <ProFormSelect
+                            name="status"
+                            label="Trạng thái"
+                            rules={[{ required: true, message: 'Vui lòng chọn trạng thái' }]}
+                            options={[
+                                { label: 'Đang hoạt động', value: 'ACTIVE' },
+                                { label: 'Ngưng hoạt động', value: 'INACTIVE' },
+                                { label: 'Chưa kích hoạt', value: 'NONE' },
+                            ]}
+                        />
+                    </Col>
                     <Col lg={6} md={6} sm={24} xs={24}>
                         <ProForm.Item
                             name="role"
@@ -167,7 +207,7 @@ const ModalUser = (props: IProps) => {
                                 showSearch
                                 defaultValue={roles}
                                 value={roles}
-                                placeholder="Chọn công vai trò"
+                                placeholder="Chọn vai trò"
                                 fetchOptions={fetchRoleList}
                                 onChange={(newValue: any) => {
                                     if (newValue?.length === 0 || newValue?.length === 1) {

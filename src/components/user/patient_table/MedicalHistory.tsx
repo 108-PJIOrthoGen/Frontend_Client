@@ -151,7 +151,7 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhập thông tin bệnh án</h1>
-            <p className="text-slate-500 text-sm mt-1">Lữu trữ thông tin về bệnh án & tiền sử bệnh</p>
+            <p className="text-slate-500 text-sm mt-1">Lưu trữ thông tin về bệnh án & tiền sử bệnh</p>
           </div>
         </header>
       )}
@@ -195,7 +195,7 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                 >
                   <TextArea
                     rows={4}
-                    placeholder="Mo ta chi tiet qua trinh benh ly..."
+                    placeholder="Mô tả chi tiết quá trình bệnh lý..."
                     className="rounded-lg border-slate-300"
                   />
                 </Form.Item>
@@ -206,7 +206,7 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                 >
                   <TextArea
                     rows={4}
-                    placeholder="Cac benh ly nen, di ung, phau thuat truoc day..."
+                    placeholder="Các bệnh lý nền, dị ứng, phẫu thuật trước đây..."
                     className="rounded-lg border-slate-300"
                   />
                 </Form.Item>
@@ -217,7 +217,7 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                 >
                   <TextArea
                     rows={4}
-                    placeholder="Cac loai khang sinh dung truoc day..."
+                    placeholder="Các loại kháng sinh đã dùng trước đây..."
                     className="rounded-lg border-slate-300"
                   />
                 </Form.Item>
@@ -317,11 +317,12 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                                 <td className="p-0 border-r border-slate-200">
                                   <Form.Item
                                     getValueProps={(val) => ({ value: stringToDayjs(val) })}
+                                    getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
                                     {...restField} name={[name, 'surgeryDate']} className="mb-0">
                                     <DatePicker
                                       className="w-full border-none"
                                       placeholder="dd/mm/yyyy"
-                                      format="DD-MM-YYYY"
+                                      format="DD/MM/YYYY"
                                     />
                                   </Form.Item>
                                 </td>
@@ -359,7 +360,7 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                                     danger
                                     onClick={() => remove(name)}
                                     className="p-1 hover:bg-red-100"
-                                    title="Xoa hang"
+                                    title="Xóa hàng"
                                   >
                                     <span className="material-symbols-outlined text-[18px]">delete</span>
                                   </Button>

@@ -14,11 +14,18 @@ export interface IModelPaginate<T> {
     };
     result: T[];
 }
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'NONE';
+
 export interface IUser {
     id?: string;
-    fullname?: string;
+    fullName?: string;
     email: string;
     password?: string;
+    phone?: string;
+    department?: string;
+    avatar?: string;
+    status?: UserStatus;
+    lastLogin?: string;
     role?: {
         id: string;
         name: string;
