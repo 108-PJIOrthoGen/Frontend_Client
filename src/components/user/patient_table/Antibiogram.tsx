@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Form, Input, Select, Button } from 'antd';
+import { AutoComplete, Form, Input, Select, Button } from 'antd';
 import { ICultureResult, ISensitivityResult } from '@/types/backend';
 
 export interface AntibioticRow {
@@ -9,6 +9,33 @@ export interface AntibioticRow {
   interpretation: string;
   notes: string;
 }
+
+// Standard antibiotics commonly used in PJI (prosthetic joint infection) treatment.
+// Doctors can pick from the list or type a custom name.
+const COMMON_PJI_ANTIBIOTICS: string[] = [
+  'Vancomycin',
+  'Daptomycin',
+  'Linezolid',
+  'Rifampicin',
+  'Cefazolin',
+  'Ceftriaxone',
+  'Cefepime',
+  'Ceftazidime',
+  'Ciprofloxacin',
+  'Levofloxacin',
+  'Moxifloxacin',
+  'Clindamycin',
+  'Trimethoprim/Sulfamethoxazole',
+  'Doxycycline',
+  'Minocycline',
+  'Gentamicin',
+  'Meropenem',
+  'Piperacillin/Tazobactam',
+  'Ampicillin/Sulbactam',
+  'Oxacillin',
+];
+
+const ANTIBIOTIC_OPTIONS = COMMON_PJI_ANTIBIOTICS.map((name) => ({ value: name, label: name }));
 
 type CultureItem = Partial<ICultureResult> & {
   _tempId?: string;
@@ -216,9 +243,16 @@ export const Antibiogram: React.FC<StepProps> = ({
                                       rules={[{ required: true, message: 'Trường này là bắt buộc' }]}
                                       className="mb-0"
                                     >
-                                      <Input
-                                        placeholder="Tên kháng sinh"
-                                        className="border border-slate-300 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                      <AutoComplete
+                                        options={ANTIBIOTIC_OPTIONS}
+                                        placeholder="Chọn hoặc nhập tên kháng sinh"
+                                        allowClear
+                                        filterOption={(input, option) =>
+                                          (option?.value as string)
+                                            ?.toLowerCase()
+                                            .includes(input.toLowerCase())
+                                        }
+                                        className="w-full text-sm"
                                       />
                                     </Form.Item>
                                   </td>

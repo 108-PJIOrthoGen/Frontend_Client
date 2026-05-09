@@ -9,9 +9,10 @@ export interface LocalAntibioticTreatmentHandle {
 
 interface LocalAntibioticTreatmentProps {
     localPlan: LocalPlanData;
+    readOnly?: boolean;
 }
 
-const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan }, ref) => {
+const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan, readOnly = false }, ref) => {
     const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics ?? []);
     const [editingIndex, setEditingIndex] = useState<number | null>(null);
     const deliveryInfo = localPlan.deliveryInfo;
@@ -21,29 +22,33 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
     }), [localPlan, antibiotics]);
 
     const toggleEdit = useCallback((index: number) => {
+        if (readOnly) return;
         setEditingIndex(prev => (prev === index ? null : index));
-    }, []);
+    }, [readOnly]);
 
     const handleFieldChange = useCallback(
         (index: number, field: keyof TemplateAntibiotic, value: string) => {
+            if (readOnly) return;
             setAntibiotics(prev =>
                 prev.map((a, i) => (i === index ? { ...a, [field]: value } : a))
             );
         },
-        []
+        [readOnly]
     );
 
     const handleDelete = useCallback((index: number) => {
+        if (readOnly) return;
         setAntibiotics(prev => prev.filter((_, i) => i !== index));
         setEditingIndex(null);
-    }, []);
+    }, [readOnly]);
 
     const handleAdd = useCallback(() => {
+        if (readOnly) return;
         setAntibiotics(prev => [
             ...prev,
             { antibioticName: '', dosage: '', frequency: '', route: '', role: '', notes: '' },
         ]);
-    }, []);
+    }, [readOnly]);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -74,7 +79,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
                                             <p className="text-[10px] uppercase font-semibold text-slate-500">Chỉnh sửa kháng sinh</p>
-                                            <div className="flex gap-1">
+                                            {!readOnly && <div className="flex gap-1">
                                                 <button
                                                     title="Đóng chỉnh sửa"
                                                     onClick={() => toggleEdit(index)}
@@ -89,7 +94,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                                                 >
                                                     <DeleteOutlined className="text-sm" />
                                                 </button>
-                                            </div>
+                                            </div>}
                                         </div>
                                         <Input
                                             size="small"
@@ -146,7 +151,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                                                 {abx.role || 'Vai trò'}
                                             </span>
 
-                                            <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            {!readOnly && <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     title="Chỉnh sửa kháng sinh"
                                                     onClick={() => toggleEdit(index)}
@@ -161,7 +166,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                                                 >
                                                     <DeleteOutlined className="text-[12px]" />
                                                 </button>
-                                            </div>
+                                            </div>}
                                         </div>
                                         <p className="text-md text-slate-700 mt-1">
                                             Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
@@ -176,7 +181,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                     })}
 
                     {/* Add antibiotic button */}
-                    <div className="mt-6">
+                    {!readOnly && <div className="mt-6">
                         <button
                             type="button"
                             onClick={handleAdd}
@@ -185,7 +190,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                             <PlusOutlined className="mr-2" />
                             Thêm kháng sinh mới
                         </button>
-                    </div>
+                    </div>}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

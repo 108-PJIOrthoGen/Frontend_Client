@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button, Result, message } from 'antd';
 import { useAppSelector } from '@/redux/hook';
 import {
@@ -25,7 +25,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const episodeId = currentCase?.episode?.id;
 
   // On mount: check if a previous run was pre-loaded from PatientExamSelector
-  React.useEffect(() => {
+  useEffect(() => {
     const cachedDetail = localStorage.getItem('pji_aiRunDetail');
     const cachedRunId = localStorage.getItem('pji_aiRunId');
     if (cachedDetail && cachedRunId) {
@@ -107,15 +107,6 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
     }
   };
 
-  const getSeverityStyles = (severity: string) => {
-    switch (severity) {
-      case 'HIGH': return 'bg-red-50 border-red-200 text-red-800';
-      case 'MEDIUM': return 'bg-orange-50 border-orange-200 text-orange-800';
-      case 'LOW': return 'bg-blue-50 border-blue-200 text-blue-800';
-      default: return 'bg-slate-50 border-slate-200 text-slate-800';
-    }
-  };
-
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
       case 'HIGH': return 'dangerous';
@@ -166,11 +157,10 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
           <button
             onClick={onNext}
             disabled={!showResults}
-            className={`flex items-center justify-center gap-2 px-6 py-2.5 font-bold text-sm rounded-xl shadow-md transition-all duration-300 ${
-              showResults
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/40 transform hover:-translate-y-0.5 cursor-pointer'
-                : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
-            }`}
+            className={`flex items-center justify-center gap-2 px-6 py-2.5 font-bold text-sm rounded-xl shadow-md transition-all duration-300 ${showResults
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/40 transform hover:-translate-y-0.5 cursor-pointer'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+              }`}
           >
             Tiếp tục <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
@@ -180,10 +170,10 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       <div className="flex-1 overflow-y-auto w-full custom-scrollbar pb-16">
         {showResults && diagnosticData ? (
           <div className="flex flex-col gap-8 animate-fade-in px-4 md:px-8 max-w-[1600px] mx-auto w-full pt-8">
-            
+
             {/* Top Result Card - Hybrid Mode (Dark Medical Insight) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
+
               {/* PRIMARY DIAGNOSIS (Dark Theme Glassmorphism) */}
               <div className="col-span-1 lg:col-span-8 flex flex-col gap-4 order-2 lg:order-1">
                 <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 rounded-2xl p-8 shadow-xl shadow-slate-900/10 flex flex-col justify-center h-full relative overflow-hidden border border-slate-700/50">
@@ -205,11 +195,11 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                           AI DIAGNOSTIC INSIGHT
                         </span>
                       </div>
-                      
+
                       <h3 className="text-3xl lg:text-4xl font-extrabold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300 leading-tight">
                         {ai_reasoning?.primary_diagnosis}
                       </h3>
-                      
+
                       <div className="backdrop-blur-sm bg-white/5 border-l-4 border-blue-400 rounded-r-xl p-5 mb-8">
                         <p className="text-slate-200 text-base leading-relaxed">
                           {ai_reasoning?.reasoning_summary}
@@ -254,11 +244,10 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
                 <div className="text-center mb-8 w-full">
                   <h3 className="text-xs font-black text-slate-400 tracking-[0.15em] uppercase mb-3">Kết luận hệ thống</h3>
-                  <div className={`inline-block px-6 py-2 rounded-xl text-2xl font-black tracking-tight border ${
-                    scoring_system?.interpretation === 'INFECTED' 
-                    ? 'bg-red-50 text-red-600 border-red-100 shadow-[0_0_20px_rgba(239,68,68,0.15)]' 
+                  <div className={`inline-block px-6 py-2 rounded-xl text-2xl font-black tracking-tight border ${scoring_system?.interpretation === 'INFECTED'
+                    ? 'bg-red-50 text-red-600 border-red-100 shadow-[0_0_20px_rgba(239,68,68,0.15)]'
                     : 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
-                  }`}>
+                    }`}>
                     {scoring_system?.interpretation}
                   </div>
                 </div>
@@ -266,7 +255,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                 <div className="relative w-48 h-48 flex items-center justify-center mb-6">
                   {/* Glowing background behind score */}
                   <div className={`absolute inset-0 rounded-full blur-2xl opacity-20 ${scoring_system?.interpretation === 'INFECTED' ? 'bg-red-500' : 'bg-emerald-500'}`}></div>
-                  
+
                   <svg className="w-full h-full transform -rotate-90 relative z-10" viewBox="0 0 36 36">
                     <path className="text-slate-100 drop-shadow-sm" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="2" />
                     <path
@@ -289,7 +278,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                   </p>
                 </div>
               </div>
-              
+
             </div>
 
             {/* Warnings / Alerts Strip - Elevated Design */}
@@ -341,7 +330,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
                   <div className="p-6 flex-1 bg-slate-50/30">
                     <p className="text-sm text-slate-600 font-medium mb-6 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">{major_criteria.note}</p>
-                    
+
                     <ul className="space-y-4">
                       {major_criteria.items?.map((item: any, idx: number) => (
                         <li key={idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow transition-all group">
@@ -369,7 +358,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                       ))}
                     </ul>
                   </div>
-                  
+
                   <div className="p-5 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-100/50">
                     <div className="flex gap-3 items-start">
                       <span className="material-symbols-outlined text-blue-500 mt-0.5">info</span>
@@ -400,9 +389,9 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
                   <div className="flex-1 bg-slate-50/30">
                     <div className="p-6 pb-2">
-                       <p className="text-sm text-slate-600 font-medium bg-amber-50/50 p-3 rounded-lg border border-amber-100/50">{minor_criteria_scoring.note}</p>
+                      <p className="text-sm text-slate-600 font-medium bg-amber-50/50 p-3 rounded-lg border border-amber-100/50">{minor_criteria_scoring.note}</p>
                     </div>
-                    
+
                     <div className="px-6 pb-6 max-h-[500px] overflow-y-auto custom-scrollbar">
                       <ul className="space-y-3">
                         {minor_criteria_scoring.items?.map((item: any, idx: number) => (
@@ -428,7 +417,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                       </ul>
                     </div>
                   </div>
-                  
+
                   <div className="p-5 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-100/50">
                     <div className="flex gap-3 items-start">
                       <span className="material-symbols-outlined text-amber-500 mt-0.5">calculate</span>

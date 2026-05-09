@@ -15,7 +15,20 @@ export interface ExtractedCultureValue {
   sourceName: string;
   result?: string;
   organismName?: string;
+  organism?: string;
+  organism_name?: string;
   gramType?: string;
+  gram?: string;
+  gram_type?: string;
+  incubationDays?: number | string;
+  incubation_days?: number | string;
+  antibioticed?: boolean | string;
+  usedAntibioticBefore?: boolean | string;
+  used_antibiotic_before?: boolean | string;
+  daysOffAntibio?: number | string;
+  days_off_antibio?: number | string;
+  daysOffAntibiotic?: number | string;
+  days_off_antibiotic?: number | string;
   notes?: string;
 }
 
@@ -56,6 +69,7 @@ export interface ExtractApplyCandidate {
   targetGroup?: ExtractTargetGroup;
   targetId?: string;
   targetLabel?: string;
+  sourceIndex?: number;
   extractedValue: string;
   currentValue?: string;
   unit?: string;

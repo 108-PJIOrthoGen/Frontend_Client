@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Drawer, List, Tag, Button, Empty, Popconfirm, Spin, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
-import { DeleteOutlined, DownOutlined, EditOutlined } from '@ant-design/icons';
-import { useAppSelector } from '@/redux/hook';
+import { CheckCircleOutlined, DeleteOutlined, DownOutlined, EditOutlined } from '@ant-design/icons';
+import { useAppSelector, useClinicForm } from '@/redux/hook';
 import { callDismissPendingLabTask } from '@/apis/api';
 import QuickLabEntryModal from './QuickLabEntryModal';
+import {
+  collectFilledLabEntries,
+  isPendingTaskLikelyResolved,
+} from './utils/matchPendingTask';
 import type { IPendingLabTask } from '@/types/backend';
+import type { RootState } from '@/redux/store';
 
 interface Props {
   open: boolean;
@@ -34,9 +39,28 @@ interface TaskGroup {
 
 const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) => {
   const { tasks, isLoading } = useAppSelector(state => state.pendingLabTask);
+  const { form: clinicForm } = useClinicForm();
+  const currentCase = useAppSelector((state: RootState) => state.patient.currentCase);
   const [selectedTask, setSelectedTask] = useState<IPendingLabTask | null>(null);
   const [quickEntryOpen, setQuickEntryOpen] = useState(false);
   const [selectedGroupKey, setSelectedGroupKey] = useState<string | null>(null);
+
+  // Tasks whose `field` value appears to have already been entered into the
+  // active clinic form. Scoped to the currently loaded episode — otherwise we
+  // have no data to compare against.
+  const likelyResolvedTaskIds = useMemo(() => {
+    const activeEpisodeId = currentCase?.episode?.id;
+    if (activeEpisodeId == null) return new Set<number>();
+    const entries = collectFilledLabEntries(clinicForm);
+    if (entries.length === 0) return new Set<number>();
+    const ids = new Set<number>();
+    tasks.forEach((task) => {
+      if (task.id == null) return;
+      if (task.episode?.id !== activeEpisodeId) return;
+      if (isPendingTaskLikelyResolved(task, entries)) ids.add(task.id);
+    });
+    return ids;
+  }, [tasks, clinicForm, currentCase]);
 
   const taskGroups = useMemo(() => {
     const groupMap = new Map<string, TaskGroup>();
@@ -143,51 +167,81 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
               <List
                 size="small"
                 dataSource={selectedGroup.tasks}
-                renderItem={(task) => (
-                  <List.Item
-                    className="!px-3 !py-2 rounded-lg hover:bg-slate-50 transition-colors"
-                    actions={[
+                renderItem={(task) => {
+                  const likelyResolved =
+                    task.id != null && likelyResolvedTaskIds.has(task.id);
+                  const itemClassName = likelyResolved
+                    ? '!px-3 !py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200'
+                    : '!px-3 !py-2 rounded-lg hover:bg-slate-50 transition-colors';
+                  const actions = [
+                    ...(likelyResolved
+                      ? [
+                          <Popconfirm
+                            key="resolve"
+                            title="Đã có kết quả trong form — đánh dấu hoàn tất?"
+                            onConfirm={() => handleDismiss(task.id!)}
+                            okText="Hoàn tất"
+                            cancelText="Hủy"
+                          >
+                            <Button
+                              type="link"
+                              size="small"
+                              icon={<CheckCircleOutlined />}
+                              className="!text-emerald-600 !font-semibold"
+                            >
+                              Hoàn tất
+                            </Button>
+                          </Popconfirm>,
+                        ]
+                      : []),
+                    <Button
+                      key="entry"
+                      type="link"
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => handleQuickEntry(task)}
+                    >
+                      Nhập
+                    </Button>,
+                    <Popconfirm
+                      key="dismiss"
+                      title="Bỏ qua nhắc nhở này?"
+                      onConfirm={() => handleDismiss(task.id!)}
+                      okText="Bỏ qua"
+                      cancelText="Hủy"
+                    >
                       <Button
-                        key="entry"
                         type="link"
                         size="small"
-                        icon={<EditOutlined />}
-                        onClick={() => handleQuickEntry(task)}
-                      >
-                        Nhập
-                      </Button>,
-                      <Popconfirm
-                        key="dismiss"
-                        title="Bỏ qua nhắc nhở này?"
-                        onConfirm={() => handleDismiss(task.id!)}
-                        okText="Bỏ qua"
-                        cancelText="Hủy"
-                      >
-                        <Button
-                          type="link"
-                          size="small"
-                          danger
-                          icon={<DeleteOutlined />}
-                        />
-                      </Popconfirm>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={
-                        <span className="text-xs">
-                          <Tag color={importanceColor(task.importance)} className="mr-1">
-                            {task.importance}
-                          </Tag>
-                          <Tag className="mr-1">{categoryLabel(task.category)}</Tag>
-                          BA #{task.episode?.id}
-                        </span>
-                      }
-                      description={
-                        <span className="text-xs text-slate-500">{task.message}</span>
-                      }
-                    />
-                  </List.Item>
-                )}
+                        danger
+                        icon={<DeleteOutlined />}
+                      />
+                    </Popconfirm>,
+                  ];
+                  return (
+                    <List.Item className={itemClassName} actions={actions}>
+                      <List.Item.Meta
+                        title={
+                          <span className="text-xs">
+                            <Tag color={importanceColor(task.importance)} className="mr-1">
+                              {task.importance}
+                            </Tag>
+                            <Tag className="mr-1">{categoryLabel(task.category)}</Tag>
+                            {likelyResolved && (
+                              <Tag color="green" className="mr-1">
+                                Đã có kết quả?
+                              </Tag>
+                            )}
+                            BA #{task.episode?.id}
+                          </span>
+                        }
+                        description={
+                          <span className="text-xs text-slate-500">{task.message}</span>
+                        }
+                      />
+                    </List.Item>
+                  );
+                }}
               />
               </div>
             )}

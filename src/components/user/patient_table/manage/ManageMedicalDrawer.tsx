@@ -4,7 +4,7 @@ import { PlusOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { IPatient, IEpisode } from '@/types/backend';
 import { callFetchEpisodesByPatient } from '@/apis/api';
 import dayjs from 'dayjs';
-import MedicalExamDetail from './MedicalExamDetail';
+import MedicalExamDetail from '../MedicalExamDetail';
 
 interface ManageMedicalDrawerProps {
     open: boolean;
@@ -194,6 +194,7 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
                 onClose={handleCloseDetail}
                 examData={selectedEpisode}
                 patientId={patient?.id}
+                patient={patient}
             />
         </>
     );

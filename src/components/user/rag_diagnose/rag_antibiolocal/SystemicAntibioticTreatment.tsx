@@ -13,10 +13,12 @@ export interface SystemicAntibioticTreatmentHandle {
 
 interface SystemicAntibioticTreatmentProps {
     guidelinePlan: SystemicPlanData;
+    readOnly?: boolean;
 }
 
 export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmentHandle, SystemicAntibioticTreatmentProps>(({
     guidelinePlan,
+    readOnly = false,
 }, ref) => {
     const [phases, setPhases] = useState<SystemicPhaseData[]>(() => guidelinePlan.phases ?? []);
     const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
@@ -28,36 +30,41 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
 
     // --- Phase handlers ---
     const toggleEditPhase = useCallback((phaseOrder: number) => {
+        if (readOnly) return;
         setEditingPhaseId(prev => (prev === phaseOrder ? null : phaseOrder));
-    }, []);
+    }, [readOnly]);
 
     const handlePhaseFieldChange = useCallback(
         (phaseOrder: number, field: keyof Pick<SystemicPhaseData, 'phaseName' | 'durationNote'>, value: string) => {
+            if (readOnly) return;
             setPhases(prev =>
                 prev.map(p => (p.phaseOrder === phaseOrder ? { ...p, [field]: value } : p))
             );
         },
-        []
+        [readOnly]
     );
 
     const handlePhaseDurationChange = useCallback((phaseOrder: number, value: string) => {
+        if (readOnly) return;
         const num = parseInt(value, 10);
         setPhases(prev =>
             prev.map(p =>
                 p.phaseOrder === phaseOrder ? { ...p, durationWeeks: isNaN(num) ? 0 : num } : p
             )
         );
-    }, []);
+    }, [readOnly]);
 
     const handleDeletePhase = useCallback((phaseOrder: number) => {
+        if (readOnly) return;
         setPhases(prev => {
             const filtered = prev.filter(p => p.phaseOrder !== phaseOrder);
             return filtered.map((p, idx) => ({ ...p, phaseOrder: idx + 1 }));
         });
         setEditingPhaseId(null);
-    }, []);
+    }, [readOnly]);
 
     const handleAddPhase = useCallback(() => {
+        if (readOnly) return;
         setPhases(prev => {
             const nextOrder = prev.length + 1;
             const newPhase: SystemicPhaseData = {
@@ -78,17 +85,19 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
             };
             return [...prev, newPhase];
         });
-    }, []);
+    }, [readOnly]);
 
     // --- Antibiotic handlers ---
     const abxKey = (phaseOrder: number, abxIndex: number) => `${phaseOrder}-${abxIndex}`;
 
     const toggleEditAbx = useCallback((key: string) => {
+        if (readOnly) return;
         setEditingAbxKey(prev => (prev === key ? null : key));
-    }, []);
+    }, [readOnly]);
 
     const handleAbxFieldChange = useCallback(
         (phaseOrder: number, abxIndex: number, field: keyof TemplateAntibiotic, value: string) => {
+            if (readOnly) return;
             setPhases(prev =>
                 prev.map(p => {
                     if (p.phaseOrder !== phaseOrder) return p;
@@ -99,10 +108,11 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                 })
             );
         },
-        []
+        [readOnly]
     );
 
     const handleDeleteAbx = useCallback((phaseOrder: number, abxIndex: number) => {
+        if (readOnly) return;
         setPhases(prev =>
             prev.map(p => {
                 if (p.phaseOrder !== phaseOrder) return p;
@@ -110,9 +120,10 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
             })
         );
         setEditingAbxKey(null);
-    }, []);
+    }, [readOnly]);
 
     const handleAddAntibiotic = useCallback((phaseOrder: number) => {
+        if (readOnly) return;
         setPhases(prev =>
             prev.map(p => {
                 if (p.phaseOrder !== phaseOrder) return p;
@@ -127,7 +138,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                 return { ...p, antibiotics: [...(p.antibiotics ?? []), newAbx] };
             })
         );
-    }, []);
+    }, [readOnly]);
 
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -187,25 +198,27 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                         )}
 
                                         {/* Edit & Delete phase buttons */}
-                                        <div className="flex gap-1 ml-2 opacity-0 group-hover/phase:opacity-100 transition-opacity">
-                                            <button
-                                                title={isPhaseEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
-                                                onClick={() => toggleEditPhase(phase.phaseOrder)}
-                                                className={`p-1 rounded-md transition-colors ${isPhaseEditing
-                                                    ? 'text-blue-600 bg-blue-50'
-                                                    : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-                                                    }`}
-                                            >
-                                                <EditOutlined className="text-sm" />
-                                            </button>
-                                            <button
-                                                title="Xóa giai đoạn"
-                                                onClick={() => handleDeletePhase(phase.phaseOrder)}
-                                                className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                            >
-                                                <DeleteOutlined className="text-sm" />
-                                            </button>
-                                        </div>
+                                        {!readOnly && (
+                                            <div className="flex gap-1 ml-2 opacity-0 group-hover/phase:opacity-100 transition-opacity">
+                                                <button
+                                                    title={isPhaseEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
+                                                    onClick={() => toggleEditPhase(phase.phaseOrder)}
+                                                    className={`p-1 rounded-md transition-colors ${isPhaseEditing
+                                                        ? 'text-blue-600 bg-blue-50'
+                                                        : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
+                                                        }`}
+                                                >
+                                                    <EditOutlined className="text-sm" />
+                                                </button>
+                                                <button
+                                                    title="Xóa giai đoạn"
+                                                    onClick={() => handleDeletePhase(phase.phaseOrder)}
+                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                                >
+                                                    <DeleteOutlined className="text-sm" />
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Phase duration note */}
@@ -234,7 +247,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                         <div className="space-y-2">
                                                             <div className="flex items-center justify-between">
                                                                 <p className="text-[10px] uppercase font-semibold text-slate-500">Chỉnh sửa kháng sinh</p>
-                                                                <div className="flex gap-1">
+                                                                {!readOnly && <div className="flex gap-1">
                                                                     <button
                                                                         title="Đóng chỉnh sửa"
                                                                         onClick={() => toggleEditAbx(key)}
@@ -249,7 +262,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                                     >
                                                                         <DeleteOutlined className="text-sm" />
                                                                     </button>
-                                                                </div>
+                                                                </div>}
                                                             </div>
                                                             <Input
                                                                 size="small"
@@ -308,7 +321,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                                 </span>
 
                                                                 {/* Edit & Delete abx buttons */}
-                                                                <div className="ml-auto flex gap-1 opacity-0 group-hover/abx:opacity-100 transition-opacity">
+                                                                {!readOnly && <div className="ml-auto flex gap-1 opacity-0 group-hover/abx:opacity-100 transition-opacity">
                                                                     <button
                                                                         title="Chỉnh sửa kháng sinh"
                                                                         onClick={() => toggleEditAbx(key)}
@@ -323,7 +336,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                                     >
                                                                         <DeleteOutlined className="text-[12px]" />
                                                                     </button>
-                                                                </div>
+                                                                </div>}
                                                             </div>
                                                             <p className="text-xs text-slate-700 mt-1">
                                                                 Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
@@ -339,7 +352,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                     </div>
 
                                     {/* Add antibiotic button */}
-                                    <div className="mt-4">
+                                    {!readOnly && <div className="mt-4">
                                         <button
                                             type="button"
                                             onClick={() => handleAddAntibiotic(phase.phaseOrder)}
@@ -348,13 +361,13 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                             <PlusOutlined className="mr-2" />
                                             Thêm kháng sinh
                                         </button>
-                                    </div>
+                                    </div>}
                                 </div>
                             );
                         })}
 
                         {/* Add phase button */}
-                        <div className="mt-6">
+                        {!readOnly && <div className="mt-6">
                             <button
                                 type="button"
                                 onClick={handleAddPhase}
@@ -363,7 +376,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                 <PlusOutlined className="mr-2" />
                                 Thêm phase điều trị mới
                             </button>
-                        </div>
+                        </div>}
                     </div>
                 </div>
 

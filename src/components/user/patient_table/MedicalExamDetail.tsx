@@ -15,6 +15,7 @@ import {
     ISensitivityResult,
     IMedicalHistory,
     ISurgery,
+    IPatient,
 } from '@/types/backend';
 import {
     callCreateEpisode,
@@ -53,9 +54,10 @@ interface MedicalExamDetailProps {
     onClose: () => void;
     examData: IEpisode | null;
     patientId?: string;
+    patient?: IPatient | null;
 }
 
-const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId }) => {
+const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId, patient }) => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const latestFetchRequestRef = useRef(0);
@@ -504,7 +506,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     clinicalRecord={clinicalRecord}
                     cultureResults={cultureResults}
                     imageResults={imageResults}
-                    patient={examData?.patient}
+                    patient={patient ?? examData?.patient}
                     episodeId={examData?.id}
                 />
             ),

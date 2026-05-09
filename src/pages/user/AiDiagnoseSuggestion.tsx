@@ -3,7 +3,7 @@ import { Steps, Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
-import { Step5TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
+import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
 import { useAppDispatch } from '@/redux/hook';
 import { clearCurrentCase } from '@/redux/slice/patientSlice';
@@ -50,7 +50,7 @@ const AiDiagnosisSuggestion = () => {
         },
         {
             title: 'Gợi ý phác đồ',
-            content: <Step5TreatmentPlan onPrev={prev} onBackToFirstStep={backToFirstStep} />,
+            content: <TreatmentPlan onPrev={prev} onBackToFirstStep={backToFirstStep} />,
         },
     ];
 

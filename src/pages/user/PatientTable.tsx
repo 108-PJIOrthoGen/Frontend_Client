@@ -1,8 +1,8 @@
 import { callDeletePatient } from '@/apis/api';
 import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
-import MPatientCreateAndUpdate from '@/components/user/patient_table/PatientModal';
-import ManageMedicalDrawer from '@/components/user/patient_table/ManageMedicalDrawer';
+import MPatientCreateAndUpdate from '@/components/user/patient_table/manage/PatientModal';
+import ManageMedicalDrawer from '@/components/user/patient_table/manage/ManageMedicalDrawer';
 import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { fetchPatient } from '@/redux/slice/patientSlice';

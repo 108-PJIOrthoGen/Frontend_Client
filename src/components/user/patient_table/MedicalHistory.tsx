@@ -45,66 +45,63 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
   const { setForm } = useClinicForm();
   const [form] = Form.useForm<MedicalHistoryFormValues>();
 
-  // When data is loaded from API, populate both Redux and Ant Form
+  // Reconcile form + Redux with incoming props on every change, including when
+  // the new episode has no medical history (otherwise stale values from the
+  // previously opened episode leak through).
   useEffect(() => {
-    if (medicalHistoryData || (surgeriesData && surgeriesData.length > 0)) {
-      const mh = medicalHistoryData ?? {};
+    const mh = medicalHistoryData ?? {};
+    const surgeries =
+      surgeriesData && surgeriesData.length > 0
+        ? surgeriesData.map((s) => ({
+          ...s,
+          id: s.id ?? undefined,
+          _tempId: String(s.id ?? Date.now()),
+        }))
+        : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }];
 
-      // Update Redux store
-      setForm((prev) => ({
-        ...prev,
-        medicalHistory: {
-          ...prev.medicalHistory,
-          process: mh.process ?? '',
-          medicalHistory: mh.medicalHistory ?? '',
-          antibioticHistory: mh.antibioticHistory ?? '',
-          isAllergy: mh.isAllergy ?? false,
-          allergyNote: mh.allergyNote ?? '',
-          isDrug: mh.isDrug ?? false,
-          drugNote: mh.drugNote ?? '',
-          isAlcohol: mh.isAlcohol ?? false,
-          alcoholNote: mh.alcoholNote ?? '',
-          isSmoking: mh.isSmoking ?? false,
-          smokingNote: mh.smokingNote ?? '',
-          isOther: mh.isOther ?? false,
-          otherNote: mh.otherNote ?? '',
-        },
-        surgeries:
-          surgeriesData && surgeriesData.length > 0
-            ? surgeriesData.map((s) => ({
-              ...s,
-              id: s.id ?? undefined,
-              _tempId: String(s.id ?? Date.now()),
-            }))
-            : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
-      }));
-
-      // Update Ant Design Form
-      form.setFieldsValue({
+    // Update Redux store
+    setForm((prev) => ({
+      ...prev,
+      medicalHistory: {
+        ...prev.medicalHistory,
         process: mh.process ?? '',
         medicalHistory: mh.medicalHistory ?? '',
         antibioticHistory: mh.antibioticHistory ?? '',
-        characteristics: {
-          isAllergy: mh.isAllergy ?? false,
-          allergyNote: mh.allergyNote ?? '',
-          isDrug: mh.isDrug ?? false,
-          drugNote: mh.drugNote ?? '',
-          isAlcohol: mh.isAlcohol ?? false,
-          alcoholNote: mh.alcoholNote ?? '',
-          isSmoking: mh.isSmoking ?? false,
-          smokingNote: mh.smokingNote ?? '',
-          isOther: mh.isOther ?? false,
-          otherNote: mh.otherNote ?? '',
-        },
-        surgeries:
-          surgeriesData && surgeriesData.length > 0
-            ? surgeriesData.map((s) => ({
-              ...s,
-              _tempId: String(s.id ?? Date.now()),
-            }))
-            : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
-      });
-    }
+        isAllergy: mh.isAllergy ?? false,
+        allergyNote: mh.allergyNote ?? '',
+        isDrug: mh.isDrug ?? false,
+        drugNote: mh.drugNote ?? '',
+        isAlcohol: mh.isAlcohol ?? false,
+        alcoholNote: mh.alcoholNote ?? '',
+        isSmoking: mh.isSmoking ?? false,
+        smokingNote: mh.smokingNote ?? '',
+        isOther: mh.isOther ?? false,
+        otherNote: mh.otherNote ?? '',
+      },
+      surgeries,
+    }));
+
+    // Reset Ant Form first so Form.List rows from the previous episode are
+    // dropped, then apply the new values.
+    form.resetFields();
+    form.setFieldsValue({
+      process: mh.process ?? '',
+      medicalHistory: mh.medicalHistory ?? '',
+      antibioticHistory: mh.antibioticHistory ?? '',
+      characteristics: {
+        isAllergy: mh.isAllergy ?? false,
+        allergyNote: mh.allergyNote ?? '',
+        isDrug: mh.isDrug ?? false,
+        drugNote: mh.drugNote ?? '',
+        isAlcohol: mh.isAlcohol ?? false,
+        alcoholNote: mh.alcoholNote ?? '',
+        isSmoking: mh.isSmoking ?? false,
+        smokingNote: mh.smokingNote ?? '',
+        isOther: mh.isOther ?? false,
+        otherNote: mh.otherNote ?? '',
+      },
+      surgeries,
+    });
   }, [medicalHistoryData, surgeriesData, form, setForm]);
 
   // Sync Ant Form changes to Redux

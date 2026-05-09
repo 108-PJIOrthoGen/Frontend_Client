@@ -9,6 +9,7 @@ export interface SurgerySectionHandle {
 
 interface SurgerySectionProps {
   surgeryPlan: SurgeryPlanData;
+  readOnly?: boolean;
 }
 
 const ScalpelIcon = () => (
@@ -20,6 +21,7 @@ const ScalpelIcon = () => (
 
 const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
   surgeryPlan,
+  readOnly = false,
 }, ref) => {
   const [stages, setStages] = useState<SurgeryStageData[]>(() => surgeryPlan.stages ?? []);
   const [editingStageId, setEditingStageId] = useState<number | null>(null);
@@ -49,38 +51,43 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
 
   // --- Stage handlers ---
   const toggleEditStage = useCallback((stageOrder: number) => {
+    if (readOnly) return;
     setEditingStageId(prev => (prev === stageOrder ? null : stageOrder));
-  }, []);
+  }, [readOnly]);
 
   const handleStageFieldChange = useCallback(
     (stageOrder: number, field: keyof Pick<SurgeryStageData, 'stageName'>, value: string) => {
+      if (readOnly) return;
       setStages(prev =>
         prev.map(s => (s.stageOrder === stageOrder ? { ...s, [field]: value } : s))
       );
     },
-    []
+    [readOnly]
   );
 
   const handleStageDurationChange = useCallback((stageOrder: number, value: string) => {
+    if (readOnly) return;
     const num = parseInt(value, 10);
     setStages(prev =>
       prev.map(s =>
         s.stageOrder === stageOrder
           ? { ...s, estimatedDurationMinutes: isNaN(num) ? 0 : num }
           : s
-      )
+        )
     );
-  }, []);
+  }, [readOnly]);
 
   const handleDeleteStage = useCallback((stageOrder: number) => {
+    if (readOnly) return;
     setStages(prev => {
       const filtered = prev.filter(s => s.stageOrder !== stageOrder);
       return filtered.map((s, idx) => ({ ...s, stageOrder: idx + 1 }));
     });
     setEditingStageId(null);
-  }, []);
+  }, [readOnly]);
 
   const handleAddStage = useCallback(() => {
+    if (readOnly) return;
     setStages(prev => {
       const nextOrder = prev.length + 1;
       const newStage: SurgeryStageData = {
@@ -90,18 +97,20 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
       };
       return [...prev, newStage];
     });
-  }, []);
+  }, [readOnly]);
 
   // --- Risk handlers ---
   const handleDeleteRisk = useCallback((index: number) => {
+    if (readOnly) return;
     setRisksAndComplications(prev => prev.filter((_, i) => i !== index));
-  }, []);
+  }, [readOnly]);
 
   const handleAddRisk = useCallback(() => {
+    if (readOnly) return;
     if (!newRisk.trim()) return;
     setRisksAndComplications(prev => [...prev, newRisk.trim()]);
     setNewRisk('');
-  }, [newRisk]);
+  }, [newRisk, readOnly]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -142,17 +151,19 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
             <p className="text-[12px] uppercase tracking-wide text-slate-700 font-semibold">
               Chỉ định và lý do
             </p>
-            <button
-              title={isEditingInfo ? 'Đóng chỉnh sửa' : 'Chỉnh sửa thông tin'}
-              onClick={() => setIsEditingInfo(prev => !prev)}
-              className={`p-1 rounded-md transition-colors opacity-0 group-hover/info:opacity-100 ${
-                isEditingInfo
-                  ? 'text-blue-600 bg-blue-50'
-                  : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-              }`}
-            >
-              <EditOutlined className="text-sm" />
-            </button>
+            {!readOnly && (
+              <button
+                title={isEditingInfo ? 'Đóng chỉnh sửa' : 'Chỉnh sửa thông tin'}
+                onClick={() => setIsEditingInfo(prev => !prev)}
+                className={`p-1 rounded-md transition-colors opacity-0 group-hover/info:opacity-100 ${
+                  isEditingInfo
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
+                }`}
+              >
+                <EditOutlined className="text-sm" />
+              </button>
+            )}
           </div>
           {isEditingInfo ? (
             <div className="space-y-2 mt-2">
@@ -226,33 +237,35 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                     )}
 
                     {/* Edit & Delete stage buttons */}
-                    <div className="flex gap-1 ml-2 opacity-0 group-hover/stage:opacity-100 transition-opacity">
-                      <button
-                        title={isStageEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
-                        onClick={() => toggleEditStage(stage.stageOrder)}
-                        className={`p-1 rounded-md transition-colors ${
-                          isStageEditing
-                            ? 'text-blue-600 bg-blue-50'
-                            : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-                        }`}
-                      >
-                        <EditOutlined className="text-sm" />
-                      </button>
-                      <button
-                        title="Xóa giai đoạn"
-                        onClick={() => handleDeleteStage(stage.stageOrder)}
-                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                      >
-                        <DeleteOutlined className="text-sm" />
-                      </button>
-                    </div>
+                    {!readOnly && (
+                      <div className="flex gap-1 ml-2 opacity-0 group-hover/stage:opacity-100 transition-opacity">
+                        <button
+                          title={isStageEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
+                          onClick={() => toggleEditStage(stage.stageOrder)}
+                          className={`p-1 rounded-md transition-colors ${
+                            isStageEditing
+                              ? 'text-blue-600 bg-blue-50'
+                              : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
+                          }`}
+                        >
+                          <EditOutlined className="text-sm" />
+                        </button>
+                        <button
+                          title="Xóa giai đoạn"
+                          onClick={() => handleDeleteStage(stage.stageOrder)}
+                          className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        >
+                          <DeleteOutlined className="text-sm" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
             })}
 
             {/* Add stage button */}
-            <div className="mt-4">
+            {!readOnly && <div className="mt-4">
               <button
                 type="button"
                 onClick={handleAddStage}
@@ -261,7 +274,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                 <PlusOutlined className="mr-2" />
                 Thêm giai đoạn phẫu thuật
               </button>
-            </div>
+            </div>}
           </div>
         </div>
 
@@ -292,18 +305,20 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                 className="text-xs px-2 py-1 rounded-full bg-white border border-red-200 text-red-700 flex items-center gap-1 group/risk"
               >
                 {risk}
-                <button
-                  title="Xóa nguy cơ"
-                  onClick={() => handleDeleteRisk(idx)}
-                  className="opacity-0 group-hover/risk:opacity-100 transition-opacity text-red-400 hover:text-red-600"
-                >
-                  <DeleteOutlined className="text-[10px]" />
-                </button>
+                {!readOnly && (
+                  <button
+                    title="Xóa nguy cơ"
+                    onClick={() => handleDeleteRisk(idx)}
+                    className="opacity-0 group-hover/risk:opacity-100 transition-opacity text-red-400 hover:text-red-600"
+                  >
+                    <DeleteOutlined className="text-[10px]" />
+                  </button>
+                )}
               </span>
             ))}
           </div>
           {/* Add risk input */}
-          <div className="mt-2 flex gap-2">
+          {!readOnly && <div className="mt-2 flex gap-2">
             <Input
               size="small"
               placeholder="Thêm nguy cơ mới..."
@@ -320,7 +335,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
             >
               <PlusOutlined />
             </button>
-          </div>
+          </div>}
 
           {/* Notes */}
           {isEditingInfo ? (

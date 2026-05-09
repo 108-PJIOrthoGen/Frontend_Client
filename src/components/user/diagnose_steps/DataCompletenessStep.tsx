@@ -4,7 +4,7 @@ import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { callCreatePendingLabTasksFromCompleteness } from '@/apis/api';
 import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
-import type { IDataCompleteness, IMissingItem } from '@/types/backend';
+import type { IDataCompleteness, IMissingItem, IPermission } from '@/types/backend';
 
 interface Props {
   onNext: () => void;
@@ -36,6 +36,11 @@ const categoryLabel = (cat?: string) => {
 };
 
 const SAVED_REMINDER_KEY_PREFIX = 'pji_savedPendingLabReminder';
+const PATIENT_RECORD_WRITE_PERMISSIONS = [
+  { method: 'POST', apiPath: '/api/v1/episodes/{episodeId}/pending-lab-tasks/from-completeness' },
+  { method: 'PUT', apiPath: '/api/v1/episodes/{id}' },
+  { method: 'PUT', apiPath: '/api/v1/patients/{id}' },
+];
 
 const toNumberId = (value?: string | number | null): number | undefined => {
   if (value == null || value === '') return undefined;
@@ -48,12 +53,31 @@ const getSavedReminderKey = (episodeId?: string | number, runId?: string | null)
   return `${SAVED_REMINDER_KEY_PREFIX}:${episodeId}:${runId || 'no-run'}`;
 };
 
+const hasPermission = (
+  permissions: IPermission[] | undefined,
+  target: { method: string; apiPath: string },
+): boolean => {
+  return !!permissions?.some((permission) =>
+    permission.method === target.method && permission.apiPath === target.apiPath,
+  );
+};
+
 const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
   const [completeness, setCompleteness] = useState<IDataCompleteness | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const dispatch = useAppDispatch();
   const currentCase = useAppSelector(state => state.patient.currentCase);
+  const currentUser = useAppSelector(state => state.account.user);
+  const permissions = currentUser.role.permissions as IPermission[] | undefined;
+  const roleName = currentUser.role.name?.toUpperCase() ?? '';
+  const isAdmin = roleName === 'ADMIN' || roleName === 'SUPER_ADMIN';
+  const patientCreatedBy = currentCase?.patient?.createdBy;
+  const ownsPatientRecord = !patientCreatedBy || patientCreatedBy === currentUser.email;
+  const hasPatientRecordWritePermission = PATIENT_RECORD_WRITE_PERMISSIONS.some((permission) =>
+    hasPermission(permissions, permission),
+  );
+  const canSaveReminders = hasPatientRecordWritePermission && (ownsPatientRecord || isAdmin);
 
   useEffect(() => {
     setCompleteness(null);
@@ -75,7 +99,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
   const isComplete = completeness?.is_complete ?? missingItems.length === 0;
 
   const handleSaveReminders = async () => {
-    if (saved || saving) return;
+    if (saved || saving || !canSaveReminders) return;
 
     const episodeId = toNumberId(currentCase?.episode?.id);
     if (!episodeId) return;
@@ -237,15 +261,23 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
                       type="primary"
                       onClick={handleSaveReminders}
                       loading={saving}
-                      disabled={saved || saving}
+                      disabled={saved || saving || !canSaveReminders}
                       icon={saved
                         ? <CheckCircleOutlined />
+                        : !canSaveReminders
+                          ? <span className="material-symbols-outlined text-[16px]">lock</span>
                         : <span className="material-symbols-outlined text-[16px]">bookmark_add</span>}
                       className={saved
                         ? 'bg-emerald-500 border-emerald-500'
+                        : !canSaveReminders
+                          ? 'bg-slate-300 border-slate-300 text-slate-600'
                         : 'bg-amber-500 border-amber-500 hover:bg-amber-600'}
                     >
-                      {saved ? 'Đã lưu nhắc nhở' : 'Lưu nhắc nhở & tiếp tục'}
+                      {saved
+                        ? 'Đã lưu nhắc nhở'
+                        : !canSaveReminders
+                          ? 'Chỉ được xem bệnh án'
+                          : 'Lưu nhắc nhở & tiếp tục'}
                     </Button>
                   </div>
                 </div>
