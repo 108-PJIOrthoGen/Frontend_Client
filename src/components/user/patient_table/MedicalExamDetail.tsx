@@ -397,6 +397,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 const payload: Partial<IImageResult> = {
                     episodeId: Number(episodeId),
                     type: img.type,
+                    bucket: img.bucket,
+                    objectKey: img.objectKey,
+                    // Keep fileMetadata for backward-compat with legacy display paths.
                     fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
                     findings: form.imagingDescription || undefined,
                 };
@@ -407,6 +410,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 const payload: Partial<IImageResult> = {
                     episodeId: Number(episodeId),
                     type: img.type,
+                    bucket: img.bucket,
+                    objectKey: img.objectKey,
+                    // Keep fileMetadata for backward-compat with legacy display paths.
                     fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
                     findings: form.imagingDescription || undefined,
                     imagingDate: new Date().toISOString().split('T')[0],

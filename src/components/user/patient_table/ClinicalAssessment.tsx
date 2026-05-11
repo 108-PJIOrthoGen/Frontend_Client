@@ -69,7 +69,9 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
     setImageTypeModalOpen(false);
     try {
       const res = await callUploadImage(pendingImageFile, 'clinical-images');
-      const uploadedFileName = (res as any)?.fileName || (res as any)?.data?.fileName;
+      const uploadedFileName = (res as any)?.fileName ?? (res as any)?.data?.fileName;
+      const bucket = (res as any)?.bucket ?? (res as any)?.data?.bucket;
+      const objectKey = (res as any)?.objectKey ?? (res as any)?.data?.objectKey;
       if (uploadedFileName) {
         const newImage = {
           id: Math.random().toString(36).substring(2, 11),
@@ -77,6 +79,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
           previewUrl,
           type: selectedImageType,
           name: pendingImageFile.name,
+          bucket,
+          objectKey,
         };
         setForm((prev) => ({
           ...prev,

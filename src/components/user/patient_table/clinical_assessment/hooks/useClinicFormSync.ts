@@ -150,15 +150,23 @@ export function useClinicFormSync({
     if (imageResults && imageResults.length > 0) {
       setForm((prev) => {
         const newImages = imageResults.map((img) => {
-          let url = img.fileMetadata || '';
+          // Prefer the top-level `url` from the new backend response — it's a fresh
+          // presigned URL valid for the configured expiry window. Fall back to
+          // parsing legacy fileMetadata for rows uploaded before the refactor.
+          let url = img.url || '';
           let name = 'Hinh anh';
-          if (img.fileMetadata && img.fileMetadata.startsWith('{')) {
-            try {
-              const meta = JSON.parse(img.fileMetadata);
-              url = meta.url || meta.fileName || url;
-              name = meta.name || meta.originalName || name;
-            } catch {
-              /* ignore parse error */
+          if (!url && img.fileMetadata) {
+            if (img.fileMetadata.startsWith('{')) {
+              try {
+                const meta = JSON.parse(img.fileMetadata);
+                url = meta.url || meta.fileName || '';
+                name = meta.name || meta.originalName || name;
+              } catch {
+                /* legacy plain-string fileMetadata */
+                url = img.fileMetadata;
+              }
+            } else {
+              url = img.fileMetadata;
             }
           }
           return {
@@ -166,6 +174,10 @@ export function useClinicFormSync({
             url,
             type: img.type || 'X-ray',
             name,
+            // Carry through so re-saves preserve the canonical identifier even if the
+            // server-side URL has expired by then.
+            bucket: img.bucket,
+            objectKey: img.objectKey,
           };
         });
         return {

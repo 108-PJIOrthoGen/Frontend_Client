@@ -31,7 +31,7 @@ export interface IClinicFormState {
     antibioticed?: boolean;
     daysOffAntibio?: number | '';
   })[];
-  formImages: { id: string; url: string; type: string; name: string; previewUrl?: string }[];
+  formImages: { id: string; url: string; type: string; name: string; previewUrl?: string; bucket?: string; objectKey?: string }[];
   imagingDescription: string;
   hematologyTests: TestItem[];
   biochemistryTests: TestItem[];
