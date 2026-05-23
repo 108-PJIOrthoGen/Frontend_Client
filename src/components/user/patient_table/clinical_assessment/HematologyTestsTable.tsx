@@ -2,6 +2,7 @@ import React from 'react';
 import { Input } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { getTestStatus } from './utils/testStatus';
+import { getTestRowKind } from './utils/testRowKind';
 
 const HematologyTestsTable: React.FC = () => {
   const { form: clinicForm, setForm } = useClinicForm();
@@ -49,9 +50,11 @@ const HematologyTestsTable: React.FC = () => {
           </thead>
           <tbody className="divide-y divide-slate-200">
             {clinicForm.hematologyTests?.map((test, index) => {
-              const isCustom = test.id.startsWith('ht_custom_');
+              const kind = getTestRowKind(test.id);
+              const isCustom = kind === 'custom';
+              const isExtra = kind === 'extra';
               return (
-                <tr key={test.id} className="hover:bg-slate-50/50">
+                <tr key={test.id ?? `row-${index}`} className="hover:bg-slate-50/50">
                   <td className="px-4 py-2 font-medium text-slate-900 border-r border-slate-200">
                     {isCustom ? (
                       <Input
@@ -67,7 +70,17 @@ const HematologyTestsTable: React.FC = () => {
                         className="w-full border-none bg-transparent px-0"
                       />
                     ) : (
-                      test.name
+                      <span className="flex items-center gap-2">
+                        {test.name}
+                        {isExtra && (
+                          <span
+                            title="Xét nghiệm do AI đề xuất, không thuộc bảng chuẩn"
+                            className="text-[10px] font-bold uppercase tracking-wide bg-violet-100 text-violet-700 px-1.5 py-0.5 rounded"
+                          >
+                            AI
+                          </span>
+                        )}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-2 border-r border-slate-200 p-0">

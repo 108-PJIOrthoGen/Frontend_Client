@@ -67,10 +67,14 @@ export function useClinicFormSync({
       setForm((prev) => {
         const mergeTests = (
           defaults: TestItem[],
-          backendItems?: { id: string; name: string; value?: number | null; unit: string; normalRange: string }[],
+          backendItems?: { id?: string; name: string; value?: number | null; unit: string; normalRange: string }[],
         ) => {
           if (!backendItems || backendItems.length === 0) return defaults;
-          const backendMap = new Map(backendItems.map((item) => [item.id, item]));
+          // Legacy backend rows can lack an id (quick-entry before the canonical-id
+          // contract). Dropping them here prevents the table renderer from doing
+          // test.id.startsWith() on undefined.
+          const usableItems = backendItems.filter((b) => typeof b.id === 'string' && b.id);
+          const backendMap = new Map(usableItems.map((item) => [item.id as string, item]));
           const merged = defaults.map((d) => {
             const b = backendMap.get(d.id);
             if (b) {
@@ -86,7 +90,7 @@ export function useClinicFormSync({
           });
           backendMap.forEach((b) => {
             merged.push({
-              id: b.id,
+              id: b.id as string,
               name: b.name,
               result: b.value != null ? String(b.value) : '',
               unit: b.unit,

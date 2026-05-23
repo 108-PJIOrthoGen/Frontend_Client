@@ -1,10 +1,11 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Button, Result, message } from 'antd';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Badge, Button, Card, Flex, Result, Space, Spin, Tag, Typography, message } from 'antd';
 import { useAppSelector } from '@/redux/hook';
 import {
   callGenerateAiRecommendation,
   callFetchAiRecommendationRunDetail,
 } from '@/apis/api';
+import { openSse, type SseConnection } from '@/utils/sseClient';
 
 interface ClinicalAssessmentProps {
   onNext?: () => void;
@@ -14,18 +15,334 @@ interface ClinicalAssessmentProps {
 const POLL_INTERVAL_MS = 3000;
 const MAX_POLL_ATTEMPTS = 100;
 
+const PENDING_RUN_ID_KEY = 'pending_pji_aiRunId';
+const PENDING_THOUGHT_LOGS_KEY = 'pending_pji_thoughtLogs';
+const MAX_THOUGHT_LOGS = 200;
+
+interface ThoughtLog {
+  at: number;
+  stage: string;
+  message: string;
+}
+
+const safeParseLogs = (raw: string | null): ThoughtLog[] => {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((it) => it && typeof it.message === 'string')
+      .slice(-MAX_THOUGHT_LOGS);
+  } catch {
+    return [];
+  }
+};
+
+const stageTagColor = (stage: string): string => {
+  switch (stage) {
+    case 'start': return 'cyan';
+    case 'done': return 'green';
+    case 'error': return 'red';
+    default: return 'geekblue';
+  }
+};
+
+const formatLogTime = (ts: number): string => {
+  const d = new Date(ts);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
+};
+
+const ThoughtStreamConsole: React.FC<{ logs: ThoughtLog[] }> = ({ logs }) => {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [logs.length]);
+
+  const header = (
+    <Flex justify="space-between" align="center" style={{ width: '100%' }}>
+      <Space size={6} align="center">
+        <Typography.Text
+          strong
+          style={{
+            color: '#67e8f9',
+            fontSize: 12,
+            letterSpacing: '0.2em',
+            textTransform: 'uppercase',
+          }}
+        >
+          Luồng Suy Nghĩ
+        </Typography.Text>
+      </Space>
+      <Badge
+        status="processing"
+        color="#34d399"
+        text={
+          <Typography.Text
+            style={{
+              color: '#94a3b8',
+              fontSize: 10,
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Đang xử lý
+          </Typography.Text>
+        }
+      />
+    </Flex>
+  );
+
+  return (
+    <Flex justify="center" style={{ padding: '30px 16px', width: '100%' }}>
+      <Card
+        variant="borderless"
+        title={header}
+        style={{
+          width: '100%',
+          maxWidth: 768,
+          background: 'linear-gradient(135deg, #2b2e36 0%, #3a9775 100%)',
+          borderRadius: 12,
+          boxShadow: '0 25px 60px -15px rgba(15,23,42,0.45)',
+          overflow: 'hidden',
+        }}
+        styles={{
+          header: {
+            background: 'rgba(0,0,0,0.25)',
+            backdropFilter: 'blur(12px)',
+            borderBottom: '1px solid rgba(148,163,184,0.2)',
+            padding: '14px 22px',
+            minHeight: 0,
+          },
+          body: {
+            padding: 0,
+            background: 'transparent',
+            position: 'relative',
+          },
+        }}
+      >
+        <div
+          ref={scrollerRef}
+          className="custom-scrollbar"
+          style={{
+            padding: '20px 24px',
+            maxHeight: '60vh',
+            overflowY: 'auto',
+            fontFamily: 'SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+            fontSize: 13,
+            lineHeight: 1.7,
+          }}
+        >
+          {logs.length === 0 ? (
+            <Flex align="center" gap={8}>
+              <Spin size="small" />
+              <Typography.Text italic style={{ color: '#64748b' }}>
+                Đang khởi tạo phiên phân tích...
+              </Typography.Text>
+            </Flex>
+          ) : (
+            logs.map((log, idx) => (
+              <Flex
+                key={`${log.at}-${idx}`}
+                gap={12}
+                align="flex-start"
+                style={{ marginBottom: 6 }}
+                className="animate-fade-in"
+              >
+                <Typography.Text style={{ color: '#64748b', flexShrink: 0, fontFamily: 'inherit' }}>
+                  [{formatLogTime(log.at)}]
+                </Typography.Text>
+                <Tag
+                  color={stageTagColor(log.stage)}
+                  style={{
+                    marginTop: 2,
+                    marginInlineEnd: 0,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    fontSize: 10,
+                    letterSpacing: '0.1em',
+                    flexShrink: 0,
+                  }}
+                >
+                  {log.stage}
+                </Tag>
+                <Typography.Text style={{ color: '#e2e8f0', wordBreak: 'break-word', flex: 1, fontFamily: 'inherit' }}>
+                  {log.message}
+                  {idx === logs.length - 1 && (
+                    <span
+                      className="animate-pulse"
+                      style={{
+                        display: 'inline-block',
+                        width: 8,
+                        height: 16,
+                        background: '#67e8f9',
+                        marginLeft: 4,
+                        verticalAlign: 'middle',
+                      }}
+                    />
+                  )}
+                </Typography.Text>
+              </Flex>
+            ))
+          )}
+        </div>
+
+        <Flex
+          justify="space-between"
+          align="center"
+          style={{
+            padding: '12px 22px',
+            borderTop: '1px solid rgba(148,163,184,0.2)',
+            background: 'rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(12px)',
+          }}
+        >
+          <Typography.Text style={{ color: '#94a3b8', fontSize: 11 }}>
+            {logs.length} bước đã ghi nhận
+          </Typography.Text>
+          <Typography.Text style={{ color: '#94a3b8', fontSize: 11, opacity: 0.65 }}>
+            Có thể tạm rời trang — tiến trình vẫn tiếp tục
+          </Typography.Text>
+        </Flex>
+      </Card>
+    </Flex>
+  );
+};
+
 export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => {
   const [isAILoading, setIsAILoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [diagnosticData, setDiagnosticData] = useState<Record<string, any> | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isViewingPrevious, setIsViewingPrevious] = useState(false);
+  const [thoughtLogs, setThoughtLogs] = useState<ThoughtLog[]>([]);
+
+  const sseRef = useRef<SseConnection | null>(null);
+  const thoughtLogsRef = useRef<ThoughtLog[]>([]);
 
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
 
-  // On mount: check if a previous run was pre-loaded from PatientExamSelector
+  const apiBase = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '';
+
+  const appendLog = useCallback((entry: ThoughtLog) => {
+    setThoughtLogs((prev) => {
+      const next = [...prev, entry].slice(-MAX_THOUGHT_LOGS);
+      thoughtLogsRef.current = next;
+      try {
+        localStorage.setItem(PENDING_THOUGHT_LOGS_KEY, JSON.stringify(next));
+      } catch {
+        // localStorage quota — ignore.
+      }
+      return next;
+    });
+  }, []);
+
+  const clearPending = useCallback(() => {
+    localStorage.removeItem(PENDING_RUN_ID_KEY);
+    localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+  }, []);
+
+  const connectStream = useCallback((runId: string) => {
+    if (sseRef.current) {
+      sseRef.current.close();
+      sseRef.current = null;
+    }
+    if (!apiBase) {
+      return;
+    }
+    const token = typeof window !== 'undefined'
+      ? window.localStorage.getItem('access_token')
+      : null;
+    sseRef.current = openSse({
+      url: `${apiBase}/api/v1/ai-recommendations/runs/${runId}/stream`,
+      token,
+      onEvent: (frame) => {
+        if (frame.event === 'done') return; // result poll handles final UI
+        appendLog({
+          at: Date.now(),
+          stage: frame.event || 'step',
+          message: frame.data,
+        });
+      },
+      onError: () => {
+        // Network blip — leave logs in place; the result poll still drives completion.
+      },
+    });
+  }, [apiBase, appendLog]);
+
+  const pollRunDetail = useCallback(async (runId: string) => {
+    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      const res = await callFetchAiRecommendationRunDetail(runId);
+      const detail = res?.data;
+      if (!detail?.run) continue;
+
+      const status = detail.run.status;
+      if (status === 'SUCCESS' || status === 'PARTIAL') return detail;
+      if (status === 'FAILED' || status === 'TIMEOUT') {
+        throw new Error(detail.run.errorMessage || 'AI recommendation failed');
+      }
+    }
+    throw new Error('Polling timeout — recommendation is taking too long');
+  }, []);
+
+  const applyDetail = useCallback((detail: any) => {
+    const diagnosticItem = detail?.items?.find(
+      (item: any) => item.category === 'DIAGNOSTIC_TEST'
+    );
+    if (diagnosticItem) {
+      const itemData =
+        typeof diagnosticItem.itemJson === 'string'
+          ? JSON.parse(diagnosticItem.itemJson)
+          : diagnosticItem.itemJson;
+      setDiagnosticData({ title: diagnosticItem.title, ...itemData });
+    }
+  }, []);
+
+  const resumeRun = useCallback(async (runId: string) => {
+    setIsAILoading(true);
+    setErrorMsg(null);
+    connectStream(runId);
+    try {
+      const detail = await pollRunDetail(runId);
+      if (!detail) throw new Error('Không nhận được kết quả');
+
+      localStorage.setItem('pji_aiRunId', String(runId));
+      localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
+
+      applyDetail(detail);
+      setShowResults(true);
+      message.success('Phân tích AI hoàn tất!');
+    } catch (err: any) {
+      const msg = err?.message || 'Đã xảy ra lỗi khi phân tích AI';
+      setErrorMsg(msg);
+      message.error(msg);
+    } finally {
+      setIsAILoading(false);
+      clearPending();
+    }
+  }, [applyDetail, clearPending, connectStream, pollRunDetail]);
+
+  // On mount: restore a pending run (if any), else show the history snapshot.
   useEffect(() => {
+    const pendingRunId = localStorage.getItem(PENDING_RUN_ID_KEY);
+    if (pendingRunId) {
+      const cachedLogs = safeParseLogs(localStorage.getItem(PENDING_THOUGHT_LOGS_KEY));
+      thoughtLogsRef.current = cachedLogs;
+      setThoughtLogs(cachedLogs);
+      void resumeRun(pendingRunId);
+      return;
+    }
+
     const cachedDetail = localStorage.getItem('pji_aiRunDetail');
     const cachedRunId = localStorage.getItem('pji_aiRunId');
     if (cachedDetail && cachedRunId) {
@@ -47,22 +364,18 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
         // Invalid cache — fall through to normal generate flow
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const pollRunDetail = useCallback(async (runId: string) => {
-    for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
-      const res = await callFetchAiRecommendationRunDetail(runId);
-      const detail = res?.data;
-      if (!detail?.run) continue;
-
-      const status = detail.run.status;
-      if (status === 'SUCCESS' || status === 'PARTIAL') return detail;
-      if (status === 'FAILED' || status === 'TIMEOUT') {
-        throw new Error(detail.run.errorMessage || 'AI recommendation failed');
+  // Always tear down the SSE connection on unmount — onMount will re-open it
+  // from localStorage if a run is still pending.
+  useEffect(() => {
+    return () => {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
       }
-    }
-    throw new Error('Polling timeout — recommendation is taking too long');
+    };
   }, []);
 
   const handleAIPredict = async () => {
@@ -73,11 +386,17 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
     setIsAILoading(true);
     setErrorMsg(null);
+    setThoughtLogs([]);
+    thoughtLogsRef.current = [];
+    localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
 
     try {
       const generateRes = await callGenerateAiRecommendation(String(episodeId));
       const runId = generateRes?.data?.run?.id;
       if (!runId) throw new Error('Không nhận được runId từ server');
+
+      localStorage.setItem(PENDING_RUN_ID_KEY, String(runId));
+      connectStream(String(runId));
 
       const detail = await pollRunDetail(String(runId));
       if (!detail) throw new Error('Không nhận được kết quả');
@@ -85,17 +404,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       localStorage.setItem('pji_aiRunId', String(runId));
       localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
 
-      const diagnosticItem = detail.items?.find(
-        item => item.category === 'DIAGNOSTIC_TEST'
-      );
-      if (diagnosticItem) {
-        const itemData =
-          typeof diagnosticItem.itemJson === 'string'
-            ? JSON.parse(diagnosticItem.itemJson)
-            : diagnosticItem.itemJson;
-        setDiagnosticData({ title: diagnosticItem.title, ...itemData });
-      }
-
+      applyDetail(detail);
       setShowResults(true);
       message.success('Phân tích AI hoàn tất!');
     } catch (err: any) {
@@ -104,6 +413,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       message.error(msg);
     } finally {
       setIsAILoading(false);
+      clearPending();
     }
   };
 
@@ -429,6 +739,8 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
             </div>
           </div>
+        ) : isAILoading ? (
+          <ThoughtStreamConsole logs={thoughtLogs} />
         ) : (
           <div className="flex items-center justify-center h-full px-4 pt-20">
             <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-10 text-center flex flex-col items-center">

@@ -56,7 +56,7 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
     const ids = new Set<number>();
     tasks.forEach((task) => {
       if (task.id == null) return;
-      if (task.episode?.id !== activeEpisodeId) return;
+      if (task.episode?.id !== activeEpisodeId as unknown) return;
       if (isPendingTaskLikelyResolved(task, entries)) ids.add(task.id);
     });
     return ids;
@@ -164,18 +164,18 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
                     <div className="text-xs text-slate-500">{selectedGroup.episodeLabel}</div>
                   </div>
                 </div>
-              <List
-                size="small"
-                dataSource={selectedGroup.tasks}
-                renderItem={(task) => {
-                  const likelyResolved =
-                    task.id != null && likelyResolvedTaskIds.has(task.id);
-                  const itemClassName = likelyResolved
-                    ? '!px-3 !py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200'
-                    : '!px-3 !py-2 rounded-lg hover:bg-slate-50 transition-colors';
-                  const actions = [
-                    ...(likelyResolved
-                      ? [
+                <List
+                  size="small"
+                  dataSource={selectedGroup.tasks}
+                  renderItem={(task) => {
+                    const likelyResolved =
+                      task.id != null && likelyResolvedTaskIds.has(task.id);
+                    const itemClassName = likelyResolved
+                      ? '!px-3 !py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors border border-emerald-200'
+                      : '!px-3 !py-2 rounded-lg hover:bg-slate-50 transition-colors';
+                    const actions = [
+                      ...(likelyResolved
+                        ? [
                           <Popconfirm
                             key="resolve"
                             title="Đã có kết quả trong form — đánh dấu hoàn tất?"
@@ -193,56 +193,56 @@ const PendingLabTasksDrawer: React.FC<Props> = ({ open, onClose, onRefresh }) =>
                             </Button>
                           </Popconfirm>,
                         ]
-                      : []),
-                    <Button
-                      key="entry"
-                      type="link"
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => handleQuickEntry(task)}
-                    >
-                      Nhập
-                    </Button>,
-                    <Popconfirm
-                      key="dismiss"
-                      title="Bỏ qua nhắc nhở này?"
-                      onConfirm={() => handleDismiss(task.id!)}
-                      okText="Bỏ qua"
-                      cancelText="Hủy"
-                    >
+                        : []),
                       <Button
+                        key="entry"
                         type="link"
                         size="small"
-                        danger
-                        icon={<DeleteOutlined />}
-                      />
-                    </Popconfirm>,
-                  ];
-                  return (
-                    <List.Item className={itemClassName} actions={actions}>
-                      <List.Item.Meta
-                        title={
-                          <span className="text-xs">
-                            <Tag color={importanceColor(task.importance)} className="mr-1">
-                              {task.importance}
-                            </Tag>
-                            <Tag className="mr-1">{categoryLabel(task.category)}</Tag>
-                            {likelyResolved && (
-                              <Tag color="green" className="mr-1">
-                                Đã có kết quả?
+                        icon={<EditOutlined />}
+                        onClick={() => handleQuickEntry(task)}
+                      >
+                        Nhập
+                      </Button>,
+                      <Popconfirm
+                        key="dismiss"
+                        title="Bỏ qua nhắc nhở này?"
+                        onConfirm={() => handleDismiss(task.id!)}
+                        okText="Bỏ qua"
+                        cancelText="Hủy"
+                      >
+                        <Button
+                          type="link"
+                          size="small"
+                          danger
+                          icon={<DeleteOutlined />}
+                        />
+                      </Popconfirm>,
+                    ];
+                    return (
+                      <List.Item className={itemClassName} actions={actions}>
+                        <List.Item.Meta
+                          title={
+                            <span className="text-xs">
+                              <Tag color={importanceColor(task.importance)} className="mr-1">
+                                {task.importance}
                               </Tag>
-                            )}
-                            BA #{task.episode?.id}
-                          </span>
-                        }
-                        description={
-                          <span className="text-xs text-slate-500">{task.message}</span>
-                        }
-                      />
-                    </List.Item>
-                  );
-                }}
-              />
+                              <Tag className="mr-1">{categoryLabel(task.category)}</Tag>
+                              {likelyResolved && (
+                                <Tag color="green" className="mr-1">
+                                  Đã có kết quả?
+                                </Tag>
+                              )}
+                              BA #{task.episode?.id}
+                            </span>
+                          }
+                          description={
+                            <span className="text-xs text-slate-500">{task.message}</span>
+                          }
+                        />
+                      </List.Item>
+                    );
+                  }}
+                />
               </div>
             )}
           </div>

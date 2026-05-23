@@ -90,11 +90,9 @@ const QuickLabEntryModal: React.FC<Props> = ({ task, open, onClose, onSuccess })
           label={`${meta.label}${meta.unit ? ` (${meta.unit})` : ''}`}
           rules={[{ required: true, message: 'Vui lòng nhập giá trị' }]}
         >
-          {meta.type === 'number' ? (
-            <InputNumber className="w-full" placeholder="Nhập giá trị" />
-          ) : (
-            <Input placeholder="Nhập giá trị" />
-          )}
+
+          <Input placeholder="Nhập phân tích" />
+
         </Form.Item>
       </Form>
     </Modal>
