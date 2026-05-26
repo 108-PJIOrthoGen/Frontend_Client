@@ -2,6 +2,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hook";
 import { runLogoutAction, setRefreshTokenAction } from "@/redux/slice/accountSlice";
 import { message } from "antd";
 import { useEffect } from "react";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 
 interface IProps {
     children: React.ReactNode
@@ -22,9 +23,9 @@ const LayoutApp = (props: IProps) => {
     }, [isRefreshToken]);
 
     return (
-        <>
+        <NotificationProvider>
             {props.children}
-        </>
+        </NotificationProvider>
     )
 }
 export default LayoutApp

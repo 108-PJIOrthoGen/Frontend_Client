@@ -1,19 +1,82 @@
 import React, { useState, useEffect } from 'react';
 import { Steps, Breadcrumb } from 'antd';
 import { HomeOutlined } from '@ant-design/icons';
+import { useLocation } from 'react-router-dom';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
 import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
-import { useAppDispatch } from '@/redux/hook';
-import { clearCurrentCase } from '@/redux/slice/patientSlice';
+import { useAppDispatch, useAppSelector } from '@/redux/hook';
+import { clearCurrentCase, setCurrentCase } from '@/redux/slice/patientSlice';
+import { callFetchEpisodeById } from '@/apis/api';
+
+// Index in `steps` array — kept here so notification click navigation lands on
+// the right tab without depending on string matching.
+const STEP_ASSESSMENT = 1;
 
 const AiDiagnosisSuggestion = () => {
     const dispatch = useAppDispatch();
+    const location = useLocation();
+    const currentCase = useAppSelector(state => state.patient.currentCase);
     const [currentStep, setCurrentStep] = useState(() => {
+        // Notification deep-link wins: if the user arrived via `?runId=...`,
+        // jump straight to the assessment tab so the AssessmentPji component
+        // mounts and rehydrates from the URL. Otherwise fall back to whatever
+        // step they were on last time.
+        if (new URLSearchParams(window.location.search).get('runId')) {
+            return STEP_ASSESSMENT;
+        }
         const saved = localStorage.getItem('pji_currentStep');
         return saved ? parseInt(saved, 10) : 0;
     });
+
+    // If the user is already on this page and clicks another notification, the
+    // component doesn't remount — we still need to react to the URL change.
+    useEffect(() => {
+        if (new URLSearchParams(location.search).get('runId')) {
+            setCurrentStep(STEP_ASSESSMENT);
+        }
+    }, [location.search]);
+
+    // Notification deep-link also carries `episodeId`. If it points at a
+    // different episode than the one currently loaded in Redux (or none is
+    // loaded), fetch the episode so the sidebar's "Ca bệnh hiện tại" widget
+    // reflects the patient the user is now looking at.
+    useEffect(() => {
+        const episodeIdParam = new URLSearchParams(location.search).get('episodeId');
+        if (!episodeIdParam) return;
+        const epId = Number(episodeIdParam);
+        if (!Number.isFinite(epId)) return;
+        if (currentCase?.episode?.id != null
+            && Number(currentCase.episode.id) === epId) {
+            // Already loaded — nothing to do.
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const res: any = await callFetchEpisodeById(String(epId));
+                if (cancelled) return;
+                const episode = res?.data?.data ?? res?.data;
+                const patient = episode?.patient;
+                if (episode && patient) {
+                    dispatch(setCurrentCase({ patient, episode }));
+                } else {
+                    // Backend didn't include nested patient — sidebar widget
+                    // stays as-is. Not fatal: the assessment tab still loads.
+                    // eslint-disable-next-line no-console
+                    console.warn(
+                        'Notification deep-link: episode response missing nested patient',
+                        episode,
+                    );
+                }
+            } catch (err) {
+                // eslint-disable-next-line no-console
+                console.warn('Failed to load episode for notification deep-link', err);
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [location.search, currentCase?.episode?.id, dispatch]);
 
     useEffect(() => {
         localStorage.setItem('pji_currentStep', currentStep.toString());

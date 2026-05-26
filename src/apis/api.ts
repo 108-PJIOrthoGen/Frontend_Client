@@ -64,6 +64,19 @@ export const callFetchAccountAPI = () => {
 export const LogoutAPI = () => {
     return instance.post('/api/v1/auth/logout')
 }
+export const callVerifyDeviceAPI = (email: string, challengeId: string, otp: string) => {
+    return instance.post(`/api/v1/auth/verify-device`, { email, challengeId, otp })
+}
+export const callUpdateOwnProfile = (payload: {
+    fullName: string;
+    phone?: string;
+    department?: string;
+    avatar?: string;
+    currentPassword?: string;
+    newPassword?: string;
+}): Promise<IBackendRes<IUser>> => {
+    return instance.put(`/api/v1/auth/account`, payload)
+}
 export const callCreateRole = (role: IRole): Promise<IBackendRes<IRole>> => {
     return instance.post('/api/v1/add-role', { ...role })
 }
@@ -419,3 +432,42 @@ export const callCreatePendingLabTasksFromCompleteness = (
 
 
 
+
+/**
+ * Module Notification
+ */
+import type { INotification } from '@/types/notification';
+
+export interface INotificationPage {
+    content: INotification[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+    first: boolean;
+    last: boolean;
+}
+
+export const callFetchNotifications = (params: {
+    page?: number;
+    size?: number;
+    unreadOnly?: boolean;
+} = {}): Promise<IBackendRes<INotificationPage>> => {
+    return instance.get('/api/v1/notifications', { params });
+};
+
+export const callFetchUnreadNotificationCount = (): Promise<IBackendRes<{ unreadCount: number }>> => {
+    return instance.get('/api/v1/notifications/unread-count');
+};
+
+export const callMarkNotificationRead = (id: number): Promise<IBackendRes<{ updated: boolean }>> => {
+    return instance.patch(`/api/v1/notifications/${id}/read`);
+};
+
+export const callMarkAllNotificationsRead = (): Promise<IBackendRes<{ updated: number }>> => {
+    return instance.post('/api/v1/notifications/mark-all-read');
+};
+
+export const callCancelAiRun = (runId: number | string): Promise<IBackendRes<void>> => {
+    return instance.post(`/api/v1/ai-recommendations/runs/${runId}/cancel`);
+};

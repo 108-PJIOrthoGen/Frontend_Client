@@ -1,9 +1,11 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Badge, Button, Card, Flex, Result, Space, Spin, Tag, Typography, message } from 'antd';
+import { Badge, Button, Card, Flex, Space, Spin, Tag, Typography, message } from 'antd';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAppSelector } from '@/redux/hook';
 import {
   callGenerateAiRecommendation,
   callFetchAiRecommendationRunDetail,
+  callCancelAiRun,
 } from '@/apis/api';
 import { openSse, type SseConnection } from '@/utils/sseClient';
 
@@ -12,7 +14,7 @@ interface ClinicalAssessmentProps {
   onPrev?: () => void;
 }
 
-const POLL_INTERVAL_MS = 3000;
+const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 100;
 
 const PENDING_RUN_ID_KEY = 'pending_pji_aiRunId';
@@ -223,6 +225,9 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
   const sseRef = useRef<SseConnection | null>(null);
   const thoughtLogsRef = useRef<ThoughtLog[]>([]);
+  const currentRunIdRef = useRef<string | null>(null);
+  const cancelledRef = useRef<boolean>(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
@@ -282,12 +287,18 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const pollRunDetail = useCallback(async (runId: string) => {
     for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
       await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
+      if (cancelledRef.current) {
+        // The cancel handler already handled UI/state — bail out without
+        // throwing so the parent flow's catch doesn't fire an error toast.
+        return null;
+      }
       const res = await callFetchAiRecommendationRunDetail(runId);
       const detail = res?.data;
       if (!detail?.run) continue;
 
       const status = detail.run.status;
       if (status === 'SUCCESS' || status === 'PARTIAL') return detail;
+      if (status === 'CANCELLED') return null;
       if (status === 'FAILED' || status === 'TIMEOUT') {
         throw new Error(detail.run.errorMessage || 'AI recommendation failed');
       }
@@ -311,10 +322,15 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const resumeRun = useCallback(async (runId: string) => {
     setIsAILoading(true);
     setErrorMsg(null);
+    currentRunIdRef.current = runId;
+    cancelledRef.current = false;
     connectStream(runId);
     try {
       const detail = await pollRunDetail(runId);
-      if (!detail) throw new Error('Không nhận được kết quả');
+      if (cancelledRef.current || !detail) {
+        // Cancelled while polling — the cancel handler already cleared state.
+        return;
+      }
 
       localStorage.setItem('pji_aiRunId', String(runId));
       localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
@@ -323,17 +339,35 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       setShowResults(true);
       message.success('Phân tích AI hoàn tất!');
     } catch (err: any) {
+      if (cancelledRef.current) return;
       const msg = err?.message || 'Đã xảy ra lỗi khi phân tích AI';
       setErrorMsg(msg);
       message.error(msg);
     } finally {
       setIsAILoading(false);
+      currentRunIdRef.current = null;
       clearPending();
     }
   }, [applyDetail, clearPending, connectStream, pollRunDetail]);
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
   // On mount: restore a pending run (if any), else show the history snapshot.
   useEffect(() => {
+    // 1. Deep-link from a notification: `?runId=<id>` wins over any local cache,
+    //    since the user explicitly clicked a notification for that run.
+    const urlRunId = new URLSearchParams(location.search).get('runId');
+    if (urlRunId) {
+      // Strip the query param so a reload doesn't loop the resume flow.
+      navigate(location.pathname, { replace: true });
+      const cachedLogs = safeParseLogs(localStorage.getItem(PENDING_THOUGHT_LOGS_KEY));
+      thoughtLogsRef.current = cachedLogs;
+      setThoughtLogs(cachedLogs);
+      void resumeRun(urlRunId);
+      return;
+    }
+
     const pendingRunId = localStorage.getItem(PENDING_RUN_ID_KEY);
     if (pendingRunId) {
       const cachedLogs = safeParseLogs(localStorage.getItem(PENDING_THOUGHT_LOGS_KEY));
@@ -388,6 +422,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
     setErrorMsg(null);
     setThoughtLogs([]);
     thoughtLogsRef.current = [];
+    cancelledRef.current = false;
     localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
 
     try {
@@ -395,11 +430,12 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       const runId = generateRes?.data?.run?.id;
       if (!runId) throw new Error('Không nhận được runId từ server');
 
+      currentRunIdRef.current = String(runId);
       localStorage.setItem(PENDING_RUN_ID_KEY, String(runId));
       connectStream(String(runId));
 
       const detail = await pollRunDetail(String(runId));
-      if (!detail) throw new Error('Không nhận được kết quả');
+      if (cancelledRef.current || !detail) return;
 
       localStorage.setItem('pji_aiRunId', String(runId));
       localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
@@ -408,14 +444,47 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       setShowResults(true);
       message.success('Phân tích AI hoàn tất!');
     } catch (err: any) {
+      if (cancelledRef.current) return;
       const msg = err?.message || 'Đã xảy ra lỗi khi phân tích AI';
       setErrorMsg(msg);
       message.error(msg);
     } finally {
       setIsAILoading(false);
+      currentRunIdRef.current = null;
       clearPending();
     }
   };
+
+  const handleCancelAI = useCallback(async () => {
+    const runId = currentRunIdRef.current;
+    if (!runId || isCancelling) return;
+    setIsCancelling(true);
+    cancelledRef.current = true;
+    try {
+      await callCancelAiRun(runId);
+      message.info('Đã huỷ phân tích AI');
+    } catch (err: any) {
+      // Even on API error we tear down locally — server-side guard catches late results.
+      message.warning('Đã yêu cầu huỷ, nhưng máy chủ trả lỗi: ' + (err?.message || 'unknown'));
+    } finally {
+      if (sseRef.current) {
+        sseRef.current.close();
+        sseRef.current = null;
+      }
+      localStorage.removeItem(PENDING_RUN_ID_KEY);
+      localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
+      localStorage.removeItem('pji_aiRunId');
+      localStorage.removeItem('pji_aiRunDetail');
+      currentRunIdRef.current = null;
+      setThoughtLogs([]);
+      thoughtLogsRef.current = [];
+      setIsAILoading(false);
+      setShowResults(false);
+      setErrorMsg(null);
+      setDiagnosticData(null);
+      setIsCancelling(false);
+    }
+  }, [isCancelling]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -740,7 +809,23 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
             </div>
           </div>
         ) : isAILoading ? (
-          <ThoughtStreamConsole logs={thoughtLogs} />
+          <div className="flex flex-col items-center w-full">
+            <ThoughtStreamConsole logs={thoughtLogs} />
+            <div className="w-full max-w-[768px] px-4 -mt-2 mb-6">
+              <Button
+                danger
+                onClick={handleCancelAI}
+                loading={isCancelling}
+                disabled={!currentRunIdRef.current || isCancelling}
+                className="w-full h-10 rounded-xl font-medium"
+              >
+                <span className="material-symbols-outlined text-[18px] align-middle mr-1">
+                  stop_circle
+                </span>
+                {isCancelling ? 'Đang huỷ...' : 'Huỷ phân tích'}
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full px-4 pt-20">
             <div className="max-w-md w-full bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-10 text-center flex flex-col items-center">

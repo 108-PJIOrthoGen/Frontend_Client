@@ -8,6 +8,8 @@ import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
 import { RootState } from '@/redux/store';
 import PendingLabTasksDrawer from '@/components/user/pending_lab_tasks/PendingLabTasksDrawer';
+import ProfileSettingsModal from '@/components/user/ProfileSettingsModal';
+import NotificationBell from '@/components/common/NotificationBell';
 
 export const LayoutClient = () => {
   const location = useLocation();
@@ -18,6 +20,7 @@ export const LayoutClient = () => {
   const pendingCount = useSelector((state: RootState) => state.pendingLabTask.count);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMyPendingCount() as any);
@@ -45,6 +48,7 @@ export const LayoutClient = () => {
       key: 'settings',
       icon: <SettingOutlined />,
       label: 'Cài đặt tài khoản',
+      onClick: () => setProfileModalOpen(true),
     },
     {
       type: 'divider',
@@ -171,32 +175,41 @@ export const LayoutClient = () => {
                 </NavLink>
               );
             })}
+            <div className="my-3 border-t border-slate-100" />
+            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chức năng</p>
+            {/* Notifications */}
+            <div className="pt-3 pb-1">
+              <NotificationBell />
+            </div>
+
+            {/* Pending Lab Tasks Button */}
+            <div className="px-3 pt-1 pb-1">
+              <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
+                <button
+                  onClick={handleOpenDrawer}
+                  className="w-full flex items-center gap-3 py-2 rounded-lg
+                  hover:bg-amber-50 transition-colors text-left border
+                  border-transparent hover:border-amber-200 group"
+                >
+                  <Badge count={pendingCount} size="small" offset={[-2, 2]}>
+                    <span className="material-symbols-outlined 
+                    group-hover:text-amber-700">
+                      science
+                    </span>
+                  </Badge>
+                  <span className=" font-medium text-slate-600 group-hover:text-amber-700">
+                    Xét nghiệm chờ bổ sung
+                  </span>
+                </button>
+              </Tooltip>
+            </div>
+
           </nav>
         </div>
 
         {/* Footer: Pending tasks + User profile */}
         <div className="border-t border-slate-200">
-          {/* Pending Lab Tasks Button */}
-          <div className="px-4 pt-3 pb-1">
-            <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
-              <button
-                onClick={handleOpenDrawer}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg
-                  hover:bg-amber-50 transition-colors text-left border
-                  border-transparent hover:border-amber-200 group"
-              >
-                <Badge count={pendingCount} size="small" offset={[-2, 2]}>
-                  <span className="material-symbols-outlined text-amber-600 text-xl
-                    group-hover:text-amber-700">
-                    science
-                  </span>
-                </Badge>
-                <span className="text-sm font-medium text-slate-600 group-hover:text-amber-700">
-                  Xét nghiệm chờ bổ sung
-                </span>
-              </button>
-            </Tooltip>
-          </div>
+
 
           {/* User Profile */}
           <div className="p-4 pt-1">
@@ -228,6 +241,12 @@ export const LayoutClient = () => {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         onRefresh={handleRefreshTasks}
+      />
+
+      {/* Profile / Account Settings Modal */}
+      <ProfileSettingsModal
+        open={profileModalOpen}
+        setOpen={setProfileModalOpen}
       />
     </div>
   );
