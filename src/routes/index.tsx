@@ -3,6 +3,7 @@ import { createBrowserRouter } from "react-router-dom";
 
 import LoginPage from "@/pages/auth/LoginPage";
 import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
+import VerifyDevicePage from "@/pages/auth/VerifyDevicePage";
 import AiDiagnosisSuggestion from "@/pages/user/AiDiagnoseSuggestion";
 import Error404 from "@/pages/errors/NotFoundPage";
 import PatientTable from "@/pages/user/PatientTable";
@@ -80,6 +81,10 @@ const router = createBrowserRouter([
     {
         path: "/forgot-password",
         element: <ForgotPasswordPage />,
+    },
+    {
+        path: "/verify-device",
+        element: <VerifyDevicePage />,
     },
 ]);
 export default router

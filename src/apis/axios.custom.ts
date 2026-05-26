@@ -72,6 +72,16 @@ instance.interceptors.response.use(
 
         const status = +error.response.status;
 
+        // Backend's ActiveSessionFilter signals that this device's session has been
+        // superseded by a newer login. Refreshing won't help — the refresh-token
+        // carries the now-revoked sid too — so skip the retry and force a logout.
+        if (status === 401 && error?.response?.data?.code === 'SESSION_REVOKED') {
+            const message = error?.response?.data?.message
+                ?? "Tài khoản đã được đăng nhập trên thiết bị khác.";
+            dispatch(setRefreshTokenAction({ status: true, message }));
+            return Promise.reject(error);
+        }
+
         // 401 on a normal API call (not login/refresh, not already retried) → try refresh
         if (
             status === 401

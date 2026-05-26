@@ -41,7 +41,22 @@ const LoginPage = () => {
     setIsLoading(true);
     const res = await loginAPI(username, password);
     setIsLoading(false);
-    if (res?.data) {
+    if (res?.data?.requiresDeviceVerification) {
+      // New / unrecognized browser. The backend held off issuing tokens and
+      // emailed an OTP; route the user to the verification screen, passing
+      // the password so they can re-trigger the OTP without retyping creds.
+      navigate('/verify-device', {
+        state: {
+          email: username,
+          challengeId: res.data.challengeId,
+          maskedEmail: res.data.maskedEmail,
+          password,
+        },
+        replace: true,
+      });
+      return;
+    }
+    if (res?.data?.access_token) {
       localStorage.setItem('access_token', res.data.access_token);
       dispatch(runLoginAction(res.data.user));
       message.success('Dang nhap thanh cong');
@@ -49,7 +64,7 @@ const LoginPage = () => {
     } else {
       notification.error({
         message: 'Co loi xay ra',
-        description: 'Thong tin dang nhap chua chinh xac!',
+        description: res?.message ?? 'Thong tin dang nhap chua chinh xac!',
       });
     }
   };

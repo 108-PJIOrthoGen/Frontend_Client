@@ -20,6 +20,8 @@ interface IState {
         avatar: string;
         email: string;
         name: string;
+        phone?: string;
+        department?: string;
         role: {
             id?: string;
             name?: string;
@@ -43,6 +45,8 @@ const initialState: IState = {
         avatar: "",
         email: "",
         name: "",
+        phone: "",
+        department: "",
         role: {
             id: "",
             name: "",
@@ -110,6 +114,8 @@ export const accountSlice = createSlice({
                 state.user.email = action?.payload?.user?.email;
                 state.user.name = action?.payload?.user?.name;
                 state.user.avatar = action?.payload?.user?.avatar;
+                state.user.phone = action?.payload?.user?.phone ?? "";
+                state.user.department = action?.payload?.user?.department ?? "";
 
                 // Gán role với default value là empty object nếu không có
                 state.user.role = action?.payload?.user?.role ?? {
