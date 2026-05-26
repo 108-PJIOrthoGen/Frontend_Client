@@ -232,7 +232,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
 
-  const apiBase = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '';
+  const apiBase = ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '').replace(/\/+$/, '');
 
   const appendLog = useCallback((entry: ThoughtLog) => {
     setThoughtLogs((prev) => {

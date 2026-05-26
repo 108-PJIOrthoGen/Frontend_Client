@@ -131,7 +131,7 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
   // (Re)open the SSE stream. Caller is responsible for clearing any previous connection.
   const openConnection = useCallback(() => {
     if (!isAuthed) return;
-    const apiBase = (import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '';
+    const apiBase = ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '').replace(/\/+$/, '');
     const token = window.localStorage.getItem('access_token');
     sseRef.current = openSse({
       url: `${apiBase}/api/v1/notifications/stream`,
