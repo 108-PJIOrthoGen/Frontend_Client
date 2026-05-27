@@ -1,4 +1,4 @@
-export type ExtractImageJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
+export type ExtractImageJobStatus = 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled';
 
 export interface ExtractedTestValue {
   sourceName: string;

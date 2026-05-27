@@ -228,6 +228,17 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const currentRunIdRef = useRef<string | null>(null);
   const cancelledRef = useRef<boolean>(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  // State mirror of currentRunIdRef so the Cancel button's `disabled` reacts.
+  // A ref alone never triggers a re-render, so without this the button stays
+  // frozen at whatever it was when `isAILoading` flipped — which is why it
+  // looked stuck disabled whenever the SSE thought-log stream wasn't firing
+  // re-renders (e.g. behind a proxy that buffers SSE in deployment).
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+
+  const setCurrentRunId = useCallback((id: string | null) => {
+    currentRunIdRef.current = id;
+    setActiveRunId(id);
+  }, []);
 
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
@@ -322,7 +333,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const resumeRun = useCallback(async (runId: string) => {
     setIsAILoading(true);
     setErrorMsg(null);
-    currentRunIdRef.current = runId;
+    setCurrentRunId(runId);
     cancelledRef.current = false;
     connectStream(runId);
     try {
@@ -345,10 +356,10 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       message.error(msg);
     } finally {
       setIsAILoading(false);
-      currentRunIdRef.current = null;
+      setCurrentRunId(null);
       clearPending();
     }
-  }, [applyDetail, clearPending, connectStream, pollRunDetail]);
+  }, [applyDetail, clearPending, connectStream, pollRunDetail, setCurrentRunId]);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -430,7 +441,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       const runId = generateRes?.data?.run?.id;
       if (!runId) throw new Error('Không nhận được runId từ server');
 
-      currentRunIdRef.current = String(runId);
+      setCurrentRunId(String(runId));
       localStorage.setItem(PENDING_RUN_ID_KEY, String(runId));
       connectStream(String(runId));
 
@@ -450,7 +461,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       message.error(msg);
     } finally {
       setIsAILoading(false);
-      currentRunIdRef.current = null;
+      setCurrentRunId(null);
       clearPending();
     }
   };
@@ -475,7 +486,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
       localStorage.removeItem('pji_aiRunId');
       localStorage.removeItem('pji_aiRunDetail');
-      currentRunIdRef.current = null;
+      setCurrentRunId(null);
       setThoughtLogs([]);
       thoughtLogsRef.current = [];
       setIsAILoading(false);
@@ -484,7 +495,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       setDiagnosticData(null);
       setIsCancelling(false);
     }
-  }, [isCancelling]);
+  }, [isCancelling, setCurrentRunId]);
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -816,7 +827,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                 danger
                 onClick={handleCancelAI}
                 loading={isCancelling}
-                disabled={!currentRunIdRef.current || isCancelling}
+                disabled={!activeRunId || isCancelling}
                 className="w-full h-10 rounded-xl font-medium"
               >
                 <span className="material-symbols-outlined text-[18px] align-middle mr-1">

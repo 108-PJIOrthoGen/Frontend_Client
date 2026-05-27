@@ -40,6 +40,9 @@ export const callCreateExtractImageJob = (files: File[], episodeId?: string | nu
 export const callFetchExtractImageJob = (jobId: string) => {
     return instance.get(`/api/v1/extract-images/jobs/${jobId}`);
 }
+export const callCancelExtractImageJob = (jobId: string) => {
+    return instance.post(`/api/v1/extract-images/jobs/${jobId}/cancel`);
+}
 // authentication
 export const registerAPI = (username: string, email: string, password: string, roleId: IRole) => {
     return instance.post(`/api/v1/auth/register`, {

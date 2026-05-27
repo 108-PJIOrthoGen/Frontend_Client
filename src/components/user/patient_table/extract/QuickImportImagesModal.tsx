@@ -11,6 +11,9 @@ interface QuickImportImagesModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (files: File[]) => void;
+  /** Cancel the in-flight job (server drops + deletes it). */
+  onCancelJob?: () => void;
+  isCancelling?: boolean;
   status: ExtractImageJobStatus | 'idle' | 'uploading';
   errorMessage?: string | null;
 }
@@ -26,6 +29,8 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
   open,
   onClose,
   onSubmit,
+  onCancelJob,
+  isCancelling = false,
   status,
   errorMessage,
 }) => {
@@ -87,20 +92,34 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
       closable={!isBusy}
       destroyOnClose
       width={640}
-      footer={[
-        <Button key="cancel" onClick={onClose} disabled={isBusy}>
-          Hủy
-        </Button>,
-        <Button
-          key="submit"
-          type="primary"
-          loading={isBusy}
-          onClick={handleSubmit}
-          disabled={isBusy || realFiles.length === 0}
-        >
-          Trích xuất dữ liệu
-        </Button>,
-      ]}
+      footer={
+        isBusy
+          ? [
+              // While a job runs, the only action is to abort it. This calls
+              // the cancel endpoint (server deletes the job) and resets the UI.
+              <Button
+                key="cancel-job"
+                danger
+                loading={isCancelling}
+                onClick={onCancelJob}
+              >
+                {isCancelling ? 'Đang huỷ...' : 'Huỷ trích xuất'}
+              </Button>,
+            ]
+          : [
+              <Button key="cancel" onClick={onClose}>
+                Hủy
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                onClick={handleSubmit}
+                disabled={realFiles.length === 0}
+              >
+                Trích xuất dữ liệu
+              </Button>,
+            ]
+      }
     >
       <div className="flex flex-col gap-3">
         <div className="text-sm text-slate-600">

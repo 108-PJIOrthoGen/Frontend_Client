@@ -4,6 +4,7 @@ import { useClinicForm } from '@/redux/hook';
 import {
   callCreateExtractImageJob,
   callFetchExtractImageJob,
+  callCancelExtractImageJob,
 } from '@/apis/api';
 import {
   ExtractApplyCandidate,
@@ -33,6 +34,8 @@ export function useQuickImportFlow(episodeId?: string | number) {
 
   const pollTimerRef = useRef<number | null>(null);
   const pollStartRef = useRef<number>(0);
+  const currentJobIdRef = useRef<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const stopPolling = () => {
     if (pollTimerRef.current != null) {
@@ -68,6 +71,13 @@ export function useQuickImportFlow(episodeId?: string | number) {
         return;
       }
 
+      if (status === 'cancelled') {
+        // Worker confirmed the cancel — stop quietly, no error toast.
+        stopPolling();
+        setQuickImportStatus('idle');
+        return;
+      }
+
       if (status === 'processing' || status === 'queued') {
         setQuickImportStatus(status);
       }
@@ -93,6 +103,7 @@ export function useQuickImportFlow(episodeId?: string | number) {
       if (!jobId) {
         throw new Error('Không nhận được jobId từ server');
       }
+      currentJobIdRef.current = jobId;
       setQuickImportStatus('queued');
       pollStartRef.current = Date.now();
       pollTimerRef.current = window.setInterval(
@@ -116,6 +127,30 @@ export function useQuickImportFlow(episodeId?: string | number) {
     setQuickImportOpen(false);
     setQuickImportStatus('idle');
     setQuickImportError(null);
+  };
+
+  // Cancel an in-flight job: tell the server to drop + delete it, stop polling,
+  // and reset the modal back to the upload state so the user can retry.
+  const handleCancelExtract = async () => {
+    const jobId = currentJobIdRef.current;
+    stopPolling();
+    if (!jobId) {
+      setQuickImportStatus('idle');
+      return;
+    }
+    setIsCancelling(true);
+    try {
+      await callCancelExtractImageJob(jobId);
+      message.info('Đã huỷ trích xuất');
+    } catch {
+      // Server-side guard still drops a late result, so reset locally regardless.
+      message.warning('Đã yêu cầu huỷ (máy chủ phản hồi lỗi)');
+    } finally {
+      currentJobIdRef.current = null;
+      setIsCancelling(false);
+      setQuickImportStatus('idle');
+      setQuickImportError(null);
+    }
   };
 
   const openQuickImport = () => {
@@ -147,10 +182,12 @@ export function useQuickImportFlow(episodeId?: string | number) {
     reviewOpen,
     quickImportStatus,
     quickImportError,
+    isCancelling,
     extractCandidates,
     openQuickImport,
     handleQuickImportClose,
     handleQuickImportSubmit,
+    handleCancelExtract,
     handleApplyCandidates,
     handleReviewCancel,
   };

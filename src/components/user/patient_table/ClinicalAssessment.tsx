@@ -42,10 +42,12 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
     reviewOpen,
     quickImportStatus,
     quickImportError,
+    isCancelling,
     extractCandidates,
     openQuickImport,
     handleQuickImportClose,
     handleQuickImportSubmit,
+    handleCancelExtract,
     handleApplyCandidates,
     handleReviewCancel,
   } = useQuickImportFlow(episodeId);
@@ -115,6 +117,8 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         open={quickImportOpen}
         onClose={handleQuickImportClose}
         onSubmit={handleQuickImportSubmit}
+        onCancelJob={handleCancelExtract}
+        isCancelling={isCancelling}
         status={quickImportStatus}
         errorMessage={quickImportError}
       />
