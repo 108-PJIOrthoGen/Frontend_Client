@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Steps, Breadcrumb } from 'antd';
-import { HomeOutlined } from '@ant-design/icons';
+import { Steps, Breadcrumb, Button, Popconfirm, Tag, message } from 'antd';
+import { HomeOutlined, UserOutlined, LogoutOutlined, SwapOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
@@ -98,10 +98,50 @@ const AiDiagnosisSuggestion = () => {
         setCurrentStep(0);
     };
 
+    // Exit the current episode: clear the selected case and return to the
+    // patient-selection step. Lets doctors switch patients/cases at any point
+    // without clicking "Quay lại" through every intermediate step.
+    const handleExitCase = () => {
+        dispatch(clearCurrentCase());
+        setCurrentStep(0);
+        message.success('Đã thoát ca bệnh. Bạn có thể chọn bệnh nhân khác.');
+    };
+
+    // "Đổi bệnh nhân": clear the case, return to step 1, and pop the search
+    // modal straight away so the doctor can look up another patient without
+    // first clicking the "Tra cứu hồ sơ nhanh" card.
+    const [autoOpenSearch, setAutoOpenSearch] = useState(false);
+    const handleChangePatient = () => {
+        dispatch(clearCurrentCase());
+        setCurrentStep(0);
+        setAutoOpenSearch(true);
+    };
+
+    // Allow clicking the Steps header to jump backwards to an already-visited
+    // step. Forward jumps stay gated behind each step's own "Tiếp tục" button
+    // so we never land on a step whose data hasn't been produced yet.
+    const handleStepClick = (target: number) => {
+        if (target === currentStep) return;
+        if (target === 0) {
+            // Returning to step 1 means abandoning the current case selection.
+            backToFirstStep();
+            return;
+        }
+        if (target < currentStep) {
+            setCurrentStep(target);
+        }
+    };
+
     const steps = [
         {
             title: 'Chọn bệnh nhân & bệnh án',
-            content: <Step1PatientSelection onNext={next} />,
+            content: (
+                <Step1PatientSelection
+                    onNext={next}
+                    autoOpenSearch={autoOpenSearch}
+                    onAutoSearchConsumed={() => setAutoOpenSearch(false)}
+                />
+            ),
         },
         {
             title: 'Đánh giá nguy cơ PJI',
@@ -117,13 +157,19 @@ const AiDiagnosisSuggestion = () => {
         },
     ];
 
-    const items = steps.map((item) => ({ key: item.title, title: item.title }));
+    // Future steps are disabled so the clickable affordance matches the
+    // backward-only navigation in handleStepClick.
+    const items = steps.map((item, index) => ({
+        key: item.title,
+        title: item.title,
+        disabled: index > currentStep,
+    }));
 
     return (
         <div className="flex flex-col h-full bg-slate-50 relative w-full overflow-hidden">
             {/* Header Breadcrumb / Steps */}
             <div className="bg-white px-8 py-5 border-b border-slate-200 shadow-sm z-10">
-                <div className="mb-2 text-slate-900 font-medium">
+                <div className="mb-2 flex items-start justify-between gap-4">
                     <Breadcrumb
                         items={[
                             {
@@ -136,12 +182,50 @@ const AiDiagnosisSuggestion = () => {
                                 title: <span className="text-primary">Bước {currentStep + 1}</span>
                             }
                         ]}
-                        style={{ marginBottom: "10px" }}
                     />
+
+                    {/* Current case widget + exit control — only shown once a
+                        patient/episode is selected (i.e. past step 1). */}
+                    {currentCase?.patient && currentStep > 0 && (
+                        <div className="flex items-center gap-3 shrink-0">
+                            <div className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-1.5">
+                                <UserOutlined className="text-blue-500" />
+                                <span className="text-sm font-semibold text-blue-900">
+                                    {currentCase.patient.fullName || 'Bệnh nhân'}
+                                </span>
+                                {currentCase.patient.patientCode && (
+                                    <Tag color="blue" className="m-0">{currentCase.patient.patientCode}</Tag>
+                                )}
+                                {currentCase.episode?.id != null && (
+                                    <span className="text-xs text-blue-700/80">
+                                        · Bệnh án #{currentCase.episode.id}
+                                    </span>
+                                )}
+                            </div>
+                            <Button
+                                icon={<SwapOutlined />}
+                                onClick={handleChangePatient}
+                            >
+                                Đổi bệnh nhân
+                            </Button>
+                            <Popconfirm
+                                title="Thoát ca bệnh?"
+                                description="Bạn sẽ quay lại bước chọn bệnh nhân. Tiến trình chưa lưu có thể mất."
+                                okText="Thoát"
+                                cancelText="Ở lại"
+                                onConfirm={handleExitCase}
+                            >
+                                <Button danger icon={<LogoutOutlined />}>
+                                    Thoát
+                                </Button>
+                            </Popconfirm>
+                        </div>
+                    )}
                 </div>
                 <Steps
                     current={currentStep}
                     items={items}
+                    onChange={handleStepClick}
                     className="mt-4 custom-steps"
                     size="small"
                 />

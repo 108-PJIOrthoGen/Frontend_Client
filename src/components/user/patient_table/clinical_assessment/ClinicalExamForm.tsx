@@ -1,10 +1,25 @@
-import React from 'react';
-import { Form, Input, InputNumber, Select } from 'antd';
+import React, { useEffect } from 'react';
+import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IClinicalRecord } from '@/types/backend';
 
+// WHO international BMI classification (kg/m²).
+const classifyBmi = (bmi: number): { label: string; color: string } => {
+  if (bmi < 18.5) return { label: 'Thiếu cân', color: 'blue' };
+  if (bmi < 25) return { label: 'Bình thường', color: 'green' };
+  if (bmi < 30) return { label: 'Thừa cân', color: 'gold' };
+  if (bmi < 35) return { label: 'Béo phì độ I', color: 'orange' };
+  if (bmi < 40) return { label: 'Béo phì độ II', color: 'volcano' };
+  return { label: 'Béo phì độ III', color: 'red' };
+};
+
 const ClinicalExamForm: React.FC = () => {
   const { form: clinicForm, setForm } = useClinicForm();
+
+  // Height/weight are persisted alongside the derived BMI so each episode
+  // keeps the raw anthropometric inputs (no longer left blank).
+  const heightCm = clinicForm.clinicalRecord.heightCm;
+  const weightKg = clinicForm.clinicalRecord.weightKg;
 
   const handleChange = (field: keyof IClinicalRecord, value: any) => {
     setForm((prev) => ({
@@ -12,6 +27,22 @@ const ClinicalExamForm: React.FC = () => {
       clinicalRecord: { ...prev.clinicalRecord, [field]: value },
     }));
   };
+
+  // Auto-calculate BMI = weight(kg) / height(m)² whenever both are present.
+  // International formula, rounded to 2 decimals.
+  useEffect(() => {
+    if (heightCm && weightKg && heightCm > 0) {
+      const meters = heightCm / 100;
+      const bmi = Math.round((weightKg / (meters * meters)) * 100) / 100;
+      if (Number.isFinite(bmi) && bmi !== clinicForm.clinicalRecord.bmi) {
+        handleChange('bmi', bmi);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [heightCm, weightKg]);
+
+  const bmiValue = clinicForm.clinicalRecord.bmi;
+  const bmiCategory = typeof bmiValue === 'number' ? classifyBmi(bmiValue) : null;
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -42,15 +73,54 @@ const ClinicalExamForm: React.FC = () => {
             </div>
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">BMI</span>}>
+          <Form.Item label={<span className="text-sm font-medium text-slate-700">Chiều cao (cm)</span>}>
             <InputNumber
-              step={0.01}
-              placeholder="Vi du: 25.71"
-              value={clinicForm.clinicalRecord.bmi}
-              onChange={(val) => handleChange('bmi', val)}
+              placeholder="Ví dụ: 170"
+              value={heightCm}
+              onChange={(val) => handleChange('heightCm', val)}
               className="w-full h-11 rounded-lg"
+              min={0}
+              max={300}
               controls={false}
             />
+          </Form.Item>
+
+          <Form.Item label={<span className="text-sm font-medium text-slate-700">Cân nặng (kg)</span>}>
+            <InputNumber
+              placeholder="Ví dụ: 65"
+              value={weightKg}
+              onChange={(val) => handleChange('weightKg', val)}
+              className="w-full h-11 rounded-lg"
+              min={0}
+              max={500}
+              step={0.1}
+              controls={false}
+            />
+          </Form.Item>
+
+          <Form.Item
+            label={
+              <span className="text-sm font-medium text-slate-700">
+                BMI <span className="text-xs text-slate-400 font-normal">(tự động tính)</span>
+              </span>
+            }
+          >
+            <div className="flex items-center gap-3">
+              <InputNumber
+                step={0.01}
+                placeholder="Nhập chiều cao & cân nặng"
+                value={bmiValue}
+                onChange={(val) => handleChange('bmi', val)}
+                className="flex-1 h-11 rounded-lg"
+                controls={false}
+                readOnly={!!(heightCm && weightKg)}
+              />
+              {bmiCategory && (
+                <Tag color={bmiCategory.color} className="m-0 whitespace-nowrap">
+                  {bmiCategory.label}
+                </Tag>
+              )}
+            </div>
           </Form.Item>
 
           <Form.Item label={<span className="text-sm font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}>

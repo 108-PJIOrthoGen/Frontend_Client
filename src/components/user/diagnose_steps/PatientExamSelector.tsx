@@ -4,7 +4,7 @@ import { SearchOutlined, CheckCircleOutlined, HistoryOutlined, PlusCircleOutline
 import { callFetchPatient, callFetchEpisodesByPatient, callFetchAiRecommendationRuns, callFetchAiRecommendationRunDetail } from '@/apis/api';
 import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
 import dayjs from 'dayjs';
-import { sfLike } from 'spring-filter-query-builder';
+import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
 import { setCurrentCase } from '@/redux/slice/patientSlice';
 
@@ -47,9 +47,16 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     useEffect(() => {
         const fetchFilms = async () => {
             setSearchLoading(true);
-            let queryString = `page=0&size=5&`;
-            if (searchValue) {
-                queryString += `filter=${sfLike('identityCard', searchValue)}`
+            const term = searchValue.trim();
+            if (term) {
+                // Match the term against patient code (MRN), full name, or CCCD so
+                // doctors can look up by any identifier they have on hand.
+                const filter = sfOr([
+                    sfLike('patientCode', term),
+                    sfLike('fullName', term, true),
+                    sfLike('identityCard', term),
+                ]);
+                const queryString = `page=0&size=10&filter=${filter}`;
                 const res = await callFetchPatient(queryString);
                 if (res && res.data) {
                     setPatients(res.data.result);
@@ -208,14 +215,16 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                 {/* Search Section */}
                 <section>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Chọn bệnh nhân & bệnh án</h2>
-                    <p className="text-slate-500 text-sm mb-6">Tìm kiếm bệnh nhân, sau đó chọn bệnh án để tiến hành chẩn đoán AI</p>
+                    <p className="text-slate-500 text-sm mb-6">Tìm kiếm bệnh nhân theo Mã BN, Họ tên hoặc Số CCCD, sau đó chọn bệnh án để tiến hành chẩn đoán AI</p>
                     <div className="flex gap-3">
                         <Input
                             size="large"
-                            placeholder="Nhập số CCCD của bệnh nhân"
+                            allowClear
+                            placeholder="Nhập Mã bệnh nhân, Họ tên hoặc Số CCCD"
                             value={searchValue}
                             onChange={handleChangeVal}
                             prefix={<SearchOutlined className="text-slate-400" />}
+                            suffix={searchLoading ? <Spin size="small" /> : null}
                             className="flex-1"
                         />
                     </div>
@@ -231,6 +240,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                             dataSource={patients}
                             columns={patientColumns}
                             rowKey="id"
+                            loading={searchLoading}
                             pagination={false}
                             size="small"
                             rowClassName={(record) =>

@@ -135,6 +135,8 @@ export interface IClinicalRecord {
     episodeId?: number;
     illnessOnsetDate?: string;
     bloodPressure?: string;
+    heightCm?: number;
+    weightKg?: number;
     bmi?: number;
     fever?: boolean;
     pain?: boolean;

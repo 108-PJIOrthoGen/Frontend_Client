@@ -36,6 +36,8 @@ export function useClinicFormSync({
           ...prev.clinicalRecord,
           illnessOnsetDate: clinicalRecord.illnessOnsetDate ?? '',
           bloodPressure: clinicalRecord.bloodPressure ?? '',
+          heightCm: clinicalRecord.heightCm,
+          weightKg: clinicalRecord.weightKg,
           bmi: clinicalRecord.bmi,
           fever: clinicalRecord.fever ?? false,
           pain: clinicalRecord.pain ?? false,

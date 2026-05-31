@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Modal } from 'antd';
 import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import { PatientExamSelector } from './PatientExamSelector';
@@ -7,9 +7,13 @@ import { useNavigate } from 'react-router-dom';
 
 interface Step1Props {
     onNext: () => void
+    // When true, open the search modal immediately on mount. Lets "Đổi bệnh nhân"
+    // jump straight into patient search instead of showing the landing cards.
+    autoOpenSearch?: boolean
+    onAutoSearchConsumed?: () => void
 }
 
-export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext }) => {
+export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSearch, onAutoSearchConsumed }) => {
 
     const navigate = useNavigate();
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
@@ -19,6 +23,15 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext }) => {
     const handleSearchClick = () => {
         setIsSearchModalVisible(true);
     };
+
+    // Consume the auto-open request once, then clear the flag in the parent so
+    // returning to step 1 normally doesn't re-pop the modal.
+    useEffect(() => {
+        if (autoOpenSearch) {
+            setIsSearchModalVisible(true);
+            onAutoSearchConsumed?.();
+        }
+    }, [autoOpenSearch, onAutoSearchConsumed]);
 
 
     const onClose = () => {
