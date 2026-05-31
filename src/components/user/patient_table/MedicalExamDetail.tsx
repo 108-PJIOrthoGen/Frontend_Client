@@ -48,6 +48,8 @@ import {
 } from '@/apis/api';
 import { useClinicForm, useAppDispatch } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/slice/patientSlice';
+import { useEpisodeLock } from './useEpisodeLock';
+import EpisodeLockBanner from './EpisodeLockBanner';
 
 interface MedicalExamDetailProps {
     open: boolean;
@@ -76,6 +78,12 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const antibioticsRef = useRef<Record<string, AntibioticRow[]>>({});
     const { form } = useClinicForm();
     const dispatch = useAppDispatch();
+
+    // Redis soft-lock — only locks existing episodes. New ones (no id yet)
+    // are local-only until the first save, so locking would be premature.
+    const lock = useEpisodeLock(examData?.id ?? null, open && !!examData?.id);
+    const isReadOnly = lock.status === 'busy';
+    const isLockBlocking = lock.status === 'busy' || lock.status === 'acquiring';
 
     // Initialize form ref with existing data
     useEffect(() => {
@@ -172,6 +180,10 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
     const handleSave = async () => {
         if (saving) return;
+        if (isLockBlocking) {
+            message.warning('Bệnh án đang được người khác chỉnh sửa, không thể lưu.');
+            return;
+        }
         setSaving(true);
         try {
             let episodeId = examData?.id;
@@ -467,6 +479,11 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
             await Promise.all(allSensPromises);
 
+            // Release the lock right after a successful save so other doctors
+            // don't have to wait for the TTL. Best-effort — server-side TTL
+            // covers us if this call fails.
+            await lock.release();
+
             message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
             onClose();
         } catch {
@@ -547,23 +564,42 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             footer={
                 <div className="flex justify-end gap-3 py-2">
                     <Button onClick={onClose} disabled={saving}>Đóng</Button>
-                    <Button type="primary" icon={<SaveOutlined />} onClick={handleSave} loading={saving} disabled={loading || saving}>
+                    <Button
+                        type="primary"
+                        icon={<SaveOutlined />}
+                        onClick={handleSave}
+                        loading={saving}
+                        disabled={loading || saving || isLockBlocking}
+                    >
                         Lưu bệnh án
                     </Button>
                 </div>
             }
         >
+            <EpisodeLockBanner
+                status={lock.status}
+                heldBy={lock.heldBy}
+                ttlSeconds={lock.ttlSeconds}
+                message={lock.message}
+                onRetry={lock.retry}
+            />
             {loading ? (
                 <div className="flex items-center justify-center h-64">
                     <Spin size="large" tip="Đang tải dữ liệu bệnh án..." />
                 </div>
             ) : (
-                <Tabs
-                    defaultActiveKey="1"
-                    items={tabItems}
-                    type="card"
-                    className="medical-exam-tabs"
-                />
+                <fieldset
+                    disabled={isReadOnly}
+                    style={isReadOnly ? { opacity: 0.65, pointerEvents: 'none' } : undefined}
+                    className="border-0 p-0 m-0"
+                >
+                    <Tabs
+                        defaultActiveKey="1"
+                        items={tabItems}
+                        type="card"
+                        className="medical-exam-tabs"
+                    />
+                </fieldset>
             )}
         </Drawer>
     );

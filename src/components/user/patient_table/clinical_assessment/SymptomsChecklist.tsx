@@ -8,9 +8,7 @@ const SYMPTOM_CHECKBOXES: { key: keyof IClinicalRecord; label: string }[] = [
   { key: 'sinusTract', label: 'Đường rò' },
   { key: 'erythema', label: 'Tấy đỏ' },
   { key: 'pain', label: 'Đau' },
-  { key: 'swelling', label: 'Sưng nề' },
-  { key: 'pmmaAllergy', label: 'Dị ứng PMMA' },
-  { key: 'hematogenousSuspected', label: 'Nhiễm trùng huyết' },
+  { key: 'swelling', label: 'Sưng nề' }
 ];
 
 const SymptomsChecklist: React.FC = () => {

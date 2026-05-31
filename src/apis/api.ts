@@ -182,6 +182,45 @@ export const callFetchEpisodesByPatient = (patientId: string, query: string): Pr
 }
 
 /**
+ * Episode soft-lock (Redis pessimistic). The success response is wrapped in
+ * IBackendRes; the busy response (HTTP 423) is returned by the axios
+ * interceptor as a flat object — discriminated by `status === 423`.
+ */
+export interface IEpisodeLockState {
+    episodeId: number;
+    heldBy: number;
+    expiresAt: string;
+    ttlSeconds: number;
+}
+
+export interface IEpisodeLockBusy {
+    timestamp?: string;
+    status: 423;
+    path?: string;
+    error: 'Locked';
+    message: string;
+    heldBy: number | null;
+    ttlSeconds: number;
+}
+
+export type IEpisodeLockResult = IBackendRes<IEpisodeLockState> | IEpisodeLockBusy;
+
+export const isEpisodeLockBusy = (r: IEpisodeLockResult): r is IEpisodeLockBusy =>
+    !!r && (r as IEpisodeLockBusy).status === 423;
+
+export const callAcquireEpisodeLock = (id: string): Promise<IEpisodeLockResult> => {
+    return instance.post(`/api/v1/episodes/${id}/lock`);
+}
+
+export const callHeartbeatEpisodeLock = (id: string): Promise<IEpisodeLockResult> => {
+    return instance.post(`/api/v1/episodes/${id}/lock/heartbeat`);
+}
+
+export const callReleaseEpisodeLock = (id: string): Promise<IBackendRes<void>> => {
+    return instance.delete(`/api/v1/episodes/${id}/lock`);
+}
+
+/**
  *
 Module ClinicalRecord
  */

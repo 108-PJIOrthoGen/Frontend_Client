@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { IEpisode } from '@/types/backend';
 import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
 import locale from 'antd/es/date-picker/locale/en_US';
-import { parseDateFromApi, stringToDayjs } from '@/config/utils';
+import { stringToDayjs } from '@/config/utils';
+import { parseDateFromApi } from '@/utils/time';
 
 export interface EpisodeFormData {
     arrivalTime: string;
@@ -120,7 +121,6 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                             <Form.Item
                                 name="dischargeTime"
                                 label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện </span>}
-                                rules={[requiredRule]}
                                 getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
                                 getValueProps={(val) => ({ value: stringToDayjs(val) })}
                             >
@@ -145,7 +145,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                             <Form.Item
                                 name="department"
-                                label={<span className="text-sm font-medium text-slate-700">Khoa tiếp nhận <span className="text-red-500">*</span></span>}
+                                label={<span className="text-sm font-medium text-slate-700">Khoa tiếp nhận </span>}
                                 rules={[requiredRule]}
                             >
                                 <Input
@@ -156,7 +156,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                             <Form.Item
                                 name="admissionMethod"
-                                label={<span className="text-sm font-medium text-slate-700">Trực tiếp vào <span className="text-red-500">*</span></span>}
+                                label={<span className="text-sm font-medium text-slate-700">Trực tiếp vào </span>}
                                 rules={[requiredRule]}
                             >
                                 <Select
@@ -201,8 +201,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                             <Form.Item
                                 name="treatmentResult"
-                                label={<span className="text-sm font-medium text-slate-700">Kết quả điều trị <span className="text-red-500">*</span></span>}
-                                rules={[requiredRule]}
+                                label={<span className="text-sm font-medium text-slate-700">Kết quả điều trị</span>}
                             >
                                 <Input
                                     placeholder="VD: Done"
@@ -212,7 +211,7 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
 
                             <Form.Item
                                 name="status"
-                                label={<span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ <span className="text-red-500">*</span></span>}
+                                label={<span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ </span>}
                                 rules={[requiredRule]}
                             >
                                 <Select
