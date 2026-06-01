@@ -171,11 +171,10 @@ export const Antibiogram: React.FC<StepProps> = ({
                         key={key}
                         type="button"
                         onClick={() => switchCulture(key)}
-                        className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
-                          isActive
-                            ? 'border-blue-600 text-blue-600 bg-white'
-                            : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
-                        }`}
+                        className={`px-4 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${isActive
+                          ? 'border-blue-600 text-blue-600 bg-white'
+                          : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                          }`}
                       >
                         {getCultureLabel(c, idx)}
                       </button>
@@ -223,7 +222,7 @@ export const Antibiogram: React.FC<StepProps> = ({
                       <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                         <tr>
                           <th className="px-4 py-3 border-r border-slate-200">
-                            Tên kháng sinh <span className="text-red-500">*</span>
+                            Tên kháng sinh
                           </th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32 text-center">MIC (ug/mL)</th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32 text-center">Biện luận</th>
@@ -240,7 +239,6 @@ export const Antibiogram: React.FC<StepProps> = ({
                                     <Form.Item
                                       {...restField}
                                       name={[name, 'name']}
-                                      rules={[{ required: true, message: 'Trường này là bắt buộc' }]}
                                       className="mb-0"
                                     >
                                       <AutoComplete

@@ -4,7 +4,8 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview, IPendingLabTask
+    IDoctorRecommendationReview, IPendingLabTask,
+    IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
 export const callUploadImage = (file: any, folder: string) => {
@@ -179,6 +180,23 @@ export const callFetchEpisodes = (query: string): Promise<IBackendRes<IModelPagi
 
 export const callFetchEpisodesByPatient = (patientId: string, query: string): Promise<IBackendRes<IModelPaginate<IEpisode>>> => {
     return instance.get(`/api/v1/patients/${patientId}/episodes?${query}`);
+}
+
+/**
+ * Episode aggregate — one transactional read and one atomic save covering the
+ * episode plus all child records (history, clinical, labs, surgeries, images,
+ * cultures + sensitivities). Replaces the multi-call read/save in MedicalExamDetail.
+ */
+export const callFetchEpisodeFull = (id: string): Promise<IBackendRes<IEpisodeFullResponse>> => {
+    return instance.get(`/api/v1/episodes/${id}/full`);
+}
+
+export const callCreateEpisodeFull = (data: IEpisodeFullRequest): Promise<IBackendRes<IEpisodeFullResponse>> => {
+    return instance.post('/api/v1/episodes/full', data);
+}
+
+export const callUpdateEpisodeFull = (id: string, data: IEpisodeFullRequest): Promise<IBackendRes<IEpisodeFullResponse>> => {
+    return instance.put(`/api/v1/episodes/${id}/full`, data);
 }
 
 /**

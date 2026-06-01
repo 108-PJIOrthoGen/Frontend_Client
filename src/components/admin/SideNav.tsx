@@ -54,8 +54,8 @@ const SideNav = (props: any) => {
     return (
         <>
             <div className="brand">
-                <img src={`https://upload.wikimedia.org/wikipedia/vi/thumb/e/ef/Logo_%C4%90%E1%BA%A1i_h%E1%BB%8Dc_B%C3%A1ch_Khoa_H%C3%A0_N%E1%BB%99i.svg/960px-Logo_%C4%90%E1%BA%A1i_h%E1%BB%8Dc_B%C3%A1ch_Khoa_H%C3%A0_N%E1%BB%99i.svg.png`} alt="" />
-                <span>108 MCH Dashboard</span>
+                <img src={`https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQu7ZGFy_IElt7yt_gmgZlMHZQDzQ-ROjMjA&s`} alt="" />
+                <span>108 POG Dashboard</span>
             </div>
             <hr />
             <Menu theme="light" mode="inline">
@@ -128,7 +128,7 @@ const SideNav = (props: any) => {
                         {dashboard}
                     </span>
                     <h6>Gặp Lỗi gì sao?</h6>
-                    <p>Liên hệ với tôi nhé!</p>
+                    <p>Phản hồi ngay với chúng tôi!</p>
                     <Button type="primary" className="ant-btn-sm ant-btn-block">
                         BÁO LỖI
                     </Button>

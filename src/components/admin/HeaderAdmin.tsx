@@ -66,7 +66,7 @@ const setting = [
 const HeaderAdmin = (props: any) => {
     // const user = useSelector(state => state.account.user);
 
-    const { name, subName, onPress, handleSidenavColor, handleFixedNavbar } = props;
+    const { name, subName, onPress } = props;
     const { Title, Text } = Typography
     const navigate = useNavigate();
 

@@ -8,7 +8,7 @@ import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
 import { setCurrentCase } from '@/redux/slice/patientSlice';
 
-const MAX_RUNS_PER_EPISODE = 5;
+const MAX_RUNS_PER_EPISODE = 10;
 
 const getStatusTag = (status?: string) => {
     switch (status) {
@@ -49,7 +49,6 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             setSearchLoading(true);
             const term = searchValue.trim();
             if (term) {
-                // Match the term against patient code (MRN), full name, or CCCD so
                 // doctors can look up by any identifier they have on hand.
                 const filter = sfOr([
                     sfLike('patientCode', term),
@@ -71,6 +70,8 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         setSearchValue(e.target.value)
         if (e.target.value === '') {
             setSearchValue('')
+            setSelectedPatient(null);
+            setSelectedExam(null);
             setPatients([])
         }
     }

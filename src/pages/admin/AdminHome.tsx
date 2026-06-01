@@ -1,196 +1,369 @@
-import { useState } from "react";
-import { Card, Col, Row, Typography, Tooltip, Progress, Button, Timeline, Radio } from "antd";
-import { MenuUnfoldOutlined } from "@ant-design/icons";
-import Paragraph from "antd/lib/typography/Paragraph";
+import { useState, useEffect } from "react";
+import { Card, Col, Row, Typography, Timeline, Spin, Tag, Empty, Divider } from "antd";
+import {
+    UserOutlined,
+    TeamOutlined,
+    MedicineBoxOutlined,
+    FileTextOutlined,
+    ClockCircleOutlined,
+    CheckCircleOutlined,
+    SyncOutlined,
+    StopOutlined,
+} from "@ant-design/icons";
+import { callFetchUser, callFetchPatient, callFetchEpisodes } from "@/apis/api";
+import { IEpisode } from "@/types/backend";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/vi";
+
+dayjs.extend(relativeTime);
+dayjs.locale("vi");
+
+const { Title, Text } = Typography;
+
+interface DashboardStats {
+    totalPatients: number;
+    totalUsers: number;
+    totalEpisodes: number;
+    activeCount: number;
+    completedCount: number;
+    cancelledCount: number;
+}
+
+const STAT_CARDS = [
+    {
+        key: "totalPatients" as keyof DashboardStats,
+        label: "Tổng bệnh nhân",
+        icon: <UserOutlined />,
+        color: "#2563eb",
+        bg: "#eff6ff",
+        border: "#bfdbfe",
+    },
+    {
+        key: "activeCount" as keyof DashboardStats,
+        label: "Đang điều trị",
+        icon: <SyncOutlined spin />,
+        color: "#16a34a",
+        bg: "#f0fdf4",
+        border: "#bbf7d0",
+    },
+    {
+        key: "totalEpisodes" as keyof DashboardStats,
+        label: "Tổng đợt điều trị",
+        icon: <FileTextOutlined />,
+        color: "#7c3aed",
+        bg: "#faf5ff",
+        border: "#ddd6fe",
+    },
+    {
+        key: "totalUsers" as keyof DashboardStats,
+        label: "Nhân viên hệ thống",
+        icon: <TeamOutlined />,
+        color: "#d97706",
+        bg: "#fffbeb",
+        border: "#fde68a",
+    },
+];
+
+const getStatusConfig = (status?: string) => {
+    switch (status) {
+        case "active":
+            return { color: "blue", label: "Đang điều trị", dot: "blue", icon: <SyncOutlined /> };
+        case "completed":
+            return { color: "success", label: "Hoàn thành", dot: "green", icon: <CheckCircleOutlined /> };
+        case "cancelled":
+            return { color: "error", label: "Đã hủy", dot: "red", icon: <StopOutlined /> };
+        default:
+            return { color: "default", label: status || "N/A", dot: "gray", icon: <ClockCircleOutlined /> };
+    }
+};
 
 const AdminHome = () => {
-    const { Title, Text } = Typography;
+    const [loading, setLoading] = useState(true);
+    const [stats, setStats] = useState<DashboardStats>({
+        totalPatients: 0,
+        totalUsers: 0,
+        totalEpisodes: 0,
+        activeCount: 0,
+        completedCount: 0,
+        cancelledCount: 0,
+    });
+    const [recentEpisodes, setRecentEpisodes] = useState<IEpisode[]>([]);
 
-    const [reverse, setReverse] = useState(false);
-    const dollor = [
-        <svg
-            width="22"
-            height="22"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            key={0}
-        >
-            <path
-                d="M8.43338 7.41784C8.58818 7.31464 8.77939 7.2224 9 7.15101L9.00001 8.84899C8.77939 8.7776 8.58818 8.68536 8.43338 8.58216C8.06927 8.33942 8 8.1139 8 8C8 7.8861 8.06927 7.66058 8.43338 7.41784Z"
-                fill="#fff"
-            ></path>
-            <path
-                d="M11 12.849L11 11.151C11.2206 11.2224 11.4118 11.3146 11.5666 11.4178C11.9308 11.6606 12 11.8861 12 12C12 12.1139 11.9308 12.3394 11.5666 12.5822C11.4118 12.6854 11.2206 12.7776 11 12.849Z"
-                fill="#fff"
-            ></path>
-            <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18ZM11 5C11 4.44772 10.5523 4 10 4C9.44772 4 9 4.44772 9 5V5.09199C8.3784 5.20873 7.80348 5.43407 7.32398 5.75374C6.6023 6.23485 6 7.00933 6 8C6 8.99067 6.6023 9.76515 7.32398 10.2463C7.80348 10.5659 8.37841 10.7913 9.00001 10.908L9.00002 12.8492C8.60902 12.7223 8.31917 12.5319 8.15667 12.3446C7.79471 11.9275 7.16313 11.8827 6.74599 12.2447C6.32885 12.6067 6.28411 13.2382 6.64607 13.6554C7.20855 14.3036 8.05956 14.7308 9 14.9076L9 15C8.99999 15.5523 9.44769 16 9.99998 16C10.5523 16 11 15.5523 11 15L11 14.908C11.6216 14.7913 12.1965 14.5659 12.676 14.2463C13.3977 13.7651 14 12.9907 14 12C14 11.0093 13.3977 10.2348 12.676 9.75373C12.1965 9.43407 11.6216 9.20873 11 9.09199L11 7.15075C11.391 7.27771 11.6808 7.4681 11.8434 7.65538C12.2053 8.07252 12.8369 8.11726 13.254 7.7553C13.6712 7.39335 13.7159 6.76176 13.354 6.34462C12.7915 5.69637 11.9405 5.26915 11 5.09236V5Z"
-                fill="#fff"
-            ></path>
-        </svg>,
-    ];
-    const profile = [
-        <svg
-            width="22"
-            height="22"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            key={0}
-        >
-            <path
-                d="M9 6C9 7.65685 7.65685 9 6 9C4.34315 9 3 7.65685 3 6C3 4.34315 4.34315 3 6 3C7.65685 3 9 4.34315 9 6Z"
-                fill="#fff"
-            ></path>
-            <path
-                d="M17 6C17 7.65685 15.6569 9 14 9C12.3431 9 11 7.65685 11 6C11 4.34315 12.3431 3 14 3C15.6569 3 17 4.34315 17 6Z"
-                fill="#fff"
-            ></path>
-            <path
-                d="M12.9291 17C12.9758 16.6734 13 16.3395 13 16C13 14.3648 12.4393 12.8606 11.4998 11.6691C12.2352 11.2435 13.0892 11 14 11C16.7614 11 19 13.2386 19 16V17H12.9291Z"
-                fill="#fff"
-            ></path>
-            <path
-                d="M6 11C8.76142 11 11 13.2386 11 16V17H1V16C1 13.2386 3.23858 11 6 11Z"
-                fill="#fff"
-            ></path>
-        </svg>,
-    ];
-    const cart = [
-        <svg
-            width="22"
-            height="22"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            key={0}
-        >
-            <path
-                fillRule="evenodd"
-                clipRule="evenodd"
-                d="M10 2C7.79086 2 6 3.79086 6 6V7H5C4.49046 7 4.06239 7.38314 4.00612 7.88957L3.00612 16.8896C2.97471 17.1723 3.06518 17.455 3.25488 17.6669C3.44458 17.8789 3.71556 18 4 18H16C16.2844 18 16.5554 17.8789 16.7451 17.6669C16.9348 17.455 17.0253 17.1723 16.9939 16.8896L15.9939 7.88957C15.9376 7.38314 15.5096 7 15 7H14V6C14 3.79086 12.2091 2 10 2ZM12 7V6C12 4.89543 11.1046 4 10 4C8.89543 4 8 4.89543 8 6V7H12ZM6 10C6 9.44772 6.44772 9 7 9C7.55228 9 8 9.44772 8 10C8 10.5523 7.55228 11 7 11C6.44772 11 6 10.5523 6 10ZM13 9C12.4477 9 12 9.44772 12 10C12 10.5523 12.4477 11 13 11C13.5523 11 14 10.5523 14 10C14 9.44772 13.5523 9 13 9Z"
-                fill="#fff"
-            ></path>
-        </svg>,
-    ];
-    const count = [
-        {
-            today: "Doanh thu hôm nay",
-            title: "12,253,000 VND",
-            persent: "+30%",
-            icon: dollor,
-            bnb: "bnb2",
-        },
-        {
-            today: "Số lượng thăm khám",
-            title: "3,200",
-            persent: "+20%",
-            icon: profile,
-            bnb: "bnb2",
-        },
-        {
-            today: "Số lượng xuất viện",
-            title: "200",
-            persent: "+10%",
-            icon: cart,
-            bnb: "bnb2",
-        },
-    ];
+    useEffect(() => {
+        const loadDashboard = async () => {
+            setLoading(true);
+            try {
+                const [usersRes, patientsRes, episodesRes, recentRes] = await Promise.all([
+                    callFetchUser("page=0&size=1"),
+                    callFetchPatient("page=0&size=1"),
+                    callFetchEpisodes("page=0&size=1"),
+                    callFetchEpisodes("page=0&size=10&sort=createdAt,desc"),
+                ]);
 
-    const timelineList = [
-        {
-            title: "Bệnh nhân #4826321 đã xuất viện",
-            time: "09 JUN 7:20 PM",
-            color: "green",
-        },
-        {
-            title: "Bệnh nhân #4826321 đã xuất viện",
-            time: "08 JUN 12:20 PM",
-            color: "green",
-        },
-        {
-            title: "Bệnh nhân #4826321 đang thăm khám",
-            time: "04 JUN 3:10 PM",
-        },
-        {
-            title: "Bệnh nhân #4826321 đang thăm khám",
-            time: "02 JUN 2:45 PM",
-        },
-    ];
+                const episodes: IEpisode[] = recentRes?.data?.result ?? [];
+                setRecentEpisodes(episodes);
+                setStats({
+                    totalPatients: patientsRes?.data?.meta?.total ?? 0,
+                    totalUsers: usersRes?.data?.meta?.total ?? 0,
+                    totalEpisodes: episodesRes?.data?.meta?.total ?? 0,
+                    activeCount: episodes.filter((e) => e.status === "active").length,
+                    completedCount: episodes.filter((e) => e.status === "completed").length,
+                    cancelledCount: episodes.filter((e) => e.status === "cancelled").length,
+                });
+            } catch {
+                // silently fail — stats stay at 0
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadDashboard();
+    }, []);
 
     return (
-        <>
-            <div className="layout-content">
-                <Row className="rowgap-vbox" gutter={[24, 0]}>
-                    {count.map((c, index) => (
-                        <Col
-                            key={index}
-                            xs={24}
-                            sm={24}
-                            md={8}
-                            lg={8}
-                            xl={8}
-                            className="mb-24"
+        <div className="layout-content" style={{ padding: "0 4px" }}>
+            {/* Stat cards */}
+            <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+                {STAT_CARDS.map((card) => (
+                    <Col key={card.key} xs={24} sm={12} lg={6}>
+                        <Card
+                            bordered={false}
+                            style={{
+                                borderRadius: 14,
+                                boxShadow: "0 1px 6px rgba(0,0,0,0.07)",
+                                border: `1px solid ${card.border}`,
+                                background: "#fff",
+                                height: "100%",
+                            }}
+                            bodyStyle={{ padding: "20px 24px" }}
                         >
-                            <Card className="criclebox ">
-                                <div className="number">
-                                    <Row align="middle" gutter={[24, 0]}>
-                                        <Col xs={18}>
-                                            <span>{c.today}</span>
-                                            <Title level={4}>
-                                                {c.title} <small className={c.bnb}>{c.persent}</small>
-                                            </Title>
-                                        </Col>
-                                        <Col xs={6}>
-                                            <div className="icon-box">{c.icon}</div>
-                                        </Col>
-                                    </Row>
+                            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                <div>
+                                    <Text
+                                        style={{ fontSize: 12, color: "#6b7280", fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.04em" }}
+                                    >
+                                        {card.label}
+                                    </Text>
+                                    <div style={{ marginTop: 8 }}>
+                                        {loading ? (
+                                            <Spin size="small" />
+                                        ) : (
+                                            <span style={{ fontSize: 32, fontWeight: 700, color: card.color, lineHeight: 1 }}>
+                                                {stats[card.key].toLocaleString("vi-VN")}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                            </Card>
-                        </Col>
-                    ))}
-                </Row>
-
-                <Row gutter={[24, 0]}>
-
-
-                    <Col xs={24} sm={24} md={12} lg={12} xl={8} className="mb-24">
-                        <Card bordered={false} className="criclebox h-full">
-                            <div className="timeline-box">
-                                <Title level={5}>Lịch sử nhập/xuất bệnh nhân</Title>
-                                <Paragraph className="lastweek" style={{ marginBottom: 24 }}>
-                                    this month <span className="bnb2">20%</span>
-                                </Paragraph>
-
-                                <Timeline
-                                    pending="Recording..."
-                                    className="timelinelist"
-                                    reverse={reverse}
+                                <div
+                                    style={{
+                                        width: 52,
+                                        height: 52,
+                                        borderRadius: "50%",
+                                        background: card.bg,
+                                        border: `1px solid ${card.border}`,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontSize: 22,
+                                        color: card.color,
+                                        flexShrink: 0,
+                                    }}
                                 >
-                                    {timelineList.map((t, index) => (
-                                        <Timeline.Item color={t.color} key={index}>
-                                            <Title level={5}>{t.title}</Title>
-                                            <Text>{t.time}</Text>
-                                        </Timeline.Item>
-                                    ))}
-                                </Timeline>
-                                <Button
-                                    type="primary"
-                                    className="width-100"
-                                    onClick={() => setReverse(!reverse)}
-                                >
-                                    {<MenuUnfoldOutlined />} REVERSE
-                                </Button>
+                                    {card.icon}
+                                </div>
                             </div>
                         </Card>
                     </Col>
-                </Row>
-            </div>
-        </>
-    )
-}
+                ))}
+            </Row>
 
-export default AdminHome
+            {/* Main panels */}
+            <Row gutter={[20, 20]}>
+                {/* Timeline */}
+                <Col xs={24} lg={15}>
+                    <Card
+                        bordered={false}
+                        style={{ borderRadius: 14, boxShadow: "0 1px 6px rgba(0,0,0,0.07)", height: "100%" }}
+                        title={
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <ClockCircleOutlined style={{ color: "#2563eb" }} />
+                                <span style={{ fontWeight: 600 }}>Đợt điều trị gần đây</span>
+                            </div>
+                        }
+                    >
+                        {loading ? (
+                            <div style={{ textAlign: "center", padding: "48px 0" }}>
+                                <Spin size="large" />
+                            </div>
+                        ) : recentEpisodes.length === 0 ? (
+                            <Empty description="Chưa có đợt điều trị nào" style={{ padding: "32px 0" }} />
+                        ) : (
+                            <Timeline style={{ marginTop: 8 }}>
+                                {recentEpisodes.map((ep, i) => {
+                                    const cfg = getStatusConfig(ep.status);
+                                    return (
+                                        <Timeline.Item key={i} color={cfg.dot}>
+                                            <div
+                                                style={{
+                                                    display: "flex",
+                                                    alignItems: "flex-start",
+                                                    justifyContent: "space-between",
+                                                    gap: 12,
+                                                    padding: "4px 0",
+                                                }}
+                                            >
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                                        <span style={{ fontWeight: 600, fontSize: 14, color: "#111827" }}>
+                                                            {ep.patient?.fullName || `Bệnh nhân #${ep.patientId}`}
+                                                        </span>
+                                                        {ep.patient?.patientCode && (
+                                                            <span style={{ fontSize: 11, color: "#9ca3af", fontWeight: 500 }}>
+                                                                {ep.patient.patientCode}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div style={{ marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                                                        {ep.department && (
+                                                            <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                                                <MedicineBoxOutlined style={{ marginRight: 4 }} />
+                                                                {ep.department}
+                                                            </span>
+                                                        )}
+                                                        {ep.admissionDate && (
+                                                            <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                                                Nhập: {dayjs(ep.admissionDate).format("DD/MM/YYYY")}
+                                                            </span>
+                                                        )}
+                                                        {ep.dischargeDate && (
+                                                            <span style={{ fontSize: 12, color: "#6b7280" }}>
+                                                                Xuất: {dayjs(ep.dischargeDate).format("DD/MM/YYYY")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {ep.reason && (
+                                                        <div style={{ marginTop: 2, fontSize: 12, color: "#9ca3af", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                            {ep.reason}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div style={{ flexShrink: 0 }}>
+                                                    <Tag color={cfg.color} icon={cfg.icon} style={{ borderRadius: 999, fontSize: 11 }}>
+                                                        {cfg.label}
+                                                    </Tag>
+                                                </div>
+                                            </div>
+                                        </Timeline.Item>
+                                    );
+                                })}
+                            </Timeline>
+                        )}
+                    </Card>
+                </Col>
+
+                {/* Summary panel */}
+                <Col xs={24} lg={9}>
+                    <Card
+                        bordered={false}
+                        style={{ borderRadius: 14, boxShadow: "0 1px 6px rgba(0,0,0,0.07)", height: "100%" }}
+                        title={
+                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <CheckCircleOutlined style={{ color: "#16a34a" }} />
+                                <span style={{ fontWeight: 600 }}>Tổng quan hệ thống</span>
+                            </div>
+                        }
+                    >
+                        <Spin spinning={loading}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+                                {[
+                                    {
+                                        label: "Tổng bệnh nhân",
+                                        sub: "Toàn hệ thống",
+                                        value: stats.totalPatients,
+                                        color: "#2563eb",
+                                        bg: "#eff6ff",
+                                        icon: <UserOutlined />,
+                                    },
+                                    {
+                                        label: "Nhân viên",
+                                        sub: "Đang hoạt động",
+                                        value: stats.totalUsers,
+                                        color: "#d97706",
+                                        bg: "#fffbeb",
+                                        icon: <TeamOutlined />,
+                                    },
+                                    {
+                                        label: "Đang điều trị",
+                                        sub: "10 đợt gần nhất",
+                                        value: stats.activeCount,
+                                        color: "#16a34a",
+                                        bg: "#f0fdf4",
+                                        icon: <SyncOutlined />,
+                                    },
+                                    {
+                                        label: "Hoàn thành",
+                                        sub: "10 đợt gần nhất",
+                                        value: stats.completedCount,
+                                        color: "#7c3aed",
+                                        bg: "#faf5ff",
+                                        icon: <CheckCircleOutlined />,
+                                    },
+                                    {
+                                        label: "Đã hủy",
+                                        sub: "10 đợt gần nhất",
+                                        value: stats.cancelledCount,
+                                        color: "#dc2626",
+                                        bg: "#fef2f2",
+                                        icon: <StopOutlined />,
+                                    },
+                                ].map((item, i, arr) => (
+                                    <div key={item.label}>
+                                        <div
+                                            style={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "space-between",
+                                                padding: "14px 16px",
+                                                borderRadius: 10,
+                                                background: item.bg,
+                                                margin: "6px 0",
+                                            }}
+                                        >
+                                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                                                <div
+                                                    style={{
+                                                        width: 36,
+                                                        height: 36,
+                                                        borderRadius: "50%",
+                                                        background: "#fff",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        color: item.color,
+                                                        fontSize: 16,
+                                                        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
+                                                    }}
+                                                >
+                                                    {item.icon}
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{item.label}</div>
+                                                    <div style={{ fontSize: 11, color: "#9ca3af" }}>{item.sub}</div>
+                                                </div>
+                                            </div>
+                                            <div style={{ fontSize: 22, fontWeight: 700, color: item.color }}>{item.value.toLocaleString("vi-VN")}</div>
+                                        </div>
+                                        {i < arr.length - 1 && <Divider style={{ margin: "0 16px" }} />}
+                                    </div>
+                                ))}
+                            </div>
+                        </Spin>
+                    </Card>
+                </Col>
+            </Row>
+        </div>
+    );
+};
+
+export default AdminHome;
