@@ -269,6 +269,67 @@ export interface ISurgery {
 }
 
 /**
+ * Aggregate episode payloads for the atomic /episodes/{id}/full endpoints.
+ * GET returns the raw entities the editor consumes; POST/PUT send a single
+ * payload whose child `id` (number) drives create/update/delete server-side.
+ */
+export interface IEpisodeFullResponse {
+    episode: IEpisode;
+    medicalHistory: IMedicalHistory | null;
+    clinicalRecord: IClinicalRecord | null;
+    surgeries: ISurgery[];
+    labResults: ILabResult[];
+    imageResults: IImageResult[];
+    cultureResults: ICultureResult[];
+    sensitivityMap: Record<string, ISensitivityResult[]>;
+}
+
+export interface IEpisodeFullSurgeryItem {
+    id?: number;
+    surgeryDate?: string;
+    surgeryType?: string;
+    findings?: string;
+}
+
+export interface IEpisodeFullImageItem {
+    id?: number;
+    type?: string;
+    findings?: string;
+    fileMetadata?: string;
+    bucket?: string;
+    objectKey?: string;
+}
+
+export interface IEpisodeFullSensitivityItem {
+    id?: number;
+    antibioticName?: string;
+    micValue?: string;
+    sensitivityCode?: string;
+}
+
+export interface IEpisodeFullCultureItem {
+    id?: number;
+    name?: string;
+    result?: string;
+    gramType?: string;
+    incubationDays?: number;
+    antibioticed?: boolean;
+    daysOffAntibio?: number;
+    notes?: string;
+    sensitivities?: IEpisodeFullSensitivityItem[];
+}
+
+export interface IEpisodeFullRequest {
+    episode: IEpisodeRequest;
+    medicalHistory?: Partial<IMedicalHistory>;
+    clinicalRecord?: Partial<IClinicalRecord>;
+    labResult?: Partial<ILabResult>;
+    surgeries?: IEpisodeFullSurgeryItem[];
+    images?: IEpisodeFullImageItem[];
+    cultures?: IEpisodeFullCultureItem[];
+}
+
+/**
  * Module AiChat
  */
 export interface IAiChatSession {

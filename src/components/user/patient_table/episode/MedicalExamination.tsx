@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
 import { IEpisode } from '@/types/backend';
 import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
 import locale from 'antd/es/date-picker/locale/en_US';
@@ -65,11 +65,29 @@ export function formDataToEpisodeRequest(form: EpisodeFormData) {
 }
 
 
-export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
+export interface MedicalExaminationHandle {
+    /** Runs the Antd field rules. Resolves true if valid, false if any rule fails. */
+    validate: () => Promise<boolean>;
+}
+
+export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalExaminationProps>(({
     episodeData,
     onFormChange,
-}) => {
+}, ref) => {
     const [form] = Form.useForm<EpisodeFormData>();
+
+    // Let the parent (the drawer's Save button) trigger this form's validation,
+    // so the Antd `rules` actually fire and inline field errors are shown.
+    useImperativeHandle(ref, () => ({
+        validate: async () => {
+            try {
+                await form.validateFields();
+                return true;
+            } catch {
+                return false;
+            }
+        },
+    }), [form]);
 
     // Initialize form with episode data
     useEffect(() => {
@@ -218,9 +236,9 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
                                     placeholder="-- Trạng thái hồ sơ --"
                                     className="h-11 rounded-lg"
                                     options={[
-                                        { value: 'Đang điều trị', label: 'Đang điều trị' },
-                                        { value: 'Hoàn thành điều trị', label: 'Hoàn thành' },
-                                        { value: 'Hồ sơ bị hoãn', label: 'Đã hủy' },
+                                        { value: 'processing', label: 'Đang điều trị' },
+                                        { value: 'completed', label: 'Hoàn thành' },
+                                        { value: 'cancelled', label: 'Đã hủy' },
                                     ]}
                                 />
                             </Form.Item>
@@ -230,6 +248,8 @@ export const MedicalExamination: React.FC<MedicalExaminationProps> = ({
             </div>
         </div>
     );
-};
+});
+
+MedicalExamination.displayName = 'MedicalExamination';
 
 export default MedicalExamination;

@@ -7,7 +7,7 @@ import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { fetchPatient } from '@/redux/slice/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, PlusOutlined, UserOutlined, UserSwitchOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Breadcrumb, Button, Card, message, notification, Popconfirm, Space } from "antd";
 import dayjs from "dayjs";
@@ -16,7 +16,7 @@ import { useRef, useState } from "react";
 import { sfLike } from "spring-filter-query-builder";
 
 const PatientTable = () => {
-    const [openModal, setOpenModal] = useState<boolean>(false);
+
     const [dataInit, setDataInit] = useState<IPatient | null>(null);
     const [openModalCreate, setOpenModalCreate] = useState<boolean>(false);
     const [openMedicalDrawer, setOpenMedicalDrawer] = useState<boolean>(false);

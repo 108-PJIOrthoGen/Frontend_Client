@@ -4,7 +4,7 @@ import { PlusOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { IPatient, IEpisode } from '@/types/backend';
 import { callFetchEpisodesByPatient } from '@/apis/api';
 import dayjs from 'dayjs';
-import MedicalExamDetail from '../MedicalExamDetail';
+import MedicalExamDetail from '../episode/MedicalExamDetail';
 
 interface ManageMedicalDrawerProps {
     open: boolean;
@@ -56,9 +56,9 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
 
     const getStatusTag = (status?: string) => {
         switch (status) {
-            case 'normal': return <Tag color="processing">Đang điều trị</Tag>;
-            case 'bad': return <Tag color="success">Hoàn thành</Tag>;
-            case 'worse': return <Tag color="error">Đã hủy</Tag>;
+            case 'processing': return <Tag color="processing">Đang điều trị</Tag>;
+            case 'completed': return <Tag color="success">Hoàn thành</Tag>;
+            case 'cancelled': return <Tag color="error">Đã hủy</Tag>;
             default: return <Tag color="default">{status || 'N/A'}</Tag>;
         }
     };
