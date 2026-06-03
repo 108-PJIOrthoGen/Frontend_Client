@@ -18,6 +18,8 @@ export function useClinicForm() {
 
     const setForm = useCallback(
         (updater: IClinicFormState | ((prev: IClinicFormState) => IClinicFormState)) => {
+            // Tại sao dùng store.getState() thay vì đọc form từ selector?
+            //Đây là chi tiết quan trọng nhất. Khi dùng useCallback với [dispatch], closure của setForm không capture lại form khi state thay đổi — nếu dùng form từ selector bên trong, nó sẽ là giá trị cũ (stale closure).
             if (typeof updater === 'function') {
                 const latestState = store.getState().patient.clinicForm;
                 dispatch(setClinicForm(updater(latestState)));

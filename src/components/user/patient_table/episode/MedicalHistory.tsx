@@ -7,9 +7,6 @@ import { stringToDayjs } from '@/config/utils';
 const { TextArea } = Input;
 
 interface MedicalHistoryProps {
-  onNext?: () => void;
-  onPrev?: () => void;
-  mode?: 'wizard' | 'standalone';
   medicalHistoryData?: IMedicalHistory | null;
   surgeriesData?: ISurgery[];
 }
@@ -38,7 +35,6 @@ interface MedicalHistoryFormValues {
 }
 
 export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
-  mode = 'wizard',
   medicalHistoryData,
   surgeriesData,
 }) => {
@@ -144,14 +140,14 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
 
   return (
     <>
-      {mode === 'wizard' && (
-        <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhập thông tin bệnh án</h1>
-            <p className="text-slate-500 text-sm mt-1">Lưu trữ thông tin về bệnh án & tiền sử bệnh</p>
-          </div>
-        </header>
-      )}
+
+      <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Nhập thông tin bệnh án</h1>
+          <p className="text-slate-500 text-sm mt-1">Lưu trữ thông tin về bệnh án & tiền sử bệnh</p>
+        </div>
+      </header>
+
       <div className="flex-1 overflow-y-auto p-8 pb-32">
         <Form
           form={form}

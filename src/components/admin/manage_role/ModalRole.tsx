@@ -39,11 +39,30 @@ const ModalRole = (props: IProps) => {
     };
 
     useEffect(() => {
+        // PermissionSyncer auto-inserts one row per declared endpoint, so the
+        // table outgrows any single page. Walk every page; truncating here used
+        // to silently DROP unlisted permissions from the role on update.
         const init = async () => {
-            const res = await callFetchPermission(`page=0&size=100`);
-            if (res.data?.result) {
-                setListPermissions(groupByPermission(res.data.result))
+            const all: IPermission[] = [];
+            let page = 0;
+            let pages = 1;
+            do {
+                const res = await callFetchPermission(`page=${page}&size=500`);
+                if (!res.data?.result) break;
+                all.push(...res.data.result);
+                pages = res.data.meta?.pages ?? 1;
+                page += 1;
+            } while (page < pages);
+            if (page < pages || !all.length) {
+                // Partial list is worse than none: saving with it would silently
+                // strip the missing permissions from the role.
+                notification.error({
+                    message: 'Không tải được danh sách quyền',
+                    description: 'Vui lòng đóng modal và thử lại trước khi lưu role.'
+                });
+                return;
             }
+            setListPermissions(groupByPermission(all));
         }
         init();
     }, [])
@@ -95,7 +114,9 @@ const ModalRole = (props: IProps) => {
                 name, description, active, permissions: checkedPermissions
             }
             const res = await callUpdateRole(role, singleRole.id);
-            if (res.status) {
+            // Error payloads also carry `status` (400/403…), so a bare truthy
+            // check used to report success even when the save failed.
+            if (+res.status === 200) {
                 message.success("Cập nhật role thành công");
                 handleReset();
                 reloadTable();

@@ -50,27 +50,31 @@ const router = createBrowserRouter([
     },
     {
         path: "/admin",
+        // Guard đặt ở layout cha: thiếu quyền ADMIN thì cả sider/header không
+        // mount, Error403 chiếm fullpage (children render trong Outlet nên
+        // không cần bọc từng trang nữa).
         element: <LayoutApp>
-            <LayoutAdmin />
+            <ProtectedRoute>
+                <LayoutAdmin />
+            </ProtectedRoute>
         </LayoutApp>,
         errorElement: <Error404 />,
         children: [
             {
                 index: true,
-                element: <ProtectedRoute><AdminHome /></ProtectedRoute>
+                element: <AdminHome />
             },
             {
                 path: "table-users",
-                element: <ProtectedRoute><UserPage /></ProtectedRoute>
+                element: <UserPage />
             },
             {
                 path: "table-role",
-                element: <ProtectedRoute><RolePage /></ProtectedRoute>
+                element: <RolePage />
             },
             {
                 path: "table-permission",
-                element:
-                    <ProtectedRoute><PermissionPage /></ProtectedRoute>
+                element: <PermissionPage />
             },
         ]
     },

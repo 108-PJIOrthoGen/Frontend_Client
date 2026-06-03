@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, MenuProps, Avatar, Image, message, Badge, Tooltip } from 'antd';
+import { Dropdown, MenuProps, Avatar, Image, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
 import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
 import { RootState } from '@/redux/store';
-import PendingLabTasksDrawer from '@/components/user/pending_lab_tasks/PendingLabTasksDrawer';
-import ProfileSettingsModal from '@/components/user/ProfileSettingsModal';
+import type { IPendingLabTask } from '@/types/backend';
+import ProfileSettingsModal from '@/components/user/profile/ProfileSettingsModal';
 import NotificationBell from '@/components/common/NotificationBell';
 
 export const LayoutClient = () => {
@@ -18,23 +18,88 @@ export const LayoutClient = () => {
   const user = useSelector((state: any) => state.account?.user);
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
   const pendingCount = useSelector((state: RootState) => state.pendingLabTask.count);
+  const pendingTasks = useSelector((state: RootState) => state.pendingLabTask.tasks);
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [pendingPopoverOpen, setPendingPopoverOpen] = useState(false);
 
   useEffect(() => {
     dispatch(fetchMyPendingCount() as any);
+    dispatch(fetchMyPendingTasks() as any);
   }, [dispatch]);
 
-  const handleOpenDrawer = () => {
-    dispatch(fetchMyPendingTasks() as any);
-    setDrawerOpen(true);
+  // Group this user's tasks by episode and keep only those still carrying
+  // outstanding (pending) work — the notification shows per-episode progress.
+  const episodeProgress = useMemo(() => {
+    const map = new Map<string, {
+      episodeId: number;
+      patientId?: number;
+      patientName: string;
+      total: number;
+      done: number;
+    }>();
+    (pendingTasks as IPendingLabTask[]).forEach((t) => {
+      const episodeId = t.episode?.id;
+      if (episodeId == null) return;
+      const key = String(episodeId);
+      if (!map.has(key)) {
+        map.set(key, {
+          episodeId,
+          patientId: t.patient?.id,
+          patientName: t.patient?.fullName ?? `Bệnh nhân #${t.patient?.id ?? '?'}`,
+          total: 0,
+          done: 0,
+        });
+      }
+      const g = map.get(key)!;
+      g.total += 1;
+      if ((t.status ?? 'PENDING') !== 'PENDING') g.done += 1;
+    });
+    // Only episodes that still have at least one pending field.
+    return Array.from(map.values()).filter((g) => g.done < g.total);
+  }, [pendingTasks]);
+
+  const goToEpisode = (patientId?: number, episodeId?: number) => {
+    setPendingPopoverOpen(false);
+    const params = new URLSearchParams();
+    if (patientId != null) params.set('patientId', String(patientId));
+    if (episodeId != null) params.set('episodeId', String(episodeId));
+    params.set('tab', 'pending');
+    navigate(`/table-patients?${params.toString()}`);
   };
 
-  const handleRefreshTasks = () => {
-    dispatch(fetchMyPendingTasks() as any);
-    dispatch(fetchMyPendingCount() as any);
-  };
+  const pendingPopoverContent = (
+    <div className="w-80 max-h-96 overflow-y-auto">
+      {episodeProgress.length === 0 ? (
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có xét nghiệm chờ bổ sung" />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {episodeProgress.map((g) => {
+            const percent = g.total === 0 ? 0 : Math.round((g.done / g.total) * 100);
+            return (
+              <button
+                key={g.episodeId}
+                onClick={() => goToEpisode(g.patientId, g.episodeId)}
+                className="text-left p-3 rounded-lg border border-slate-200 hover:border-amber-300 hover:bg-amber-50 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-slate-700">{g.patientName}</span>
+                  <span className="text-xs text-slate-500">BA #{g.episodeId}</span>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
+                  <Progress percent={percent} size="small" className="flex-1" />
+                  <span className="text-xs font-semibold text-slate-600 whitespace-nowrap">
+                    {g.done}/{g.total}
+                  </span>
+                </div>
+                <span className="text-[11px] text-amber-700">Bấm để mở bệnh án và bổ sung</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 
   const handleLogout = async () => {
     await LogoutAPI();
@@ -182,26 +247,35 @@ export const LayoutClient = () => {
               <NotificationBell />
             </div>
 
-            {/* Pending Lab Tasks Button */}
+            {/* Pending Lab Tasks — progress notification (entry now lives in the
+                episode's "Xét nghiệm chờ bổ sung" tab) */}
             <div className="px-3 pt-1 pb-1">
-              <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
-                <button
-                  onClick={handleOpenDrawer}
-                  className="w-full flex items-center gap-3 py-2 rounded-lg
-                  hover:bg-amber-50 transition-colors text-left border
-                  border-transparent hover:border-amber-200 group"
-                >
-                  <Badge count={pendingCount} size="small" offset={[-2, 2]}>
-                    <span className="material-symbols-outlined 
-                    group-hover:text-amber-700">
-                      science
+              <Popover
+                open={pendingPopoverOpen}
+                onOpenChange={setPendingPopoverOpen}
+                trigger="click"
+                placement="rightTop"
+                title="Tiến độ xét nghiệm chờ bổ sung"
+                content={pendingPopoverContent}
+              >
+                <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
+                  <button
+                    className="w-full flex items-center gap-3 py-2 rounded-lg
+                    hover:bg-amber-50 transition-colors text-left border
+                    border-transparent hover:border-amber-200 group"
+                  >
+                    <Badge count={pendingCount} size="small" offset={[-2, 2]}>
+                      <span className="material-symbols-outlined 
+                      group-hover:text-amber-700">
+                        science
+                      </span>
+                    </Badge>
+                    <span className=" font-medium text-slate-600 group-hover:text-amber-700">
+                      Xét nghiệm chờ bổ sung
                     </span>
-                  </Badge>
-                  <span className=" font-medium text-slate-600 group-hover:text-amber-700">
-                    Xét nghiệm chờ bổ sung
-                  </span>
-                </button>
-              </Tooltip>
+                  </button>
+                </Tooltip>
+              </Popover>
             </div>
 
           </nav>
@@ -235,13 +309,6 @@ export const LayoutClient = () => {
       <main className="flex-1 flex flex-col h-full overflow-hidden relative">
         <Outlet />
       </main>
-
-      {/* Pending Lab Tasks Drawer */}
-      <PendingLabTasksDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onRefresh={handleRefreshTasks}
-      />
 
       {/* Profile / Account Settings Modal */}
       <ProfileSettingsModal

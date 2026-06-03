@@ -35,7 +35,6 @@ const categoryLabel = (cat?: string) => {
   return 'Lâm sàng';
 };
 
-const SAVED_REMINDER_KEY_PREFIX = 'pji_savedPendingLabReminder';
 const PATIENT_RECORD_WRITE_PERMISSIONS = [
   { method: 'POST', apiPath: '/api/v1/episodes/{episodeId}/pending-lab-tasks/from-completeness' },
   { method: 'PUT', apiPath: '/api/v1/episodes/{id}' },
@@ -46,11 +45,6 @@ const toNumberId = (value?: string | number | null): number | undefined => {
   if (value == null || value === '') return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
-};
-
-const getSavedReminderKey = (episodeId?: string | number, runId?: string | null): string | null => {
-  if (episodeId == null || episodeId === '') return null;
-  return `${SAVED_REMINDER_KEY_PREFIX}:${episodeId}:${runId || 'no-run'}`;
 };
 
 const hasPermission = (
@@ -81,9 +75,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
 
   useEffect(() => {
     setCompleteness(null);
-    const runId = localStorage.getItem('pji_aiRunId');
-    const savedKey = getSavedReminderKey(currentCase?.episode?.id, runId);
-    setSaved(savedKey ? localStorage.getItem(savedKey) === 'true' : false);
+    setSaved(false);
 
     const cachedDetail = localStorage.getItem('pji_aiRunDetail');
     if (cachedDetail) {
@@ -91,6 +83,9 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
         const detail = JSON.parse(cachedDetail);
         const dc = detail.run?.dataCompletenessJson;
         if (dc) setCompleteness(dc);
+        // "Already saved" now comes from the persisted run flag (survives reloads
+        // and follows the user across devices), not localStorage.
+        if (detail.run?.pendingTasksSaved === true) setSaved(true);
       } catch { /* ignore */ }
     }
   }, [currentCase?.episode?.id]);
@@ -117,8 +112,6 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
         }
       );
       setSaved(true);
-      const savedKey = getSavedReminderKey(currentCase?.episode?.id, runId);
-      if (savedKey) localStorage.setItem(savedKey, 'true');
       dispatch(fetchMyPendingTasks());
       dispatch(fetchMyPendingCount());
       message.success('Đã lưu nhắc nhở xét nghiệm');

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Alert, Button, Space } from 'antd';
 import { LockOutlined, ReloadOutlined } from '@ant-design/icons';
-import type { LockStatus } from './episode/hooks/useEpisodeLock';
+import { LockStatus } from './hooks/useEpisodeLock';
+
 
 interface Props {
     status: LockStatus;

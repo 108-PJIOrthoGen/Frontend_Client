@@ -370,6 +370,7 @@ export interface IAiRecommendationRun {
     latencyMs?: number;
     errorMessage?: string;
     dataCompletenessJson?: IDataCompleteness;
+    pendingTasksSaved?: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -386,6 +387,10 @@ export interface IMissingItem {
     category?: string;
     importance?: string;
     message?: string;
+    input_type?: 'lab' | 'clinical' | 'culture';
+    section?: 'hematology' | 'fluid' | 'biochemical';
+    unit?: string;
+    normal_range?: string;
 }
 
 export interface IPendingLabTask {
@@ -398,6 +403,10 @@ export interface IPendingLabTask {
     importance?: string;
     message?: string;
     status?: string;
+    inputType?: 'lab' | 'clinical' | 'culture';
+    section?: 'hematology' | 'fluid' | 'biochemical';
+    unit?: string;
+    normalRange?: string;
     createdFromRunId?: number;
     createdAt?: string;
     updatedAt?: string;

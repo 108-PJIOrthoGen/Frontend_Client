@@ -60,9 +60,6 @@ const BiochemistryTestsTable: React.FC<Props> = ({ patient }) => {
   const gender = patient?.gender;
   useEffect(() => {
     const expected = calculateEgfr(creatinineResult, { dateOfBirth: dob, gender });
-    console.log('Recalculating eGFR with creatinine', expected);
-    console.log('Recalculating eGFR with creatinine', creatinineResult);
-    console.log('Recalculating eGFR with creatinine', gender, dob);
     setForm((prev) => {
       const current =
         prev.biochemistryTests.find((t) => t.id === 'ht_20')?.result ?? '';

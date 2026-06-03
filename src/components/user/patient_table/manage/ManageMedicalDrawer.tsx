@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Drawer, Table, Button, Tag, message, Space } from 'antd';
 import { PlusOutlined, FolderOpenOutlined } from '@ant-design/icons';
 import { IPatient, IEpisode } from '@/types/backend';
@@ -10,13 +10,20 @@ interface ManageMedicalDrawerProps {
     open: boolean;
     onClose: () => void;
     patient: IPatient | null;
+    /** Deep-link: episode to auto-open once the list has loaded. */
+    initialEpisodeId?: number;
+    /** Deep-link: tab key to pre-select in the opened episode detail. */
+    initialTab?: string;
 }
 
-const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose, patient }) => {
+const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose, patient, initialEpisodeId, initialTab }) => {
     const [episodes, setEpisodes] = useState<IEpisode[]>([]);
     const [loading, setLoading] = useState(false);
     const [detailOpen, setDetailOpen] = useState(false);
     const [selectedEpisode, setSelectedEpisode] = useState<IEpisode | null>(null);
+    const [detailInitialTab, setDetailInitialTab] = useState<string | undefined>(undefined);
+    // Guards the deep-link auto-open so it fires once per episode list load.
+    const deepLinkHandledRef = useRef(false);
 
     const fetchEpisodes = async () => {
         if (!patient?.id) return;
@@ -42,10 +49,26 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
         }
     }, [open, patient?.id]);
 
-    const handleOpenDetail = (episode: IEpisode | null) => {
+    const handleOpenDetail = (episode: IEpisode | null, tab?: string) => {
         setSelectedEpisode(episode);
+        setDetailInitialTab(tab);
         setDetailOpen(true);
     };
+
+    // Reset the one-shot guard whenever the drawer (re)opens for a deep link.
+    useEffect(() => {
+        if (open) deepLinkHandledRef.current = false;
+    }, [open, initialEpisodeId]);
+
+    // Once episodes are loaded, auto-open the deep-linked episode on its tab.
+    useEffect(() => {
+        if (!open || deepLinkHandledRef.current || initialEpisodeId == null) return;
+        const target = episodes.find((e) => Number(e.id) === Number(initialEpisodeId));
+        if (target) {
+            deepLinkHandledRef.current = true;
+            handleOpenDetail(target, initialTab);
+        }
+    }, [open, episodes, initialEpisodeId, initialTab]);
 
     const handleCloseDetail = () => {
         setDetailOpen(false);
@@ -195,6 +218,7 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
                 examData={selectedEpisode}
                 patientId={patient?.id}
                 patient={patient}
+                initialTab={detailInitialTab}
             />
         </>
     );

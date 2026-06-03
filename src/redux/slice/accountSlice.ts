@@ -6,7 +6,6 @@ export const fetchAccount = createAsyncThunk(
     'account/fetchAccount',
     async () => {
         const response = await callFetchAccountAPI();
-        console.log("errr")
         return response.data;
     }
 )
@@ -104,7 +103,12 @@ export const accountSlice = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(fetchAccount.pending, (state) => {
-            state.isLoading = true;
+            // Chỉ bật loading toàn cục ở lần boot đầu (chưa đăng nhập).
+            // Refresh nền (vd: mở ProfileSettingsModal) mà bật isLoading sẽ làm
+            // App.tsx unmount RouterProvider -> mất state local -> modal không mở được.
+            if (!state.isAuthenticated) {
+                state.isLoading = true;
+            }
         })
 
         builder.addCase(fetchAccount.fulfilled, (state, action) => {

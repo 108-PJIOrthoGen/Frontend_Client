@@ -11,7 +11,6 @@ export interface AntibioticRow {
 }
 
 // Standard antibiotics commonly used in PJI (prosthetic joint infection) treatment.
-// Doctors can pick from the list or type a custom name.
 const COMMON_PJI_ANTIBIOTICS: string[] = [
   'Vancomycin',
   'Daptomycin',
@@ -43,9 +42,6 @@ type CultureItem = Partial<ICultureResult> & {
 };
 
 interface StepProps {
-  onNext?: () => void;
-  onPrev?: () => void;
-  mode?: 'wizard' | 'standalone';
   cultureResults?: CultureItem[];
   sensitivityMap?: Record<string, ISensitivityResult[]>;
   onAntibioticsChange?: (data: Record<string, AntibioticRow[]>) => void;
@@ -62,7 +58,6 @@ const getCultureLabel = (c: CultureItem, idx: number): string => {
 };
 
 export const Antibiogram: React.FC<StepProps> = ({
-  mode = 'wizard',
   cultureResults,
   sensitivityMap,
   onAntibioticsChange,
@@ -142,14 +137,14 @@ export const Antibiogram: React.FC<StepProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-slate-50 relative pb-24">
-      {mode === 'wizard' && (
+     
         <header className="bg-white border-b border-slate-200 px-8 py-5 flex items-center justify-between z-10 flex-shrink-0">
           <div>
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Bảng kháng sinh đồ</h1>
             <p className="text-slate-500 text-sm mt-1">Kết quả định danh vi khuẩn và mức độ nhạy cảm</p>
           </div>
         </header>
-      )}
+    
 
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-5xl mx-auto space-y-6">

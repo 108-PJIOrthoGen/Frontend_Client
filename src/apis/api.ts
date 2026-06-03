@@ -76,10 +76,15 @@ export const callUpdateOwnProfile = (payload: {
     phone?: string;
     department?: string;
     avatar?: string;
-    currentPassword?: string;
-    newPassword?: string;
 }): Promise<IBackendRes<IUser>> => {
     return instance.put(`/api/v1/auth/account`, payload)
+}
+/** Đổi mật khẩu xong backend revoke toàn bộ session — client phải logout + đăng nhập lại. */
+export const callChangeOwnPassword = (payload: {
+    currentPassword: string;
+    newPassword: string;
+}): Promise<IBackendRes<void>> => {
+    return instance.post(`/api/v1/auth/change-password`, payload)
 }
 export const callCreateRole = (role: IRole): Promise<IBackendRes<IRole>> => {
     return instance.post('/api/v1/add-role', { ...role })
@@ -145,6 +150,9 @@ export const callFetchPatient = (query: string): Promise<IBackendRes<IModelPagin
 }
 export const callDeletePatient = (id: string): Promise<IBackendRes<IPatient>> => {
     return instance.delete(`/api/v1/patients/${id}`);
+}
+export const callFetchPatientById = (id: string | number): Promise<IBackendRes<IPatient>> => {
+    return instance.get(`/api/v1/patients/${id}`);
 }
 export const callCreatePatient = (user: IPatient): Promise<IBackendRes<IPatient>> => {
     return instance.post('/api/v1/patients', { ...user })

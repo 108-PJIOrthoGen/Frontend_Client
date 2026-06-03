@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useLocation, Outlet } from "react-router-dom";
-import { Layout, Drawer, Affix, Result } from "antd";
+import { Layout, Drawer, Affix } from "antd";
 
-import { useSelector } from "react-redux";
 import "../../public/main.scss";
 import "../../public/responsive.scss";
 import SideNav from "@/components/admin/SideNav";
@@ -11,13 +10,14 @@ import FooterAdmin from "@/components/admin/FooterAdmin";
 
 const { Header: AntHeader, Content, Sider } = Layout;
 
+/**
+ * Khung dashboard admin. Quyền truy cập (chỉ ADMIN) được enforce ở route cha
+ * — routes/index.tsx bọc <ProtectedRoute> quanh layout này — nên tới được đây
+ * là chắc chắn đã có quyền; không check role lặp lại ở đây nữa.
+ */
 const LayoutAdmin = () => {
     const [visible, setVisible] = useState(false);
     const [sidenavColor, setSideNavColor] = useState("#1890ff");
-    const isAdminRoute = window.location.pathname.startsWith('/admin')
-    const user = useSelector((state: any) => state.account.user);
-    const isLoading = useSelector((state: any) => state.account.isLoading)
-    const userRole = user?.role?.name;
     const [fixed, setFixed] = useState(false);
 
 
@@ -27,7 +27,7 @@ const LayoutAdmin = () => {
 
     let { pathname } = useLocation();
     pathname = pathname.replace("/", "");
-    return isAdminRoute && (userRole === 'ADMIN' || userRole === 'NURSE' || userRole === 'DOCTOR' || userRole === 'RECEPTIONIST') ? (
+    return (
         <Layout
             className={`layout-dashboard ${pathname === "profile" ? "layout-profile" : ""} `}
         >
@@ -93,19 +93,7 @@ const LayoutAdmin = () => {
 
             </Layout>
         </Layout>
-    ) : <>
-        {isLoading === false ?
-            <Result
-                status="403"
-                title="Truy cập bị từ chối"
-                subTitle="Xin lỗi, bạn không có quyền hạn (permission) truy cập thông tin này"
-            />
-            :
-            <>
-                {/* render nothing */}
-            </>
-        }
-    </>;
+    );
 }
 
 export default LayoutAdmin
