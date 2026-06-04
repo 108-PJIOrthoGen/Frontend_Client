@@ -5,18 +5,18 @@ import { callUploadImage } from '@/apis/api';
 import { useClinicForm } from '@/redux/hook';
 import QuickImportImagesModal from '../extract/QuickImportImagesModal';
 import QuickImportReviewModal from '../extract/QuickImportReviewModal';
-import { useQuickImportFlow } from './hooks/useQuickImportFlow';
-import { useClinicFormSync } from './hooks/useClinicFormSync';
-import SymptomsChecklist from './SymptomsChecklist';
-import ClinicalExamForm from './ClinicalExamForm';
-import HematologyTestsTable from './HematologyTestsTable';
-import BiochemistryTestsTable from './BiochemistryTestsTable';
-import MicrobiologyTestsTable from './MicrobiologyTestsTable';
-import DiagnosticImagingSection from './DiagnosticImagingSection';
-import ImageTypeModal from './ImageTypeModal';
+import { useClinicFormSync } from '../clinical_assessment/hooks/useClinicFormSync';
+import { useQuickImportFlow } from '../clinical_assessment/hooks/useQuickImportFlow';
+import SymptomsChecklist from '../clinical_assessment/SymptomsChecklist';
+import ClinicalExamForm from '../clinical_assessment/ClinicalExamForm';
+import HematologyTestsTable from '../clinical_assessment/HematologyTestsTable';
+import BiochemistryTestsTable from '../clinical_assessment/BiochemistryTestsTable';
+import MicrobiologyTestsTable from '../clinical_assessment/MicrobiologyTestsTable';
+import DiagnosticImagingSection from '../clinical_assessment/DiagnosticImagingSection';
+import ImageTypeModal from '../clinical_assessment/ImageTypeModal';
+
 
 interface ClinicalAssessmentProps {
-  mode?: 'wizard' | 'standalone';
   labResults?: ILabResult[];
   clinicalRecord?: IClinicalRecord | null;
   cultureResults?: ICultureResult[];

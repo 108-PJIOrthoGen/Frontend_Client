@@ -44,8 +44,10 @@ export const pendingLabTaskSlice = createSlice({
         state.isLoading = true;
       })
       .addCase(fetchMyPendingTasks.fulfilled, (state, action) => {
+        // Payload now includes PENDING + FULFILLED tasks (for progress display);
+        // the badge count is owned solely by fetchMyPendingCount (distinct
+        // episodes with pending work), so we don't derive it from length here.
         state.tasks = action.payload;
-        state.count = action.payload.length;
         state.isLoading = false;
       })
       .addCase(fetchMyPendingTasks.rejected, (state) => {

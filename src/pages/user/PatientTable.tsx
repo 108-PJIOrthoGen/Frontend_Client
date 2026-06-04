@@ -1,4 +1,4 @@
-import { callDeletePatient } from '@/apis/api';
+import { callDeletePatient, callFetchPatientById } from '@/apis/api';
 import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
 import MPatientCreateAndUpdate from '@/components/user/patient_table/manage/PatientModal';
@@ -12,7 +12,8 @@ import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Breadcrumb, Button, Card, message, notification, Popconfirm, Space } from "antd";
 import dayjs from "dayjs";
 import queryString from "query-string";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { sfLike } from "spring-filter-query-builder";
 
 const PatientTable = () => {
@@ -20,8 +21,13 @@ const PatientTable = () => {
     const [dataInit, setDataInit] = useState<IPatient | null>(null);
     const [openModalCreate, setOpenModalCreate] = useState<boolean>(false);
     const [openMedicalDrawer, setOpenMedicalDrawer] = useState<boolean>(false);
+    // Deep-link target from the sidebar pending-tasks notification:
+    // /table-patients?patientId&episodeId&tab=pending
+    const [deepLink, setDeepLink] = useState<{ episodeId?: number; tab?: string } | null>(null);
 
     const tableRef = useRef<ActionType>(null);
+    const location = useLocation();
+    const navigate = useNavigate();
 
     const isFetching = useAppSelector((state) => state.patient.isFetching);
     const meta = useAppSelector((state) => state.patient.meta);
@@ -46,6 +52,34 @@ const PatientTable = () => {
     const reloadTable = () => {
         tableRef?.current?.reload();
     };
+
+    // Honour a deep link from the pending-tasks notification: load the patient,
+    // open their medical drawer, and ask it to jump straight to the episode +
+    // pending tab. The query string is cleared so a reload doesn't re-trigger.
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const patientId = params.get('patientId');
+        const episodeId = params.get('episodeId');
+        if (!patientId) return;
+        (async () => {
+            try {
+                const res = await callFetchPatientById(patientId);
+                if (res?.data) {
+                    setDataInit(res.data);
+                    setDeepLink({
+                        episodeId: episodeId ? Number(episodeId) : undefined,
+                        tab: params.get('tab') ?? undefined,
+                    });
+                    setOpenMedicalDrawer(true);
+                }
+            } catch {
+                message.error('Không thể mở bệnh án từ thông báo');
+            } finally {
+                navigate('/table-patients', { replace: true });
+            }
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [location.search]);
 
     const columns: ProColumns<IPatient>[] = [
         {
@@ -350,8 +384,11 @@ const PatientTable = () => {
                     onClose={() => {
                         setOpenMedicalDrawer(false);
                         setDataInit(null);
+                        setDeepLink(null);
                     }}
                     patient={dataInit}
+                    initialEpisodeId={deepLink?.episodeId}
+                    initialTab={deepLink?.tab === 'pending' ? '5' : undefined}
                 />
             </Card>
         </div>

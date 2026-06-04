@@ -72,10 +72,9 @@ export function useClinicFormSync({
           backendItems?: { id?: string; name: string; value?: number | null; unit: string; normalRange: string }[],
         ) => {
           if (!backendItems || backendItems.length === 0) return defaults;
-          // Legacy backend rows can lack an id (quick-entry before the canonical-id
-          // contract). Dropping them here prevents the table renderer from doing
-          // test.id.startsWith() on undefined.
+          // Legacy backend rows can lack an id
           const usableItems = backendItems.filter((b) => typeof b.id === 'string' && b.id);
+          //Biến mảng thành Map<id, item> để tra cứu nhanh. 
           const backendMap = new Map(usableItems.map((item) => [item.id as string, item]));
           const merged = defaults.map((d) => {
             const b = backendMap.get(d.id);
@@ -99,6 +98,8 @@ export function useClinicFormSync({
               normalRange: b.normalRange,
             });
           });
+          //Sau bước merge, những item còn lại trong backendMap là các test backend có nhưng không nằm trong defaults
+          // (có thể là custom test bác sĩ thêm vào). Append chúng vào cuối danh sách.
           return merged;
         };
 
@@ -157,8 +158,7 @@ export function useClinicFormSync({
       setForm((prev) => {
         const newImages = imageResults.map((img) => {
           // Prefer the top-level `url` from the new backend response — it's a fresh
-          // presigned URL valid for the configured expiry window. Fall back to
-          // parsing legacy fileMetadata for rows uploaded before the refactor.
+          // presigned URL valid for the configured expiry window.
           let url = img.url || '';
           let name = 'Hinh anh';
           if (!url && img.fileMetadata) {
@@ -180,7 +180,7 @@ export function useClinicFormSync({
             url,
             type: img.type || 'X-ray',
             name,
-            // Carry through so re-saves preserve the canonical identifier even if the
+            // re-saves preserve the canonical identifier even if the
             // server-side URL has expired by then.
             bucket: img.bucket,
             objectKey: img.objectKey,

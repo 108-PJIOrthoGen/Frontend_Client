@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Drawer, Tabs, Button, Spin, message, notification } from 'antd';
+import { Drawer, Tabs, Button, Spin, message, notification, Badge } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { MedicalExamination, MedicalExaminationHandle, EpisodeFormData, formDataToEpisodeRequest, episodeToFormData } from './MedicalExamination';
+import { MedicalExamination, MedicalExaminationHandle, EpisodeFormData } from './MedicalExamination';
 import { MedicalHistoryPage } from './MedicalHistory';
-import { ClinicalAssessmentPage } from '../clinical_assessment/ClinicalAssessment';
 import { Antibiogram, AntibioticRow } from './Antibiogram';
 import {
     IEpisode,
@@ -23,10 +22,14 @@ import {
     callCreateEpisodeFull,
     callUpdateEpisodeFull,
 } from '@/apis/api';
-import { useClinicForm, useAppDispatch } from '@/redux/hook';
+import { useClinicForm, useAppDispatch, useAppSelector } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/slice/patientSlice';
+import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
+import PendingLabTasksTab from '@/components/user/pending_lab_tasks/PendingLabTasksTab';
 import { useEpisodeLock } from './hooks/useEpisodeLock';
 import EpisodeLockBanner from './EpisodeLockBanner';
+import { episodeToFormData, formDataToEpisodeRequest } from '@/utils/apiToForm';
+import { ClinicalAssessmentPage } from './ClinicalAssessment';
 
 interface MedicalExamDetailProps {
     open: boolean;
@@ -34,9 +37,11 @@ interface MedicalExamDetailProps {
     examData: IEpisode | null;
     patientId?: string;
     patient?: IPatient | null;
+    /** Tab key to pre-select when opened (e.g. '5' for pending-lab follow-up). */
+    initialTab?: string;
 }
 
-const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId, patient }) => {
+const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, examData, patientId, patient, initialTab }) => {
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [activeTab, setActiveTab] = useState('1');
@@ -58,6 +63,16 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const antibioticsRef = useRef<Record<string, AntibioticRow[]>>({});
     const { form } = useClinicForm();
     const dispatch = useAppDispatch();
+
+    // Pending lab/clinical tasks for THIS episode drive the follow-up tab and
+    // its label badge. The list holds PENDING + FULFILLED, so we count only the
+    // still-open ones here.
+    const pendingTasks = useAppSelector((state) => state.pendingLabTask.tasks);
+    const episodePendingCount = examData?.id
+        ? pendingTasks.filter(
+            (t) => Number(t.episode?.id) === Number(examData.id) && (t.status ?? 'PENDING') === 'PENDING',
+        ).length
+        : 0;
 
     // Redis soft-lock — only locks existing episodes. New ones (no id yet)
     // are local-only until the first save, so locking would be premature.
@@ -81,11 +96,18 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         if (examData?.id) {
             resetData();
             fetchAllData(examData.id);
+            // Load this user's pending tasks so the follow-up tab + badge render.
+            dispatch(fetchMyPendingTasks() as any);
         } else {
             // New episode — reset all
             resetData();
         }
     }, [open, examData?.id]);
+
+    // Honour a requested initial tab (e.g. deep link → pending-lab follow-up).
+    useEffect(() => {
+        if (open && initialTab) setActiveTab(initialTab);
+    }, [open, initialTab]);
 
     const resetData = () => {
         setLabResults([]);
@@ -229,7 +251,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                         gramType: c.gramType || undefined,
                         incubationDays: c.incubationDays != null ? Number(c.incubationDays) : undefined,
                         antibioticed: c.antibioticed,
-                        daysOffAntibio: c.daysOffAntibio != null
+                        daysOffAntibio: c.daysOffAntibio !== null
                             ? Number(c.daysOffAntibio) : undefined,
                         notes: c.notes || undefined,
                         sensitivities: rows.map(r => ({
@@ -264,6 +286,11 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             // covers us if this call fails.
             await lock.release();
 
+            // Refresh pending-task state so the sidebar progress notification and
+            // badge reflect any fields the save just fulfilled server-side.
+            dispatch(fetchMyPendingTasks() as any);
+            dispatch(fetchMyPendingCount() as any);
+
             message.success(examData?.id ? 'Cập nhật bệnh án thành công!' : 'Tạo bệnh án thành công!');
             onClose();
         } catch {
@@ -293,7 +320,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             forceRender: true,
             children: (
                 <MedicalHistoryPage
-                    mode="standalone"
+
                     medicalHistoryData={medicalHistory}
                     surgeriesData={surgeries}
                 />
@@ -305,7 +332,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             forceRender: true,
             children: (
                 <ClinicalAssessmentPage
-                    mode="standalone"
+
                     labResults={labResults}
                     clinicalRecord={clinicalRecord}
                     cultureResults={cultureResults}
@@ -321,13 +348,28 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             forceRender: true,
             children: (
                 <Antibiogram
-                    mode="standalone"
+
                     cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults.map(c => ({ ...c, _tempId: String(c.id) }))}
                     sensitivityMap={sensitivityMap}
                     onAntibioticsChange={(data) => { antibioticsRef.current = data; }}
                 />
             ),
         },
+        ...(examData?.id
+            ? [{
+                key: '5',
+                label: (
+                    <span className="flex items-center gap-2">
+                        Xét nghiệm chờ bổ sung
+                        <Badge count={episodePendingCount} size="small" />
+                    </span>
+                ),
+                forceRender: true,
+                children: (
+                    <PendingLabTasksTab episodeId={examData?.id} />
+                ),
+            }]
+            : []),
     ];
 
     return (
