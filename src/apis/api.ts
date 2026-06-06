@@ -4,7 +4,7 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview, IPendingLabTask,
+    IDoctorRecommendationReview, IDoctorReviewStats, IPendingLabTask,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -455,8 +455,14 @@ export const callCreateDoctorReview = (episodeId: string, data: {
     reviewNote?: string;
     modificationJson?: Record<string, any>;
     rejectionReason?: string;
+    doctorDiagnosisJson?: Record<string, any>;
+    agreementJson?: Record<string, any>;
 }): Promise<IBackendRes<IDoctorRecommendationReview>> => {
     return instance.post(`/api/v1/episodes/${episodeId}/doctor-reviews`, data);
+}
+
+export const callFetchDoctorReviewStats = (): Promise<IBackendRes<IDoctorReviewStats>> => {
+    return instance.get('/api/v1/doctor-reviews/stats');
 }
 
 export const callFetchDoctorReviewByRunId = (runId: string): Promise<IBackendRes<IDoctorRecommendationReview>> => {

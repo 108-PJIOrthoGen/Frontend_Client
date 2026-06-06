@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
 import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
+import DoctorDiagnosisStep from '@/components/user/diagnose_steps/DoctorDiagnosisStep';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { clearCurrentCase, setCurrentCase } from '@/redux/slice/patientSlice';
@@ -153,7 +154,11 @@ const AiDiagnosisSuggestion = () => {
         },
         {
             title: 'Gợi ý phác đồ',
-            content: <TreatmentPlan onPrev={prev} onBackToFirstStep={backToFirstStep} />,
+            content: <TreatmentPlan onPrev={prev} onNext={next} />,
+        },
+        {
+            title: 'Chẩn đoán bác sĩ',
+            content: <DoctorDiagnosisStep onPrev={prev} onBackToFirstStep={backToFirstStep} />,
         },
     ];
 

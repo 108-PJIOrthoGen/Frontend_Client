@@ -2,13 +2,11 @@ import React from 'react';
 import { Button } from 'antd';
 
 interface Props {
-  canReviewTreatmentPlan: boolean;
-  isSaving: boolean;
   onPrev: () => void;
-  onOpenReview: () => void;
+  onNext: () => void;
 }
 
-const TreatmentPlanHeader: React.FC<Props> = ({ canReviewTreatmentPlan, isSaving, onPrev, onOpenReview }) => {
+const TreatmentPlanHeader: React.FC<Props> = ({ onPrev, onNext }) => {
   return (
     <header className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b justify-between border-slate-200/60 px-6 py-4 flex items-center shadow-sm z-20 sticky top-0 w-full transition-all">
       <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-600"></div>
@@ -21,7 +19,7 @@ const TreatmentPlanHeader: React.FC<Props> = ({ canReviewTreatmentPlan, isSaving
             Gợi ý Phác đồ Điều trị & Phẫu thuật
           </h1>
           <p className="text-xs text-slate-500 font-medium tracking-wide">
-            Dựa trên phân tích RAG & Hướng dẫn y khoa
+            Dựa trên phân tích RAG & Hướng dẫn y khoa — bạn sẽ nhập phác đồ của mình ở bước sau
           </p>
         </div>
       </div>
@@ -36,12 +34,10 @@ const TreatmentPlanHeader: React.FC<Props> = ({ canReviewTreatmentPlan, isSaving
         <Button
           size="large"
           type="primary"
-          onClick={onOpenReview}
-          loading={isSaving}
-          disabled={!canReviewTreatmentPlan}
+          onClick={onNext}
           className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-none shadow-md shadow-emerald-500/30 rounded-xl font-bold px-6 h-[42px] flex items-center gap-2 transform hover:-translate-y-0.5 transition-all"
         >
-          Khóa Phác Đồ <span className="material-symbols-outlined text-[18px]">verified</span>
+          Tiếp tục: Chẩn đoán bác sĩ <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </Button>
       </div>
     </header>

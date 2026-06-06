@@ -1,121 +1,93 @@
 import React from 'react';
-import { IEpisode } from '@/types/backend';
+import { Avatar, Badge, Card, Col, Row, Space, Tag, Typography } from 'antd';
+import {
+    CalendarOutlined,
+    ClockCircleOutlined,
+    MedicineBoxOutlined,
+} from '@ant-design/icons';
+import { IEpisode, IPatient } from '@/types/backend';
 import dayjs from 'dayjs';
+
+const { Text, Title } = Typography;
 
 interface PatientHeaderProps {
     episode: IEpisode;
+    /** Explicit patient — episode list rows may not nest the patient object. */
+    patient?: IPatient | null;
 }
 
-const PatientHeader: React.FC<PatientHeaderProps> = ({ episode }) => {
-    const patient = episode.patient;
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+    active: { color: 'processing', label: 'Đang điều trị' },
+    processing: { color: 'processing', label: 'Đang điều trị' },
+    completed: { color: 'success', label: 'Hoàn thành' },
+    cancelled: { color: 'error', label: 'Đã hủy' },
+};
+
+const RESULT_LABELS: Record<string, { color: string; label: string }> = {
+    good: { color: 'green', label: 'Khỏi' },
+    normal: { color: 'blue', label: 'Đỡ, giảm nhẹ' },
+    bad: { color: 'orange', label: 'Không thay đổi' },
+    worse: { color: 'red', label: 'Nặng hơn' },
+};
+
+const PatientHeader: React.FC<PatientHeaderProps> = ({ episode, patient: patientProp }) => {
+    const patient = patientProp ?? episode.patient;
     const initials = patient?.fullName?.charAt(0)?.toUpperCase() || 'P';
-
-    const getStatusBadge = () => {
-        switch (episode.status) {
-            case 'active':
-                return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500', label: 'Đang điều trị' };
-            case 'completed':
-                return { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500', label: 'Hoàn thành' };
-            case 'cancelled':
-                return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: 'bg-red-500', label: 'Đã hủy' };
-            default:
-                return { bg: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', dot: 'bg-slate-400', label: episode.status || 'N/A' };
-        }
-    };
-
-    const getResultBadge = () => {
-        const map: Record<string, { bg: string; text: string; border: string; label: string }> = {
-            good: { bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', label: 'Khỏi' },
-            normal: { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', label: 'Đỡ, giảm nhẹ' },
-            bad: { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', label: 'Không thay đổi' },
-            worse: { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', label: 'Nặng hơn' },
-        };
-        return episode.result ? map[episode.result] : null;
-    };
-
-    const statusBadge = getStatusBadge();
-    const resultBadge = getResultBadge();
+    const status = STATUS_CONFIG[episode.status ?? ''] ?? { color: 'default', label: episode.status || 'N/A' };
+    const result = episode.result ? RESULT_LABELS[episode.result] : null;
 
     return (
-        <div className="bg-white border border-[#dbe3ef] rounded-2xl shadow-sm mb-6 overflow-hidden">
-            <div className="h-2 bg-gradient-to-r from-blue-600 to-indigo-500 w-full"></div>
-            <div className="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-4 gap-6 items-center">
-                {/* Patient Info */}
-                <div className="lg:col-span-3 flex flex-col gap-3">
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg border border-blue-200">
+        <Card size="small" style={{ marginBottom: 22 }}>
+            <Row gutter={[16, 16]} align="middle">
+                <Col flex="auto">
+                    <Space align="start" size={12}>
+                        <Avatar size={48} style={{ background: '#dbeafe', color: '#1d4ed8', fontWeight: 700 }}>
                             {initials}
-                        </div>
+                        </Avatar>
                         <div>
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xs uppercase tracking-wider text-slate-500 font-semibold">
+                            <Space size={8}>
+                                <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
                                     {patient?.patientCode || '—'}
-                                </span>
+                                </Text>
                                 {patient?.gender && (
-                                    <>
-                                        <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                                        <span className="text-xs font-semibold text-slate-500">
-                                            {patient.gender === 'MALE' ? 'Nam' : 'Nữ'}
-                                            {patient.dateOfBirth && `, ${dayjs().diff(dayjs(patient.dateOfBirth), 'year')} tuổi`}
-                                        </span>
-                                    </>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>
+                                        {patient.gender === 'MALE' ? 'Nam' : 'Nữ'}
+                                        {patient.dateOfBirth && `, ${dayjs().diff(dayjs(patient.dateOfBirth), 'year')} tuổi`}
+                                    </Text>
                                 )}
-                            </div>
-                            <h1 className="m-0 text-xl font-bold leading-tight">{patient?.fullName || 'Bệnh nhân'}</h1>
+                            </Space>
+                            <Title level={4} style={{ margin: 0 }}>{patient?.fullName || 'Bệnh nhân'}</Title>
+                            <Space size={6} wrap style={{ marginTop: 8 }}>
+                                {episode.department && (
+                                    <Tag icon={<MedicineBoxOutlined />}>{episode.department}</Tag>
+                                )}
+                                {episode.admissionDate && (
+                                    <Tag icon={<CalendarOutlined />}>
+                                        Nhập viện: {dayjs(episode.admissionDate).format('DD/MM/YYYY')}
+                                    </Tag>
+                                )}
+                                {episode.treatmentDays != null && (
+                                    <Tag icon={<ClockCircleOutlined />}>{episode.treatmentDays} ngày điều trị</Tag>
+                                )}
+                                <Badge status={status.color as any} text={status.label} />
+                                {result && <Tag color={result.color}>KQ: {result.label}</Tag>}
+                            </Space>
                         </div>
-                    </div>
-
-                    {/* Badges */}
-                    <div className="flex gap-2 flex-wrap mt-1">
-                        {episode.department && (
-                            <div className="bg-slate-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-md text-[13px] font-medium flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[14px]">local_hospital</span>
-                                {episode.department}
-                            </div>
+                    </Space>
+                </Col>
+                <Col>
+                    <Space direction="vertical" size={2} align="end">
+                        <Text type="secondary" style={{ fontSize: 12 }}>Bệnh án</Text>
+                        <Text strong style={{ fontSize: 16 }}>#{episode.id}</Text>
+                        {episode.reason && (
+                            <Text type="secondary" style={{ fontSize: 12, maxWidth: 260 }} ellipsis={{ tooltip: episode.reason }}>
+                                Lý do: {episode.reason}
+                            </Text>
                         )}
-                        {episode.admissionDate && (
-                            <div className="bg-slate-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-md text-[13px] font-medium flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[14px]">event</span>
-                                Nhập viện: {dayjs(episode.admissionDate).format('DD/MM/YYYY')}
-                            </div>
-                        )}
-                        {episode.treatmentDays != null && (
-                            <div className="bg-slate-50 text-slate-700 border border-slate-200 px-2.5 py-1 rounded-md text-[13px] font-medium flex items-center gap-1.5">
-                                <span className="material-symbols-outlined text-[14px]">schedule</span>
-                                {episode.treatmentDays} ngày điều trị
-                            </div>
-                        )}
-                        <div className={`${statusBadge.bg} ${statusBadge.text} border ${statusBadge.border} px-2.5 py-1 rounded-md text-[13px] font-medium flex items-center gap-1.5`}>
-                            <span className={`w-2 h-2 rounded-full ${statusBadge.dot}`}></span>
-                            {statusBadge.label}
-                        </div>
-                        {resultBadge && (
-                            <div className={`${resultBadge.bg} ${resultBadge.text} border ${resultBadge.border} px-2.5 py-1 rounded-md text-[13px] font-medium flex items-center gap-1.5`}>
-                                KQ: {resultBadge.label}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Right side - Episode info */}
-                <div className="lg:col-span-1 lg:border-l lg:border-slate-100 lg:pl-6 h-full flex flex-col justify-center gap-3">
-                    <div className="flex items-start gap-3 w-full">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                            <span className="material-symbols-outlined">medical_information</span>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500 mb-0.5 font-medium">Bệnh án</div>
-                            <div className="text-sm font-bold text-slate-900">#{episode.id}</div>
-                        </div>
-                    </div>
-                    {episode.reason && (
-                        <div className="text-xs text-slate-500 leading-relaxed">
-                            <span className="font-medium">Lý do:</span> {episode.reason}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
+                    </Space>
+                </Col>
+            </Row>
+        </Card>
     );
 };
 
