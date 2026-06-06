@@ -1,13 +1,13 @@
-import { callDeletePatient, callFetchPatientById } from '@/apis/api';
+import { callDeletePatient, callFetchPatientById, callFetchEpisodesByPatient } from '@/apis/api';
 import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
 import MPatientCreateAndUpdate from '@/components/user/patient_table/manage/PatientModal';
 import ManageMedicalDrawer from '@/components/user/patient_table/manage/ManageMedicalDrawer';
 import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
-import { fetchPatient } from '@/redux/slice/patientSlice';
+import { fetchPatient, setCurrentCase } from '@/redux/slice/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
-import { DeleteOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DiffOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, LineChartOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Breadcrumb, Button, Card, message, notification, Popconfirm, Space } from "antd";
 import dayjs from "dayjs";
@@ -33,6 +33,27 @@ const PatientTable = () => {
     const meta = useAppSelector((state) => state.patient.meta);
     const users = useAppSelector((state) => state.patient.result);
     const dispatch = useAppDispatch();
+
+    // Open an AI feature (chart-testing / compare-result) scoped to a patient:
+    // resolve their most recent episode, load it as the current case, then
+    // navigate — the target page reads currentCase and shows the right data.
+    const openAiFeatureForPatient = async (patient: IPatient, path: string) => {
+        if (!patient?.id) return;
+        try {
+            const res = await callFetchEpisodesByPatient(
+                String(patient.id), 'page=0&size=1&sort=createdAt,desc',
+            );
+            const episode = res?.data?.result?.[0];
+            if (!episode) {
+                message.warning('Bệnh nhân này chưa có bệnh án nào.');
+                return;
+            }
+            dispatch(setCurrentCase({ patient, episode }));
+            navigate(path);
+        } catch {
+            message.error('Không thể tải bệnh án của bệnh nhân');
+        }
+    };
 
     const handleDeleteUser = async (id: string | undefined) => {
         if (id) {
@@ -179,7 +200,7 @@ const PatientTable = () => {
         {
             title: "Actions",
             hideInSearch: true,
-            width: 50,
+            width: 140,
             render: (_value, entity, _index, _action) => (
                 <Space>
                     <FolderOpenOutlined
@@ -192,6 +213,18 @@ const PatientTable = () => {
                             setDataInit(entity);
                             setOpenMedicalDrawer(true);
                         }}
+                    />
+
+                    <LineChartOutlined
+                        style={{ fontSize: 20, color: "#0ea5e9" }}
+                        title="Biểu đồ chỉ số viêm"
+                        onClick={() => openAiFeatureForPatient(entity, '/chart-testing')}
+                    />
+
+                    <DiffOutlined
+                        style={{ fontSize: 20, color: "#7c3aed" }}
+                        title="So sánh kết quả AI & Bác sĩ"
+                        onClick={() => openAiFeatureForPatient(entity, '/compare-result')}
                     />
 
                     <Access permission={ALL_PERMISSIONS.PATIENTS.UPDATE} hideChildren>

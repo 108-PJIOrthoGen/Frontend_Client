@@ -9,6 +9,7 @@ import Error404 from "@/pages/errors/NotFoundPage";
 import PatientTable from "@/pages/user/PatientTable";
 import ChartTesting from "@/pages/user/ChartTesting";
 import CompareResult from "@/pages/user/CompareResult";
+import ScenarioSimulator from "@/pages/user/ScenarioSimulator";
 import LayoutApp from "@/components/common/LayoutApp";
 import AdminHome from "@/pages/admin/AdminHome";
 import UserPage from "@/pages/admin/UserTable";
@@ -16,6 +17,7 @@ import RolePage from "@/pages/admin/RoleTable";
 import PermissionPage from "@/pages/admin/PermissionTable";
 import LayoutAdmin from "@/layouts/LayoutAdmin";
 import ProtectedRoute from "@/components/common/protected/RouteProtected";
+import AntibioticCarePlanner from "@/pages/user/AntibioticCarePlanner";
 
 const router = createBrowserRouter([
     {
@@ -44,6 +46,14 @@ const router = createBrowserRouter([
             {
                 path: "compare-result",
                 element: <ProtectedRoute><CompareResult /></ProtectedRoute>
+            },
+            {
+                path: "scenario-simulator",
+                element: <ProtectedRoute><ScenarioSimulator /></ProtectedRoute>
+            },
+            {
+                path: "antibiotic-planner",
+                element: <ProtectedRoute><AntibioticCarePlanner /></ProtectedRoute>
             },
 
         ]

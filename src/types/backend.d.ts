@@ -446,8 +446,49 @@ export interface IDoctorRecommendationReview {
     reviewNote?: string;
     modificationJson?: Record<string, any>;
     rejectionReason?: string;
+    /** Doctor's own final diagnosis (Chẩn đoán bác sĩ step) — snake_case keys. */
+    doctorDiagnosisJson?: IDoctorDiagnosis;
+    /** Per-criterion AI-vs-doctor agreement + overall agreement_rate (0-100). */
+    agreementJson?: IAgreementJson;
     createdBy?: string;
     updatedBy?: string;
     createdAt?: string;
     updatedAt?: string;
+}
+
+export interface IDoctorDiagnosis {
+    pji_conclusion?: string; // INFECTED | NOT_INFECTED | INCONCLUSIVE
+    infection_classification?: string;
+    primary_diagnosis?: string;
+    clinical_reasoning?: string;
+    identified_organism?: string;
+}
+
+export interface IAgreementJson {
+    diagnosis_conclusion?: boolean;
+    infection_classification?: boolean;
+    surgery_strategy?: boolean;
+    systemic_antibiotics?: boolean;
+    local_antibiotics?: boolean;
+    agreement_rate?: number; // 0-100
+}
+
+export interface IDoctorReviewStats {
+    totalReviews?: number;
+    accepted?: number;
+    modified?: number;
+    rejected?: number;
+    savedDraft?: number;
+    consensusRate?: number | null;
+    avgAgreementRate?: number | null;
+    overriddenCases?: {
+        reviewId?: number;
+        episodeId?: number;
+        runId?: number;
+        patientName?: string;
+        reviewStatus?: string;
+        agreementRate?: number | null;
+        reviewNote?: string;
+        updatedAt?: string;
+    }[];
 }

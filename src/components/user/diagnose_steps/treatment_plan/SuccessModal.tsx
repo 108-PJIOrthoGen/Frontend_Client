@@ -24,7 +24,7 @@ const SuccessModal: React.FC<Props> = ({ open, onClose }) => {
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-2">Xác nhận thành công!</h2>
         <p className="text-slate-500 text-sm mb-8">
-          Phác đồ điều trị đã được phê duyệt và lưu vào hồ sơ bệnh nhân.
+          Chẩn đoán và phác đồ của bác sĩ đã được lưu vào hồ sơ bệnh nhân.
         </p>
         <Button
           type="primary"

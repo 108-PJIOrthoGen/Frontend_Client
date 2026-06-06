@@ -131,10 +131,12 @@ export const LayoutClient = () => {
     { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
   ];
 
+  // "Biểu đồ chỉ số viêm" và "So sánh kết quả" giờ mở theo từng bệnh nhân từ
+  // cột Actions của trang Quản lý bệnh án (tự nạp đúng bệnh nhân + bệnh án).
   const aiPredictionMenuItems = [
     { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
-    { path: '/chart-testing', label: 'Biểu đồ chỉ số viêm', icon: 'history', step: "Giám sát kết quả", requiresCurrentCase: true },
-    { path: '/compare-result', label: 'So sánh kết quả', icon: 'compare', step: "Kết quả của AI và bác sĩ", requiresCurrentCase: true },
+    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: 'experiment', step: 'Mô phỏng & so sánh kịch bản' },
+    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: 'health_metrics', step: 'Quản lý bệnh học dài kỳ' },
   ];
 
   const isActive = (path: string) => {
@@ -214,32 +216,26 @@ export const LayoutClient = () => {
 
             <div className="my-3 border-t border-slate-100" />
             <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Dự đoán AI</p>
-            {aiPredictionMenuItems.map((item) => {
-              const shouldDim = item.requiresCurrentCase && !currentCase;
-
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
-                    ? 'bg-primary/10 text-primary border-primary'
-                    : shouldDim
-                      ? 'text-slate-400 hover:bg-slate-50 border-transparent'
-                      : 'text-slate-600 hover:bg-slate-50 border-transparent'
-                    }`}
-                >
-                  <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
-                    {item.icon}
+            {aiPredictionMenuItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
+                  ? 'bg-primary/10 text-primary border-primary'
+                  : 'text-slate-600 hover:bg-slate-50 border-transparent'
+                  }`}
+              >
+                <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
+                  {item.icon}
+                </span>
+                <div className="flex flex-col">
+                  <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
+                    {item.label}
                   </span>
-                  <div className="flex flex-col">
-                    <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
-                      {item.label}
-                    </span>
-                    <span className={`text-xs ${shouldDim ? 'opacity-60' : 'opacity-80'}`}> {item.step} </span>
-                  </div>
-                </NavLink>
-              );
-            })}
+                  <span className="text-xs opacity-80"> {item.step} </span>
+                </div>
+              </NavLink>
+            ))}
             <div className="my-3 border-t border-slate-100" />
             <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chức năng</p>
             {/* Notifications */}

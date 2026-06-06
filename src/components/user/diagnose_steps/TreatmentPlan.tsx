@@ -1,53 +1,32 @@
-import React, { useRef, useState } from 'react';
-import { Button, Result, Spin, message } from 'antd';
-import { useDispatch, useSelector } from 'react-redux';
-import { clearCurrentCase } from '@/redux/slice/patientSlice';
+import React, { useState } from 'react';
+import { Button, Result, Spin } from 'antd';
+import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { callCreateDoctorReview } from '@/apis/api';
-import type { IPermission } from '@/types/backend';
-import {
-  TREATMENT_REVIEW_WRITE_PERMISSION,
-  hasPermission,
-  normalizeIdentity,
-} from './treatment_plan/utils/permissions';
 import { useTreatmentPlanData } from './treatment_plan/hooks/useTreatmentPlanData';
 import { useAiChat } from './treatment_plan/hooks/useAiChat';
 import TreatmentPlanHeader from './treatment_plan/TreatmentPlanHeader';
-import TreatmentDraftPanel, {
-  type TreatmentDraftPanelHandle,
-} from './treatment_plan/TreatmentDraftPanel';
+import TreatmentDraftPanel from './treatment_plan/TreatmentDraftPanel';
 import CitationsPanel from './treatment_plan/CitationsPanel';
 import AiChatDrawer from './treatment_plan/AiChatDrawer';
-import ReviewModal from './treatment_plan/ReviewModal';
-import SuccessModal from './treatment_plan/SuccessModal';
 
 interface Step5Props {
   onPrev: () => void;
-  onBackToFirstStep: () => void;
+  onNext: () => void;
 }
 
-export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onBackToFirstStep }) => {
-  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [reviewNote, setReviewNote] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
+/**
+ * Read-only view of the AI treatment plan + citations + AI chat.
+ *
+ * The doctor no longer edits the AI answer here — their own diagnosis and
+ * treatment plan (and the decision on the AI recommendation) are entered in
+ * the next step, "Chẩn đoán bác sĩ", which is the single writer of
+ * DoctorRecommendationReview.
+ */
+export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
-  const dispatch = useDispatch();
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
-  const currentUser = useSelector((state: RootState) => state.account.user);
   const episodeId = currentCase?.episode?.id;
-  const permissions = currentUser.role.permissions as IPermission[] | undefined;
-  const roleName = currentUser.role.name?.toUpperCase() ?? '';
-  const isAdmin = roleName === 'ADMIN' || roleName === 'SUPER_ADMIN';
-  const patientCreatedBy = currentCase?.patient?.createdBy;
-  const ownsPatientRecord =
-    !patientCreatedBy || normalizeIdentity(patientCreatedBy) === normalizeIdentity(currentUser.email);
-  const hasTreatmentReviewWritePermission = hasPermission(permissions, TREATMENT_REVIEW_WRITE_PERMISSION);
-  const canReviewTreatmentPlan = hasTreatmentReviewWritePermission && (ownsPatientRecord || isAdmin);
-
-  const draftRef = useRef<TreatmentDraftPanelHandle>(null);
 
   const {
     surgeryPlan,
@@ -73,68 +52,6 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onBackToFirstStep 
     handleCreateNewSession,
     handleSendMessage,
   } = useAiChat({ isChatOpen, episodeId, runIdRef });
-
-  const openReviewModal = () => {
-    if (!canReviewTreatmentPlan) {
-      message.warning('Bạn chỉ có quyền xem phác đồ của hồ sơ này.');
-      return;
-    }
-    if (!episodeId || !runIdRef.current) {
-      message.error('Thiếu thông tin bệnh án hoặc lần gợi ý AI.');
-      return;
-    }
-    setReviewNote('');
-    setRejectionReason('');
-    setIsReviewModalOpen(true);
-  };
-
-  const handleConfirmTreatment = async () => {
-    if (!canReviewTreatmentPlan) {
-      message.warning('Bạn chỉ có quyền xem phác đồ của hồ sơ này.');
-      return;
-    }
-    setIsReviewModalOpen(false);
-    setIsSaving(true);
-    try {
-      const currentSurgery = draftRef.current?.getSurgery() ?? null;
-      const currentSystemic = draftRef.current?.getSystemic() ?? null;
-      const currentLocal = draftRef.current?.getLocal() ?? null;
-
-      const hasModification =
-        (currentSurgery && JSON.stringify(currentSurgery) !== JSON.stringify(surgeryPlan)) ||
-        (currentSystemic && JSON.stringify(currentSystemic) !== JSON.stringify(systemicPlan)) ||
-        (currentLocal && JSON.stringify(currentLocal) !== JSON.stringify(localPlan));
-      const reviewStatus = rejectionReason ? 'REJECTED' : hasModification ? 'MODIFIED' : 'ACCEPTED';
-
-      const modificationJson: Record<string, any> = {};
-      if (currentSurgery) modificationJson.surgery = currentSurgery;
-      if (currentSystemic) modificationJson.systemicAntibiotic = currentSystemic;
-      if (currentLocal) modificationJson.localAntibiotic = currentLocal;
-
-      await callCreateDoctorReview(String(episodeId), {
-        runId: Number(runIdRef.current),
-        reviewStatus,
-        reviewNote: reviewNote || undefined,
-        modificationJson: hasModification ? modificationJson : undefined,
-        rejectionReason: rejectionReason || undefined,
-      });
-
-      setIsSuccessModalOpen(true);
-    } catch {
-      message.error('Lỗi khi lưu xác nhận phác đồ.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const backToHomepage = () => {
-    localStorage.removeItem('pji_aiRunId');
-    localStorage.removeItem('pji_aiRunDetail');
-    localStorage.removeItem('pji_selectedPatientId');
-    localStorage.removeItem('pji_selectedExamId');
-    dispatch(clearCurrentCase());
-    onBackToFirstStep();
-  };
 
   if (isLoading) {
     return (
@@ -162,21 +79,14 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onBackToFirstStep 
 
   return (
     <div className="flex flex-col flex-1 w-full relative bg-slate-50 min-h-full">
-      <TreatmentPlanHeader
-        canReviewTreatmentPlan={canReviewTreatmentPlan}
-        isSaving={isSaving}
-        onPrev={onPrev}
-        onOpenReview={openReviewModal}
-      />
+      <TreatmentPlanHeader onPrev={onPrev} onNext={onNext} />
 
       {/* Hybrid Container */}
       <div className="flex-1 overflow-hidden p-6 flex gap-6 text-slate-800 max-w-[1800px] mx-auto w-full">
         <TreatmentDraftPanel
-          ref={draftRef}
           surgeryPlan={surgeryPlan}
           systemicPlan={systemicPlan}
           localPlan={localPlan}
-          canReviewTreatmentPlan={canReviewTreatmentPlan}
         />
         <CitationsPanel citations={citations} />
       </div>
@@ -209,19 +119,6 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onBackToFirstStep 
         onSend={() => handleSendMessage(inputValue)}
         messagesEndRef={messagesEndRef}
       />
-
-      <ReviewModal
-        open={isReviewModalOpen}
-        isSaving={isSaving}
-        reviewNote={reviewNote}
-        rejectionReason={rejectionReason}
-        onChangeReviewNote={setReviewNote}
-        onChangeRejectionReason={setRejectionReason}
-        onCancel={() => setIsReviewModalOpen(false)}
-        onConfirm={handleConfirmTreatment}
-      />
-
-      <SuccessModal open={isSuccessModalOpen} onClose={backToHomepage} />
     </div>
   );
 };
