@@ -47,7 +47,8 @@ export const defaultClinicForm: IClinicFormState = {
     formImages: [],
     imagingDescription: '',
     hematologyTests: [
-        { id: 'ht_1', name: 'wbc', result: '', normalRange: '', unit: 'G/L' },
+        { id: 'ht_extra_crp', name: 'CRP', result: '', normalRange: '< 5', unit: 'mg/L' },
+        { id: 'ht_1', name: 'WBC', result: '', normalRange: '', unit: 'G/L' },
         { id: 'ht_2', name: '%NEUT', result: '', normalRange: '40 - 74', unit: '%' },
         { id: 'ht_4', name: '%MONO', result: '', normalRange: '3.4 - 9', unit: '%' },
         { id: 'ht_7', name: 'Máu lắng', result: '', normalRange: '< 10', unit: 'mm' },
