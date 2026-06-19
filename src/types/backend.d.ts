@@ -312,6 +312,7 @@ export interface IEpisodeFullCultureItem {
     name?: string;
     result?: string;
     gramType?: string;
+    sampleType?: string;
     incubationDays?: number;
     antibioticed?: boolean;
     daysOffAntibio?: number;
@@ -358,14 +359,20 @@ export interface IAiChatMessage {
 /**
  * Module AiRecommendation
  */
+export interface IAiWarning {
+    type?: string;
+    severity?: string;
+    message?: string;
+}
+
 export interface IAiRecommendationRun {
     id?: string;
     episodeId?: number;
     status?: string;
     runNo?: number;
-    assessmentJson?: string;
-    explanationJson?: string;
-    warningsJson?: string;
+    assessmentJson?: Record<string, unknown> | string;
+    explanationJson?: Record<string, unknown> | string;
+    warningsJson?: IAiWarning[];
     modelName?: string;
     latencyMs?: number;
     errorMessage?: string;
