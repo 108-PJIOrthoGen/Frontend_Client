@@ -27,6 +27,7 @@ import dayjs from 'dayjs';
 import {
     IAiRecommendationRun,
     IAiRecommendationRunDetail,
+    IAiWarning,
     IDoctorRecommendationReview,
 } from '@/types/backend';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData } from '@/types/treatmentType';
@@ -111,6 +112,7 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
             surgery: surgeryItem ? (parseItemJson(surgeryItem) as SurgeryPlanData) : null,
             systemic: systemicItem ? (parseItemJson(systemicItem) as SystemicPlanData) : null,
             local: localItem ? (parseItemJson(localItem) as LocalPlanData) : null,
+            warnings: (runDetail.run.warningsJson ?? []) as IAiWarning[],
         };
     }, [runDetail]);
 
@@ -300,6 +302,22 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
 
     return (
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {/* AI warnings (allergy / drug-interaction / insufficient-data) */}
+            {aiData?.warnings?.length ? (
+                <div style={{ marginBottom: 16 }}>
+                    {aiData.warnings.map((w, idx) => (
+                        <Alert
+                            key={idx}
+                            type={w.severity === 'HIGH' ? 'error' : 'warning'}
+                            showIcon
+                            message={w.type}
+                            description={w.message}
+                            style={{ marginBottom: 8 }}
+                        />
+                    ))}
+                </div>
+            ) : null}
+
             {/* Review status + agreement overview */}
             {doctorReview && statusConfig ? (
                 <Card size="small">
