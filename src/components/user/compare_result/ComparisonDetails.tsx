@@ -27,7 +27,6 @@ import dayjs from 'dayjs';
 import {
     IAiRecommendationRun,
     IAiRecommendationRunDetail,
-    IAiWarning,
     IDoctorRecommendationReview,
 } from '@/types/backend';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData } from '@/types/treatmentType';
@@ -59,6 +58,13 @@ interface ComparisonDetailsProps {
     loading: boolean;
     doctorReview?: IDoctorRecommendationReview | null;
 }
+
+const WARNING_TYPE_LABELS: Record<string, string> = {
+    ALLERGY_ALERT: 'Cảnh báo dị ứng',
+    DRUG_INTERACTION: 'Tương tác thuốc',
+    INSUFFICIENT_DATA: 'Dữ liệu không đủ',
+    PROCESSING_ERROR: 'Lỗi xử lý',
+};
 
 const REVIEW_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     ACCEPTED: { label: 'Bác sĩ đồng thuận với AI', color: 'green' },
@@ -112,7 +118,7 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
             surgery: surgeryItem ? (parseItemJson(surgeryItem) as SurgeryPlanData) : null,
             systemic: systemicItem ? (parseItemJson(systemicItem) as SystemicPlanData) : null,
             local: localItem ? (parseItemJson(localItem) as LocalPlanData) : null,
-            warnings: (runDetail.run.warningsJson ?? []) as IAiWarning[],
+            warnings: runDetail.run.warningsJson ?? [],
         };
     }, [runDetail]);
 
@@ -310,7 +316,7 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
                             key={idx}
                             type={w.severity === 'HIGH' ? 'error' : 'warning'}
                             showIcon
-                            message={w.type}
+                            message={WARNING_TYPE_LABELS[w.type ?? ''] ?? w.type ?? 'Cảnh báo'}
                             description={w.message}
                             style={{ marginBottom: 8 }}
                         />
