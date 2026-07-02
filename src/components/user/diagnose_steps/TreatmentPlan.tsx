@@ -357,7 +357,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
               title={loadError ? 'Lỗi tạo phác đồ' : 'Sẵn sàng tạo phác đồ AI'}
               subTitle={loadError
                 ? loadError
-                : 'Chẩn đoán PJI đã được tính bằng luật hệ thống. Tại bước này AI sẽ tạo 3 gợi ý: kháng sinh tại chỗ, kháng sinh toàn thân và phẫu thuật.'}
+                : 'AI Agent sẽ sinh ra 3 khuyến nghị: kháng sinh tại chỗ, kháng sinh toàn thân và phẫu thuật.'}
               extra={(
                 <Button
                   onClick={handleAIPredict}

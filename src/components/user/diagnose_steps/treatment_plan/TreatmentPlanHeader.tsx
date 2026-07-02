@@ -23,10 +23,10 @@ const TreatmentPlanHeader: React.FC<Props> = ({
         </div>
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            Gợi ý Phác đồ Điều trị & Phẫu thuật
+            Gợi ý Phác đồ Điều trị kháng sinh & Phẫu thuật
           </h1>
           <p className="text-xs text-slate-500 font-medium tracking-wide">
-            Dựa trên phân tích RAG & Hướng dẫn y khoa — bạn sẽ nhập phác đồ của mình ở bước sau
+            Dựa trên công nghệ RAG & Hướng dẫn y khoa — bạn sẽ nhập phác đồ của mình ở bước sau
           </p>
         </div>
       </div>

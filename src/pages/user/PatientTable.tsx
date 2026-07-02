@@ -29,7 +29,7 @@ const PatientTable = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const isFetching = useAppSelector((state) => state.patient.isFetching);
+    // const isFetching = useAppSelector((state) => state.patient.isFetching);
     const meta = useAppSelector((state) => state.patient.meta);
     const users = useAppSelector((state) => state.patient.result);
     const dispatch = useAppDispatch();
@@ -165,22 +165,6 @@ const PatientTable = () => {
             title: "Insurance",
             dataIndex: "insuranceExpired",
             hidden: true
-        },
-        {
-            title: "Thời gian tạo",
-            dataIndex: "createdAt",
-            width: 200,
-            sorter: true,
-            render: (text, record, index, action) => {
-                return (
-                    <>
-                        {record.createdAt
-                            ? dayjs(record.createdAt).format("DD-MM-YYYY HH:mm:ss")
-                            : ""}
-                    </>
-                );
-            },
-            hideInSearch: true,
         },
         {
             title: "Thời gian cập nhật",
@@ -367,18 +351,7 @@ const PatientTable = () => {
                     }}>
                         Quản lý thông tin và hồ sơ bệnh nhân, cập nhật dữ liệu y tế
                     </p>
-                    <Breadcrumb
-                        items={[
-                            {
-                                href: "/",
-                                title: <HomeOutlined />,
-                            },
-                            {
-                                title: "Quản lý bệnh án"
-                            }
-                        ]}
-                        style={{ marginBottom: "16px" }}
-                    />
+
                 </div>
 
                 <DataTable<IPatient>

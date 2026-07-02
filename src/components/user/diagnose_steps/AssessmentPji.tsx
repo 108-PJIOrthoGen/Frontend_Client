@@ -52,7 +52,9 @@ const pageStyles: Record<string, CSSProperties> = {
     margin: '0 auto',
   },
   header: {
+    background: '#fffefe',
     marginBottom: 16,
+    padding: '15px 15px',
   },
   title: {
     margin: 0,
@@ -122,9 +124,8 @@ const pageStyles: Record<string, CSSProperties> = {
     top: 8,
     transform: 'translateX(-50%)',
     textAlign: 'center',
-    color: '#111827',
-    fontFamily: 'Consolas, Monaco, monospace',
-    fontSize: 12,
+    color: '#26375e',
+    fontSize: 15,
     fontWeight: 700,
     whiteSpace: 'nowrap',
   },
@@ -418,7 +419,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                       {errorMsg ? 'Lỗi tính chẩn đoán' : 'Sẵn sàng tính chẩn đoán'}
                     </Title>
                     <Text type="secondary">
-                      {errorMsg || 'Dữ liệu ca bệnh sẽ được tính bằng rule engine của backend, không gọi RAG/AI ở bước này.'}
+                      {errorMsg || 'Dữ liệu ca bệnh sẽ được tính bằng Rule-Based Engine để đưa ra kết luận nhiễm trùng PJI, điểm số và các tiêu chí chính/phụ.'}
                     </Text>
                   </Space>
                 )}
@@ -443,6 +444,14 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
 
   return (
     <div style={pageStyles.page}>
+      <div style={pageStyles.actionBar}>
+        <Button icon={<ArrowLeftOutlined />} onClick={onPrev}>
+          Quay lại
+        </Button>
+        <Button type="primary" icon={<ArrowRightOutlined />} onClick={onNext}>
+          Tiếp tục
+        </Button>
+      </div>
       <div style={pageStyles.shell}>
         <Row align="top" justify="space-between" gutter={[20, 14]} style={pageStyles.header}>
           <Col flex="auto">
@@ -660,14 +669,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
           </Col>
         </Row>
 
-        <div style={pageStyles.actionBar}>
-          <Button icon={<ArrowLeftOutlined />} onClick={onPrev}>
-            Quay lại
-          </Button>
-          <Button type="primary" icon={<ArrowRightOutlined />} onClick={onNext}>
-            Tiếp tục
-          </Button>
-        </div>
+
       </div>
     </div>
   );

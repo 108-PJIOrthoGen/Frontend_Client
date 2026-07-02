@@ -73,7 +73,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
         s.stageOrder === stageOrder
           ? { ...s, estimatedDurationMinutes: isNaN(num) ? 0 : num }
           : s
-        )
+      )
     );
   }, [readOnly]);
 
@@ -123,18 +123,18 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
-            width: '30px', height: '30px', borderRadius: '8px',
-            background: 'linear-gradient(135deg, #1e3a8a, #2563eb)',
+            width: '40px', height: '40px', borderRadius: '8px', padding: '4px',
+            background: 'linear-gradient(135deg, #b3b8c5, #2574eb)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 2px 10px rgba(37,99,235,0.35)',
           }}>
             <ScalpelIcon />
           </div>
           <div>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.04em' }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.04em' }}>
               PHÁC ĐỒ PHẪU THUẬT
             </div>
-            <div style={{ fontSize: '10px', color: '#64748b', letterSpacing: '0.03em' }}>
+            <div style={{ fontSize: '14px', color: '#45505f', letterSpacing: '0.03em' }}>
               {surgeryPlan.surgeryStrategyType?.replaceAll('_', ' ') || '—'}
             </div>
           </div>
@@ -155,11 +155,10 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
               <button
                 title={isEditingInfo ? 'Đóng chỉnh sửa' : 'Chỉnh sửa thông tin'}
                 onClick={() => setIsEditingInfo(prev => !prev)}
-                className={`p-1 rounded-md transition-colors opacity-0 group-hover/info:opacity-100 ${
-                  isEditingInfo
-                    ? 'text-blue-600 bg-blue-50'
-                    : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-                }`}
+                className={`p-1 rounded-md transition-colors opacity-0 group-hover/info:opacity-100 ${isEditingInfo
+                  ? 'text-blue-600 bg-blue-50'
+                  : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
+                  }`}
               >
                 <EditOutlined className="text-sm" />
               </button>
@@ -183,8 +182,8 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
             </div>
           ) : (
             <>
-              <p className="text-sm text-slate-700 mt-1 leading-relaxed">{strategyRationale}</p>
-              <p className="text-xs text-amber-900 mt-2 bg-amber-50 border border-amber-300 rounded-md px-2 py-1">
+              <p className="text-slate-800 mt-1 leading-relaxed">{strategyRationale}</p>
+              <p className="text-sm text-amber-900 mt-2 bg-amber-50 border border-amber-300 rounded-md px-2 py-1">
                 {priorityNote}
               </p>
             </>
@@ -203,7 +202,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                   className="rounded-lg border border-slate-200 bg-white p-3 group/stage"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200">
                       Giai đoạn {stage.stageOrder}
                     </span>
 
@@ -216,7 +215,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                         className="flex-1 text-sm font-semibold"
                       />
                     ) : (
-                      <h4 className="text-sm font-semibold text-slate-900">
+                      <h4 className="font-semibold text-slate-900">
                         {stage.stageName || 'Tên giai đoạn'}
                       </h4>
                     )}
@@ -227,11 +226,11 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                         placeholder="Thời gian (phút)"
                         value={stage.estimatedDurationMinutes || ''}
                         onChange={e => handleStageDurationChange(stage.stageOrder, e.target.value)}
-                        className="w-24 text-xs"
+                        className="w-24"
                         suffix="phút"
                       />
                     ) : (
-                      <span className="ml-auto text-xs text-slate-600">
+                      <span className="ml-auto text-slate-600">
                         ~{stage.estimatedDurationMinutes} phút
                       </span>
                     )}
@@ -242,11 +241,10 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
                         <button
                           title={isStageEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
                           onClick={() => toggleEditStage(stage.stageOrder)}
-                          className={`p-1 rounded-md transition-colors ${
-                            isStageEditing
-                              ? 'text-blue-600 bg-blue-50'
-                              : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-                          }`}
+                          className={`p-1 rounded-md transition-colors ${isStageEditing
+                            ? 'text-blue-600 bg-blue-50'
+                            : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
+                            }`}
                         >
                           <EditOutlined className="text-sm" />
                         </button>
@@ -280,21 +278,21 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
 
         {/* Estimated total treatment time */}
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 group/time">
-          <span className="text-xs text-slate-600">Tổng thời gian điều trị ước tính:</span>
+          <span className="text-slate-600">Tổng thời gian điều trị ước tính:</span>
           {isEditingInfo ? (
             <Input
               size="small"
               value={estimatedTotalTreatmentTime}
               onChange={e => setEstimatedTotalTreatmentTime(e.target.value)}
-              className="flex-1 text-xs"
+              className="flex-1"
             />
           ) : (
-            <span className="text-xs font-semibold text-slate-900">{estimatedTotalTreatmentTime}</span>
+            <span className="font-semibold text-slate-900">{estimatedTotalTreatmentTime}</span>
           )}
         </div>
 
         {/* Risks and Complications */}
-        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+        <div className="rounded-lg border border-red-100 bg-red-50 px-3 py-2">
           <p className="text-[11px] uppercase font-semibold tracking-wide text-red-700">
             Nguy cơ cần theo dõi
           </p>
@@ -302,7 +300,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
             {risksAndComplications.map((risk, idx) => (
               <span
                 key={idx}
-                className="text-xs px-2 py-1 rounded-full bg-white border border-red-200 text-red-700 flex items-center gap-1 group/risk"
+                className="px-2 py-2 rounded-full bg-white border border-red-200 text-red-800 flex items-center gap-1 group/risk"
               >
                 {risk}
                 {!readOnly && (
@@ -331,7 +329,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
               type="button"
               onClick={handleAddRisk}
               disabled={!newRisk.trim()}
-              className="px-2 py-1 text-xs text-red-600 hover:bg-red-100 rounded-md transition-colors disabled:opacity-40"
+              className="px-2 py-1 text-red-800 hover:bg-red-100 rounded-md transition-colors disabled:opacity-40"
             >
               <PlusOutlined />
             </button>
@@ -349,7 +347,7 @@ const SurgerySection = forwardRef<SurgerySectionHandle, SurgerySectionProps>(({
             />
           ) : (
             notes && (
-              <p className="text-xs text-red-800 mt-2 leading-relaxed">{notes}</p>
+              <p className="text-red-800 mt-2 leading-relaxed">{notes}</p>
             )
           )}
         </div>

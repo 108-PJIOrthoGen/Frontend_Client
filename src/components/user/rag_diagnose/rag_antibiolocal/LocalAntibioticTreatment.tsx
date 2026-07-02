@@ -11,6 +11,12 @@ interface LocalAntibioticTreatmentProps {
     localPlan: LocalPlanData;
     readOnly?: boolean;
 }
+const LocalAntibioticIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+        <path d="M15 11.25l1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 10-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94.19-1.28.53l-.97.97-.75-.75.97-.97c.34-.34.53-.8.53-1.28s.19-.94.53-1.28L12.75 9M15 11.25L12.75 9" />
+    </svg>
+
+)
 
 const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan, readOnly = false }, ref) => {
     const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics ?? []);
@@ -53,10 +59,21 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                <div>
-                    <h3 className="text-base font-bold text-slate-900">Phác đồ kháng sinh tại chỗ</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{localPlan.regimenName}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                        width: '40px', height: '40px', borderRadius: '8px', padding: '4px',
+                        background: 'linear-gradient(135deg, #eaecf3, #2ee19a)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 10px rgba(226, 229, 237, 0.35)',
+                    }}>
+                        <LocalAntibioticIcon />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-bold text-slate-900">Phác đồ kháng sinh tại chỗ</h3>
+                        <p className="text-slate-800 mt-0.5">{localPlan.regimenName}</p>
+                    </div>
                 </div>
+
                 <span className="text-[10px] uppercase tracking-wide font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded-full">
                     {localPlan.durationDays} ngày
                 </span>
@@ -65,8 +82,8 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
             <div className="p-4 space-y-4">
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <p className="text-[12px] uppercase tracking-wide font-semibold text-red-500">Chẩn đoán/chỉ định</p>
-                    <p className="text-sm text-slate-700 mt-1">{localPlan.indication}</p>
-                    <p className="text-xs text-slate-600 mt-2">{localPlan.durationNote}</p>
+                    <p className=" text-slate-900 mt-1">{localPlan.indication}</p>
+                    <p className="text-slate-600 mt-2">{localPlan.durationNote}</p>
                 </div>
                 {/* Antibiotics list */}
                 <div className="space-y-2">
@@ -196,7 +213,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
                         <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Gợi ý về spacer</p>
-                        <div className="space-y-1.5 text-xs text-blue-900">
+                        <div className="space-y-1.5 text-blue-900">
                             <p><span className="font-semibold">Delivery:</span> {deliveryInfo?.deliveryMethod || '—'}</p>
                             <p><span className="font-semibold">Spacer:</span> {deliveryInfo?.spacerType || '—'}</p>
                             <p><span className="font-semibold">Xi măng gợi ý:</span> {deliveryInfo?.cementBrandSuggestion || '—'}</p>
@@ -208,7 +225,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                         <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
                         <ul className="space-y-1">
                             {(localPlan.monitoring ?? []).map((item) => (
-                                <li key={item} className="text-xs text-amber-800">- {item}</li>
+                                <li key={item} className="text-amber-800">- {item}</li>
                             ))}
                         </ul>
                     </div>
@@ -220,7 +237,7 @@ const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, Loca
                     <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
                     <ul className="space-y-1">
                         {(localPlan.contraindications ?? []).map((item) => (
-                            <li key={item} className="text-xs text-rose-800">- {item}</li>
+                            <li key={item} className=" text-rose-800">- {item}</li>
                         ))}
                     </ul>
                     <p className="text-md text-rose-900 mt-2 leading-relaxed">{localPlan.notes}</p>

@@ -1,79 +1,173 @@
 import React from 'react';
+import { Badge, Button, Card, Empty, Flex, List, Progress, Space, Tag, Tooltip, Typography } from 'antd';
+import { ExportOutlined, FileSearchOutlined, LinkOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import type { CitationData } from '@/types/treatmentType';
 
 interface Props {
   citations: CitationData[];
 }
 
+const { Paragraph, Text, Title } = Typography;
+
+const getSourceColor = (sourceType?: string) => {
+  const normalized = sourceType?.toLowerCase() ?? '';
+  if (normalized.includes('guideline')) return 'blue';
+  if (normalized.includes('study') || normalized.includes('trial')) return 'green';
+  if (normalized.includes('review')) return 'purple';
+  if (normalized.includes('paper') || normalized.includes('article')) return 'cyan';
+  return 'default';
+};
+
+const getRelevanceColor = (score: number) => {
+  if (score >= 0.8) return '#059669';
+  if (score >= 0.6) return '#1677ff';
+  return '#d48806';
+};
+
+const toPercent = (score?: number) => {
+  const safeScore = Number.isFinite(score) ? Number(score) : 0;
+  return Math.max(0, Math.min(100, Math.round(safeScore * 100)));
+};
+
 const CitationsPanel: React.FC<Props> = ({ citations }) => {
   return (
-    <div className="flex-[1] min-w-[380px] max-w-[450px] flex flex-col h-full">
-      <div className="bg-gradient-to-br from-slate-900 to-cyan-950 border border-slate-700 rounded-2xl flex flex-col overflow-hidden shadow-2xl relative h-full">
-        {/* Decorative dark bg */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[60px] pointer-events-none"></div>
-        <div className="p-5 border-b border-white/10 flex items-center justify-between relative z-10 bg-black/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center border border-cyan-500/30">
-              <span className="material-symbols-outlined text-[18px]">library_books</span>
-            </div>
-            <h3 className="font-bold text-indigo-50 text-md tracking-wide">Cơ Sở Bằng Chứng</h3>
-          </div>
-        </div>
+    <div style={{ flex: '1 0 420px', minWidth: 380, maxWidth: 460, height: '100%' }}>
+      <Card
+        title={(
+          <Space size={10}>
+            <FileSearchOutlined style={{ color: '#1677ff', fontSize: 18 }} />
+            <span>Cơ sở bằng chứng</span>
+          </Space>
+        )}
+        extra={<Badge count={citations.length} showZero color="#1677ff" />}
+        styles={{
+          body: {
+            padding: 0,
+            minHeight: 0,
+            flex: 1,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+          },
+          header: {
+            minHeight: 56,
+            borderBottom: '1px solid #eef2f7',
+          },
+        }}
+        style={{
+          height: '100%',
+          borderRadius: 12,
+          boxShadow: '0 8px 24px rgba(15, 23, 42, 0.08)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {citations.length === 0 ? (
+          <Flex flex={1} align="center" justify="center" style={{ padding: 24 }}>
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description="Không tìm thấy tài liệu dẫn chứng"
+            />
+          </Flex>
+        ) : (
+          <List
+            dataSource={citations}
+            rowKey={(citation) =>
+              citation.sourceUri || `${citation.sourceType}-${citation.sourceTitle}-${citation.citedFor}`
+            }
+            split
+            style={{ flex: 1, overflowY: 'auto' }}
+            renderItem={(citation, idx) => {
+              const percent = toPercent(citation.relevanceScore);
+              const relevanceColor = getRelevanceColor(citation.relevanceScore);
 
-        <div className="flex-1 p-5 space-y-4 overflow-y-auto custom-scrollbar relative z-10">
-          {citations.length > 0 ? (
-            citations.map((citation, idx) => (
-              <article
-                key={citation.sourceUri || idx}
-                className="rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md hover:bg-white/10 transition-colors group"
-              >
-                <div className="flex items-center justify-between gap-2 mb-3">
-                  <span className="text-[9px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300">
-                    {citation.sourceType}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[12px] text-emerald-400">radar</span>
-                    <span className="text-[13px] text-emerald-400/80 font-mono">
-                      {(citation.relevanceScore * 100).toFixed(0)}% Trùng khớp
-                    </span>
-                  </div>
-                </div>
-                <h4 className="text-md font-bold text-slate-200 mb-2 leading-tight group-hover:text-white transition-colors">
-                  {citation.sourceTitle}
-                </h4>
-                <div className="relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500/50 rounded-full"></div>
-                  <p className=" text-slate-400 italic pl-3 leading-relaxed mb-3">
-                    "{citation.snippet}"
-                  </p>
-                </div>
+              return (
+                <List.Item style={{ padding: 16, alignItems: 'flex-start' }}>
+                  <Flex vertical gap={12} style={{ width: '100%', minWidth: 0 }}>
+                    <Flex align="flex-start" justify="space-between" gap={12}>
+                      <Space size={6} wrap>
+                        <Tag color="geekblue">#{idx + 1}</Tag>
+                        <Tag color={getSourceColor(citation.sourceType)}>
+                          {citation.sourceType || 'Nguồn'}
+                        </Tag>
+                      </Space>
+                      <Tooltip title="Mức độ liên quan của nguồn với khuyến nghị">
+                        <Space size={6} style={{ flexShrink: 0 }}>
+                          <SafetyCertificateOutlined style={{ color: relevanceColor }} />
+                          <Text strong style={{ color: relevanceColor, fontSize: 12 }}>
+                            {percent}%
+                          </Text>
+                        </Space>
+                      </Tooltip>
+                    </Flex>
 
-                <div className="pt-3 border-t border-white/5 flex flex-col gap-2">
-                  <p className="text-[11px] text-slate-300">
-                    <span className="text-slate-300 font-semibold mr-1 uppercase text-[10px] tracking-wider">
-                      Trích dẫn cho:
-                    </span>{' '}
-                    {citation.citedFor}
-                  </p>
-                  <a
-                    href={citation.sourceUri}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 hover:underline w-max"
-                  >
-                    Xem tài liệu gốc <span className="material-symbols-outlined text-[12px]">open_in_new</span>
-                  </a>
-                </div>
-              </article>
-            ))
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full opacity-50">
-              <span className="material-symbols-outlined text-4xl mb-2 text-slate-500">search_off</span>
-              <p className="text-sm text-slate-500 font-medium">Không tìm thấy tài liệu dẫn chứng</p>
-            </div>
-          )}
-        </div>
-      </div>
+                    <div>
+                      <Title level={5} style={{ margin: 0, lineHeight: 1.35 }}>
+                        {citation.sourceTitle || 'Nguồn tài liệu'}
+                      </Title>
+                      <Progress
+                        percent={percent}
+                        showInfo={false}
+                        strokeColor={relevanceColor}
+                        trailColor="#eef2f7"
+                        size="small"
+                        style={{ marginTop: 8 }}
+                      />
+                    </div>
+
+                    {citation.snippet && (
+                      <Paragraph
+                        style={{
+                          margin: 0,
+                          padding: '10px 12px',
+                          borderLeft: '3px solid #d6e4ff',
+                          borderRadius: 6,
+                          background: '#f8fafc',
+                          color: '#475569',
+                          fontSize: 13,
+                        }}
+                        ellipsis={{ rows: 4, expandable: true, symbol: 'Xem thêm' }}
+                      >
+                        {citation.snippet}
+                      </Paragraph>
+                    )}
+
+                    <Flex align="flex-start" justify="space-between" gap={12}>
+                      <Space size={6} align="start" style={{ minWidth: 0, flex: 1 }}>
+                        <LinkOutlined style={{ color: '#64748b', marginTop: 2 }} />
+                        <Text
+                          type="secondary"
+                          style={{
+                            fontSize: 12,
+                            whiteSpace: 'normal',
+                            overflowWrap: 'anywhere',
+                            lineHeight: 1.45,
+                          }}
+                        >
+                          {citation.citedFor || 'Khuyến nghị điều trị'}
+                        </Text>
+                      </Space>
+                      <Button
+                        type="link"
+                        size="small"
+                        href={citation.sourceUri}
+                        target="_blank"
+                        rel="noreferrer"
+                        disabled={!citation.sourceUri}
+                        icon={<ExportOutlined />}
+                        style={{ paddingInline: 0, flexShrink: 0 }}
+                      >
+                        Mở nguồn
+                      </Button>
+                    </Flex>
+                  </Flex>
+                </List.Item>
+              );
+            }}
+          />
+        )}
+      </Card>
     </div>
   );
 };
