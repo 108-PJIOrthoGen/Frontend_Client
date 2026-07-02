@@ -13,7 +13,7 @@ import { callFetchEpisodeById } from '@/apis/api';
 
 // Index in `steps` array — kept here so notification click navigation lands on
 // the right tab without depending on string matching.
-const STEP_ASSESSMENT = 1;
+const STEP_TREATMENT_PLAN = 2;
 
 const AiDiagnosisSuggestion = () => {
     const dispatch = useAppDispatch();
@@ -21,11 +21,11 @@ const AiDiagnosisSuggestion = () => {
     const currentCase = useAppSelector(state => state.patient.currentCase);
     const [currentStep, setCurrentStep] = useState(() => {
         // Notification deep-link wins: if the user arrived via `?runId=...`,
-        // jump straight to the assessment tab so the AssessmentPji component
+        // jump straight to the treatment-plan tab so the TreatmentPlan component
         // mounts and rehydrates from the URL. Otherwise fall back to whatever
         // step they were on last time.
         if (new URLSearchParams(window.location.search).get('runId')) {
-            return STEP_ASSESSMENT;
+            return STEP_TREATMENT_PLAN;
         }
         const saved = localStorage.getItem('pji_currentStep');
         return saved ? parseInt(saved, 10) : 0;
@@ -35,7 +35,7 @@ const AiDiagnosisSuggestion = () => {
     // component doesn't remount — we still need to react to the URL change.
     useEffect(() => {
         if (new URLSearchParams(location.search).get('runId')) {
-            setCurrentStep(STEP_ASSESSMENT);
+            setCurrentStep(STEP_TREATMENT_PLAN);
         }
     }, [location.search]);
 
@@ -149,12 +149,12 @@ const AiDiagnosisSuggestion = () => {
             content: <S5AssessmentPji onNext={next} onPrev={prev} />,
         },
         {
-            title: 'Kiểm tra dữ liệu',
-            content: <DataCompletenessStep onNext={next} onPrev={prev} />,
-        },
-        {
             title: 'Gợi ý phác đồ',
             content: <TreatmentPlan onPrev={prev} onNext={next} />,
+        },
+        {
+            title: 'Kiểm tra dữ liệu',
+            content: <DataCompletenessStep onNext={next} onPrev={prev} />,
         },
         {
             title: 'Chẩn đoán bác sĩ',

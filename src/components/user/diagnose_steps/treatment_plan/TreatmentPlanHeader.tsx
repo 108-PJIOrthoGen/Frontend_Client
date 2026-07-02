@@ -4,9 +4,16 @@ import { Button } from 'antd';
 interface Props {
   onPrev: () => void;
   onNext: () => void;
+  canContinue?: boolean;
+  nextLabel?: string;
 }
 
-const TreatmentPlanHeader: React.FC<Props> = ({ onPrev, onNext }) => {
+const TreatmentPlanHeader: React.FC<Props> = ({
+  onPrev,
+  onNext,
+  canContinue = true,
+  nextLabel = 'Tiếp tục',
+}) => {
   return (
     <header className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b justify-between border-slate-200/60 px-6 py-4 flex items-center shadow-sm z-20 sticky top-0 w-full transition-all">
       <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-emerald-400 via-teal-500 to-cyan-600"></div>
@@ -35,9 +42,10 @@ const TreatmentPlanHeader: React.FC<Props> = ({ onPrev, onNext }) => {
           size="large"
           type="primary"
           onClick={onNext}
+          disabled={!canContinue}
           className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white border-none shadow-md shadow-emerald-500/30 rounded-xl font-bold px-6 h-[42px] flex items-center gap-2 transform hover:-translate-y-0.5 transition-all"
         >
-          Tiếp tục: Chẩn đoán bác sĩ <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          {nextLabel} <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
         </Button>
       </div>
     </header>

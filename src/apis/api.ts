@@ -434,6 +434,10 @@ export const callGenerateAiRecommendation = (episodeId: string): Promise<IBacken
     return instance.post(`/api/v1/episodes/${episodeId}/ai-recommendations/generate`);
 }
 
+export const callEvaluatePjiDiagnostic = (episodeId: string): Promise<IBackendRes<any>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/diagnostic-test/evaluate`);
+}
+
 export const callFetchAiRecommendationRuns = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IAiRecommendationRun>>> => {
     return instance.get(`/api/v1/episodes/${episodeId}/ai-recommendations/runs?${query}`);
 }

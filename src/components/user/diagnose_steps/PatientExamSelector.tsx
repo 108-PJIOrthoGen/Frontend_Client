@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Table, message, Tag, Empty, Spin, Tooltip } from 'antd';
+import { Button, Input, Table, message, Tag, Empty, Spin } from 'antd';
 import { SearchOutlined, CheckCircleOutlined, HistoryOutlined, PlusCircleOutlined, EyeOutlined } from '@ant-design/icons';
 import { callFetchPatient, callFetchEpisodesByPatient, callFetchAiRecommendationRuns, callFetchAiRecommendationRunDetail } from '@/apis/api';
 import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
@@ -7,8 +7,6 @@ import dayjs from 'dayjs';
 import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
 import { setCurrentCase } from '@/redux/slice/patientSlice';
-
-const MAX_RUNS_PER_EPISODE = 10;
 
 const getStatusTag = (status?: string) => {
     switch (status) {
@@ -41,6 +39,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     const [selectedExam, setSelectedExam] = useState<IEpisode | null>(null);
 
     const [aiRuns, setAiRuns] = useState<IAiRecommendationRun[]>([]);
+    const [aiRunsTotal, setAiRunsTotal] = useState(0);
     const [aiRunsLoading, setAiRunsLoading] = useState(false);
     const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
 
@@ -99,6 +98,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     const handleSelectExam = async (exam: IEpisode) => {
         setSelectedExam(exam);
         setAiRuns([]);
+        setAiRunsTotal(0);
         if (!exam.id) return;
 
         setAiRunsLoading(true);
@@ -106,6 +106,9 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             const res = await callFetchAiRecommendationRuns(String(exam.id), 'page=0&size=10&sort=createdAt,desc');
             if (res?.data?.result) {
                 setAiRuns(res.data.result);
+                setAiRunsTotal(res.data.meta?.total ?? res.data.result.length);
+            } else {
+                setAiRunsTotal(0);
             }
         } catch {
             // Silently fail — runs are optional info
@@ -152,13 +155,10 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             message.warning('Vui lòng chọn bệnh án');
             return;
         }
-        if (aiRuns.length >= MAX_RUNS_PER_EPISODE) {
-            message.error(`Đã đạt giới hạn ${MAX_RUNS_PER_EPISODE} lần gọi AI cho bệnh án này.`);
-            return;
-        }
         // Clear stale AI run data — user is starting a new diagnosis
         localStorage.removeItem('pji_aiRunId');
         localStorage.removeItem('pji_aiRunDetail');
+        localStorage.removeItem('pji_diagnosticResult');
         localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
         localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
         dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
@@ -303,17 +303,14 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                                     Bệnh án đã chọn: #{selectedExam.id} — Ngày: {selectedExam.admissionDate ? dayjs(selectedExam.admissionDate).format('DD/MM/YYYY') : 'N/A'}
                                 </span>
                             </div>
-                            <Tooltip title={aiRuns.length >= MAX_RUNS_PER_EPISODE ? `Đã đạt giới hạn ${MAX_RUNS_PER_EPISODE} lần gọi AI` : ''}>
-                                <Button
-                                    type="primary"
-                                    size="large"
-                                    onClick={handleContinue}
-                                    disabled={aiRuns.length >= MAX_RUNS_PER_EPISODE}
-                                    icon={<PlusCircleOutlined />}
-                                >
-                                    Chẩn đoán AI mới ({aiRuns.length}/{MAX_RUNS_PER_EPISODE})
-                                </Button>
-                            </Tooltip>
+                            <Button
+                                type="primary"
+                                size="large"
+                                onClick={handleContinue}
+                                icon={<PlusCircleOutlined />}
+                            >
+                                Chẩn đoán AI mới
+                            </Button>
                         </div>
 
                         {/* Previous AI Runs */}
@@ -321,7 +318,8 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                             <div className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center gap-2">
                                 <HistoryOutlined className="text-blue-500" />
                                 <h4 className="font-semibold text-slate-800 text-sm">
-                                    Lịch sử chẩn đoán AI ({aiRuns.length} lần)
+                                    Lịch sử chẩn đoán AI ({aiRunsTotal} lần)
+                                    {aiRunsTotal > aiRuns.length && ` · hiển thị ${aiRuns.length} gần nhất`}
                                 </h4>
                             </div>
 

@@ -156,7 +156,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
             className="flex items-center gap-2 px-6 py-2.5 font-bold text-sm rounded-xl shadow-md
               bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700
               hover:to-indigo-700 text-white shadow-blue-500/40 hover:-translate-y-0.5 transition-all">
-            Tiếp tục xem phác đồ
+            Tiếp tục: Chẩn đoán bác sĩ
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </div>

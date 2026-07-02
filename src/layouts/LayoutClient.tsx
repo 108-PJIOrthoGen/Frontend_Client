@@ -131,8 +131,7 @@ export const LayoutClient = () => {
     { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
   ];
 
-  // "Biểu đồ chỉ số viêm" và "So sánh kết quả" giờ mở theo từng bệnh nhân từ
-  // cột Actions của trang Quản lý bệnh án (tự nạp đúng bệnh nhân + bệnh án).
+
   const aiPredictionMenuItems = [
     { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
     { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: 'experiment', step: 'Mô phỏng & so sánh kịch bản' },
