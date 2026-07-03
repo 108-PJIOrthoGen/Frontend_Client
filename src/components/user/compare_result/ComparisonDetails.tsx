@@ -59,6 +59,13 @@ interface ComparisonDetailsProps {
     doctorReview?: IDoctorRecommendationReview | null;
 }
 
+const WARNING_TYPE_LABELS: Record<string, string> = {
+    ALLERGY_ALERT: 'Cảnh báo dị ứng',
+    DRUG_INTERACTION: 'Tương tác thuốc',
+    INSUFFICIENT_DATA: 'Dữ liệu không đủ',
+    PROCESSING_ERROR: 'Lỗi xử lý',
+};
+
 const REVIEW_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
     ACCEPTED: { label: 'Bác sĩ đồng thuận với AI', color: 'green' },
     MODIFIED: { label: 'Bác sĩ chỉnh sửa / ghi đè', color: 'orange' },
@@ -111,6 +118,7 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
             surgery: surgeryItem ? (parseItemJson(surgeryItem) as SurgeryPlanData) : null,
             systemic: systemicItem ? (parseItemJson(systemicItem) as SystemicPlanData) : null,
             local: localItem ? (parseItemJson(localItem) as LocalPlanData) : null,
+            warnings: runDetail.run.warningsJson ?? [],
         };
     }, [runDetail]);
 
@@ -300,6 +308,22 @@ const ComparisonDetails: React.FC<ComparisonDetailsProps> = ({
 
     return (
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            {/* AI warnings (allergy / drug-interaction / insufficient-data) */}
+            {aiData?.warnings?.length ? (
+                <div style={{ marginBottom: 16 }}>
+                    {aiData.warnings.map((w, idx) => (
+                        <Alert
+                            key={idx}
+                            type={w.severity === 'HIGH' ? 'error' : 'warning'}
+                            showIcon
+                            message={WARNING_TYPE_LABELS[w.type ?? ''] ?? w.type ?? 'Cảnh báo'}
+                            description={w.message}
+                            style={{ marginBottom: 8 }}
+                        />
+                    ))}
+                </div>
+            ) : null}
+
             {/* Review status + agreement overview */}
             {doctorReview && statusConfig ? (
                 <Card size="small">

@@ -29,7 +29,7 @@ const PatientTable = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    const isFetching = useAppSelector((state) => state.patient.isFetching);
+    // const isFetching = useAppSelector((state) => state.patient.isFetching);
     const meta = useAppSelector((state) => state.patient.meta);
     const users = useAppSelector((state) => state.patient.result);
     const dispatch = useAppDispatch();
@@ -124,15 +124,16 @@ const PatientTable = () => {
             sorter: true,
         },
         {
+            title: "Mã BN",
+            dataIndex: "patientCode",
+            sorter: true,
+        },
+        {
             title: "id",
             dataIndex: "id",
             hidden: true
         },
-        {
-            title: "Mã bệnh nhân",
-            dataIndex: "patientCode",
-            sorter: true,
-        },
+
 
         {
             title: "Quốc tịnh",
@@ -158,28 +159,12 @@ const PatientTable = () => {
         {
             title: "Địa chỉ",
             dataIndex: "address",
-            sorter: true,
+            hidden: true
         },
         {
             title: "Insurance",
             dataIndex: "insuranceExpired",
             hidden: true
-        },
-        {
-            title: "Thời gian tạo",
-            dataIndex: "createdAt",
-            width: 200,
-            sorter: true,
-            render: (text, record, index, action) => {
-                return (
-                    <>
-                        {record.createdAt
-                            ? dayjs(record.createdAt).format("DD-MM-YYYY HH:mm:ss")
-                            : ""}
-                    </>
-                );
-            },
-            hideInSearch: true,
         },
         {
             title: "Thời gian cập nhật",
@@ -198,9 +183,9 @@ const PatientTable = () => {
             hideInSearch: true,
         },
         {
-            title: "Actions",
+            title: "Tác vụ",
             hideInSearch: true,
-            width: 140,
+            width: 100,
             render: (_value, entity, _index, _action) => (
                 <Space>
                     <FolderOpenOutlined
@@ -213,19 +198,7 @@ const PatientTable = () => {
                             setDataInit(entity);
                             setOpenMedicalDrawer(true);
                         }}
-                    />
-
-                    <LineChartOutlined
-                        style={{ fontSize: 20, color: "#0ea5e9" }}
-                        title="Biểu đồ chỉ số viêm"
-                        onClick={() => openAiFeatureForPatient(entity, '/chart-testing')}
-                    />
-
-                    <DiffOutlined
-                        style={{ fontSize: 20, color: "#7c3aed" }}
-                        title="So sánh kết quả AI & Bác sĩ"
-                        onClick={() => openAiFeatureForPatient(entity, '/compare-result')}
-                    />
+                    /> Bệnh án
 
                     <Access permission={ALL_PERMISSIONS.PATIENTS.UPDATE} hideChildren>
                         <EditOutlined
@@ -238,10 +211,39 @@ const PatientTable = () => {
                                 setOpenModalCreate(true);
                                 setDataInit(entity);
                             }}
-                        />
+                        /> Sửa
                     </Access>
+                </Space>
+            ),
+        },
+        {
+            title: "Theo dõi",
+            hideInSearch: true,
+            width: 100,
+            render: (_value, entity, _index, _action) => (
+                <Space>
 
 
+                    <LineChartOutlined
+                        style={{ fontSize: 20, color: "#0ea5e9" }}
+                        title="Biểu đồ chỉ số viêm"
+                        onClick={() => openAiFeatureForPatient(entity, '/chart-testing')}
+                    /> Chỉ số viêm
+
+                    <DiffOutlined
+                        style={{ fontSize: 20, color: "#7c3aed" }}
+                        title="So sánh kết quả AI & Bác sĩ"
+                        onClick={() => openAiFeatureForPatient(entity, '/compare-result')}
+                    /> So sánh
+                </Space>
+            ),
+        },
+        {
+            title: "Nguy hiểm",
+            hideInSearch: true,
+            width: 100,
+            render: (_value, entity, _index, _action) => (
+                <Space>
                     <Access permission={ALL_PERMISSIONS.PATIENTS.DELETE} hideChildren>
                         <Popconfirm
                             placement="leftTop"
@@ -257,7 +259,7 @@ const PatientTable = () => {
                                         fontSize: 20,
                                         color: "#ff4d4f",
                                     }}
-                                />
+                                /> Xóa
                             </span>
                         </Popconfirm>
                     </Access>
@@ -349,18 +351,7 @@ const PatientTable = () => {
                     }}>
                         Quản lý thông tin và hồ sơ bệnh nhân, cập nhật dữ liệu y tế
                     </p>
-                    <Breadcrumb
-                        items={[
-                            {
-                                href: "/",
-                                title: <HomeOutlined />,
-                            },
-                            {
-                                title: "Quản lý bệnh án"
-                            }
-                        ]}
-                        style={{ marginBottom: "16px" }}
-                    />
+
                 </div>
 
                 <DataTable<IPatient>

@@ -15,6 +15,12 @@ interface SystemicAntibioticTreatmentProps {
     guidelinePlan: SystemicPlanData;
     readOnly?: boolean;
 }
+const AntibioticIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+    </svg>
+)
+
 
 export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmentHandle, SystemicAntibioticTreatmentProps>(({
     guidelinePlan,
@@ -143,10 +149,21 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
     return (
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <div>
-                    <h3 className="text-lg font-bold text-slate-900">Điều trị kháng sinh toàn thân</h3>
-                    <p className="text-xs text-slate-500">{guidelinePlan.regimenName}</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{
+                        width: '40px', height: '40px', borderRadius: '8px', padding: '4px',
+                        background: 'linear-gradient(135deg, #b3b8c5, #4be5f0)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 2px 10px rgba(37,99,235,0.35)',
+                    }}>
+                        <AntibioticIcon />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">Điều trị kháng sinh toàn thân</h3>
+                        <p className=" text-slate-700">{guidelinePlan.regimenName}</p>
+                    </div>
                 </div>
+
                 <span className="text-[10px] uppercase tracking-wide font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full">
                     {guidelinePlan.totalDurationWeeks} tuần
                 </span>
@@ -155,7 +172,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                 {/* Indication */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-4">
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-900">Chỉ định</p>
-                    <p className="text-sm text-slate-900">{guidelinePlan.indication}</p>
+                    <p className="text-slate-900">{guidelinePlan.indication}</p>
                 </div>
 
                 {/* Phases */}
@@ -168,7 +185,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                 <div key={phase.phaseOrder} className="rounded-lg border border-slate-200 bg-white p-3 group/phase">
                                     {/* Phase header */}
                                     <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                        <span className="font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
                                             Giai đoạn {phase.phaseOrder}
                                         </span>
 
@@ -178,10 +195,10 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                 placeholder="Tên giai đoạn"
                                                 value={phase.phaseName}
                                                 onChange={e => handlePhaseFieldChange(phase.phaseOrder, 'phaseName', e.target.value)}
-                                                className="flex-1 text-sm font-semibold"
+                                                className="flex-1 font-semibold"
                                             />
                                         ) : (
-                                            <p className="text-sm font-semibold text-slate-900">{phase.phaseName || 'Tên giai đoạn'}</p>
+                                            <p className=" font-semibold text-slate-900">{phase.phaseName || 'Tên giai đoạn'}</p>
                                         )}
 
                                         {isPhaseEditing ? (
@@ -194,7 +211,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                 suffix="tuần"
                                             />
                                         ) : (
-                                            <span className="ml-auto text-xs text-slate-500">{phase.durationWeeks} tuần</span>
+                                            <span className="ml-auto text-slate-500">{phase.durationWeeks} tuần</span>
                                         )}
 
                                         {/* Edit & Delete phase buttons */}
@@ -231,7 +248,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                             className="text-xs mb-2"
                                         />
                                     ) : (
-                                        <p className="text-xs text-slate-600 mb-2">{phase.durationNote}</p>
+                                        <p className=" text-slate-600 mb-2">{phase.durationNote}</p>
                                     )}
 
                                     {/* Antibiotics list */}
@@ -310,7 +327,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                         /* Display mode */
                                                         <>
                                                             <div className="flex flex-wrap gap-2 items-center">
-                                                                <p className="text-xs font-semibold text-slate-900">
+                                                                <p className=" font-semibold text-slate-900">
                                                                     {abx.antibioticName || 'Tên kháng sinh'}
                                                                 </p>
                                                                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
@@ -338,11 +355,11 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                                                                     </button>
                                                                 </div>}
                                                             </div>
-                                                            <p className="text-xs text-slate-700 mt-1">
+                                                            <p className=" text-slate-700 mt-1">
                                                                 Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
                                                             </p>
                                                             {abx.notes && (
-                                                                <p className="text-xs text-slate-500 mt-1">{abx.notes}</p>
+                                                                <p className="text-md text-slate-500 mt-1">{abx.notes}</p>
                                                             )}
                                                         </>
                                                     )}
@@ -401,7 +418,7 @@ export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmen
                         </div>
                     </div>
 
-                    <p className="text-xs leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                    <p className=" leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         <span className="font-semibold text-red-700">Lưu ý:</span> {guidelinePlan.notes}
                     </p>
                 </div>

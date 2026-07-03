@@ -83,6 +83,21 @@ const INFECTION_CLASSIFICATION_OPTIONS = [
   { value: 'UNKNOWN', label: 'Chưa rõ' },
 ];
 
+const POLL_INTERVAL_MS = 2000;
+const MAX_POLL_ATTEMPTS = 300;
+const TREATMENT_CATEGORIES = [
+  'SURGERY_PROCEDURE',
+  'SYSTEMIC_ANTIBIOTIC',
+  'LOCAL_ANTIBIOTIC',
+];
+
+const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
+  const categories = new Set(detail?.items?.map((item) => item.category));
+  return TREATMENT_CATEGORIES.every((category) => categories.has(category));
+};
+
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * Step "Chẩn đoán bác sĩ" — the single place where the doctor records their own
  * final diagnosis + treatment plan and decides on the AI recommendation.
@@ -141,6 +156,28 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
+    const fetchUntilTreatmentReady = async (runId: string) => {
+      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
+        const res = await callFetchAiRecommendationRunDetail(runId);
+        const detail = res?.data ?? null;
+        const status = detail?.run?.status;
+
+        if (hasTreatmentItems(detail)) return detail;
+        if (status === 'FAILED' || status === 'TIMEOUT') {
+          throw new Error(detail?.run?.errorMessage || 'AI tạo phác đồ thất bại.');
+        }
+        if (status === 'CANCELLED') {
+          throw new Error('Lần tạo phác đồ AI đã bị huỷ.');
+        }
+        if ((status === 'SUCCESS' || status === 'PARTIAL') && !hasTreatmentItems(detail)) {
+          throw new Error('AI chưa trả đủ 3 phác đồ điều trị.');
+        }
+
+        await wait(POLL_INTERVAL_MS);
+      }
+      throw new Error('AI tạo phác đồ quá lâu. Vui lòng quay lại sau.');
+    };
+
     const load = async () => {
       setIsLoading(true);
       try {
@@ -149,9 +186,14 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         const runId = localStorage.getItem('pji_aiRunId');
         if (cached) {
           detail = JSON.parse(cached);
-        } else if (runId) {
-          const res = await callFetchAiRecommendationRunDetail(runId);
-          detail = res?.data ?? null;
+        }
+        if ((!detail || !hasTreatmentItems(detail)) && runId) {
+          detail = await fetchUntilTreatmentReady(runId);
+          if (detail) {
+            localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
+            localStorage.removeItem('pending_pji_aiRunId');
+            localStorage.removeItem('pending_pji_thoughtLogs');
+          }
         }
         if (!detail?.items?.length || !detail.run?.id) {
           setLoadError('Không tìm thấy dữ liệu gợi ý AI. Vui lòng quay lại bước trước.');
@@ -332,6 +374,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const backToHomepage = () => {
     localStorage.removeItem('pji_aiRunId');
     localStorage.removeItem('pji_aiRunDetail');
+    localStorage.removeItem('pji_diagnosticResult');
     localStorage.removeItem('pji_selectedPatientId');
     localStorage.removeItem('pji_selectedExamId');
     dispatch(clearCurrentCase());

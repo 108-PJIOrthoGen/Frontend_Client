@@ -131,12 +131,11 @@ export const LayoutClient = () => {
     { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
   ];
 
-  // "Biểu đồ chỉ số viêm" và "So sánh kết quả" giờ mở theo từng bệnh nhân từ
-  // cột Actions của trang Quản lý bệnh án (tự nạp đúng bệnh nhân + bệnh án).
+
   const aiPredictionMenuItems = [
     { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
-    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: 'experiment', step: 'Mô phỏng & so sánh kịch bản' },
-    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: 'health_metrics', step: 'Quản lý bệnh học dài kỳ' },
+    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: 'experiment', step: 'Mô phỏng & so sánh kịch bản', comingSoon: true },
+    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: 'health_metrics', step: 'Quản lý bệnh học dài kỳ', comingSoon: true },
   ];
 
   const isActive = (path: string) => {
@@ -151,7 +150,7 @@ export const LayoutClient = () => {
       <aside className="flex w-72 flex-col justify-between border-r border-slate-200 bg-white flex-shrink-0 z-20 h-full">
         <div className="flex flex-col">
           {/* Header */}
-          <div className="flex flex-col items-center gap-1 px-6 py-6">
+          <div className="flex flex-col items-center gap-1 px-6 pt-3">
             <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
           </div>
 
@@ -160,7 +159,7 @@ export const LayoutClient = () => {
             ? 'bg-green-50 border border-green-200'
             : 'bg-slate-50 border border-slate-100'
             }`}>
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-2">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${currentCase
                 ? 'bg-green-200 text-green-700'
                 : 'bg-slate-200 text-slate-500'
@@ -176,7 +175,7 @@ export const LayoutClient = () => {
                 {currentCase ? (
                   <>
                     <h2 className="text-green-900 text-sm font-bold">{currentCase.patient.fullName}</h2>
-                    <p className="text-green-600 text-xs font-medium mt-1">
+                    <p className="text-green-600 text-md font-medium mt-1">
                       Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
                     </p>
                   </>
@@ -192,7 +191,7 @@ export const LayoutClient = () => {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-1 px-4">
-            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Bệnh án</p>
+            <p className="px-2 pb-2 font-semibold text-slate-800 tracking-wider">Bệnh Án</p>
             {recordMenuItems.map((item) => (
               <NavLink
                 key={item.path}
@@ -215,36 +214,62 @@ export const LayoutClient = () => {
             ))}
 
             <div className="my-3 border-t border-slate-100" />
-            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Dự đoán AI</p>
-            {aiPredictionMenuItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
-                  ? 'bg-primary/10 text-primary border-primary'
-                  : 'text-slate-600 hover:bg-slate-50 border-transparent'
-                  }`}
-              >
-                <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
-                  {item.icon}
-                </span>
-                <div className="flex flex-col">
-                  <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
-                    {item.label}
+            <p className="px-2 pb-2 font-semibold text-slate-800 tracking-wider">Sinh Khuyến Nghị</p>
+            {aiPredictionMenuItems.map((item) => {
+              if (item.comingSoon) {
+                return (
+                  <Tooltip key={item.path} title="Tính năng sắp ra mắt" placement="right">
+                    <div
+                      aria-disabled="true"
+                      className="group flex cursor-not-allowed items-center gap-3 rounded-lg border-l-4 border-transparent bg-slate-50/70 px-3 py-3 text-slate-400 opacity-75"
+                    >
+                      <span className="material-symbols-outlined text-slate-300">
+                        {item.icon}
+                      </span>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-medium leading-snug">
+                            {item.label}
+                          </span>
+                          <span className="shrink-0 rounded-full border border-slate-400 bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-green-400">
+                            Coming Soon
+                          </span>
+                        </div>
+                        <span className="text-xs opacity-70"> {item.step} </span>
+                      </div>
+                    </div>
+                  </Tooltip>
+                );
+              }
+
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
+                    ? 'bg-primary/10 text-primary border-primary'
+                    : 'text-slate-600 hover:bg-slate-50 border-transparent'
+                    }`}
+                >
+                  <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
+                    {item.icon}
                   </span>
-                  <span className="text-xs opacity-80"> {item.step} </span>
-                </div>
-              </NavLink>
-            ))}
+                  <div className="flex flex-col">
+                    <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
+                      {item.label}
+                    </span>
+                    <span className="text-xs opacity-80"> {item.step} </span>
+                  </div>
+                </NavLink>
+              );
+            })}
             <div className="my-3 border-t border-slate-100" />
-            <p className="px-2 pb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Chức năng</p>
+            <p className="px-2 font-semibold text-slate-800 tracking-wider">Chức năng</p>
             {/* Notifications */}
             <div className="pt-3 pb-1">
               <NotificationBell />
             </div>
 
-            {/* Pending Lab Tasks — progress notification (entry now lives in the
-                episode's "Xét nghiệm chờ bổ sung" tab) */}
             <div className="px-3 pt-1 pb-1">
               <Popover
                 open={pendingPopoverOpen}

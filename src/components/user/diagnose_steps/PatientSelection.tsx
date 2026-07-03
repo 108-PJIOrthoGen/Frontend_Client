@@ -42,7 +42,6 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
 
     return (
         <div className="flex-1 bg-white p-8 h-full items-center">
-            <h2 className="text-2xl font-bold text-slate-900 mb-8 border-b pb-4">Bước 1: Lựa chọn bệnh nhân</h2>
             <div className="max-w-4xl mx-auto flex flex-col md:flex-row gap-8 justify-center items-stretch mt-12">
 
                 {/* Block 1: Search Existing */}
@@ -72,7 +71,8 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
 
             {/* Modal for Searching Patient */}
             <Modal
-                width={600}
+                width="min(1180px, calc(100vw - 32px))"
+                centered
                 title="Tra cứu hồ sơ bệnh nhân"
                 open={isSearchModalVisible}
                 onCancel={onClose}
