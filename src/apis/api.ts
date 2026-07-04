@@ -56,8 +56,8 @@ export const registerAPI = (username: string, email: string, password: string, r
 export const loginAPI = (username: string, password: string) => {
     return instance.post(`/api/v1/auth/login`, { username, password })
 }
-export const forgotPasswordAPI = (email: string) => {
-    return instance.post(`/api/v1/auth/forgot-password`, { email })
+export const forgotPasswordAPI = (email: string, captchaToken?: string) => {
+    return instance.post(`/api/v1/auth/forgot-password`, { email, captchaToken })
 }
 export const resetPasswordAPI = (email: string, otp: string, newPassword: string) => {
     return instance.post(`/api/v1/auth/reset-password`, { email, otp, newPassword })

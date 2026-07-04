@@ -1,8 +1,9 @@
 import { LockOutlined, MailOutlined, NumberOutlined } from '@ant-design/icons';
 import { Button, Card, Flex, Form, Input, Result, Space, Typography, message, notification } from 'antd';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { forgotPasswordAPI, resetPasswordAPI } from '@/apis/api';
+import TurnstileCaptcha from '@/components/common/TurnstileCaptcha';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -21,21 +22,43 @@ const ForgotPasswordPage = () => {
   const [step, setStep] = useState<'request' | 'reset' | 'done'>('request');
   const [isRequesting, setIsRequesting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState('');
+  const [captchaResetKey, setCaptchaResetKey] = useState(0);
   const navigate = useNavigate();
+  const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim();
+
+  const handleCaptchaExpire = useCallback(() => {
+    setCaptchaToken('');
+  }, []);
+
+  const resetCaptcha = () => {
+    setCaptchaToken('');
+    setCaptchaResetKey((key) => key + 1);
+  };
 
   const handleRequestOtp = async (values: RequestOtpValues) => {
+    if (turnstileSiteKey && !captchaToken) {
+      notification.error({
+        message: 'Chưa xác thực CAPTCHA',
+        description: 'Vui lòng hoàn thành CAPTCHA trước khi gửi OTP.',
+      });
+      return;
+    }
+
     setIsRequesting(true);
     const normalizedEmail = values.email.trim();
-    const res = await forgotPasswordAPI(normalizedEmail);
+    const res = await forgotPasswordAPI(normalizedEmail, captchaToken);
     setIsRequesting(false);
 
     if (+res?.status === 200) {
       setEmail(normalizedEmail);
       setStep('reset');
+      resetCaptcha();
       message.success('Nếu email tồn tại, mã OTP đã được gửi.');
       return;
     }
 
+    resetCaptcha();
     notification.error({
       message: 'Không thể gửi OTP',
       description: res?.message ?? 'Vui lòng thử lại sau.',
@@ -100,8 +123,26 @@ const ForgotPasswordPage = () => {
                 <Input prefix={<MailOutlined style={{ color: '#bfbfbf' }} />} placeholder="Email" />
               </Form.Item>
 
+              {turnstileSiteKey && (
+                <Form.Item style={{ marginBottom: 16 }}>
+                  <TurnstileCaptcha
+                    siteKey={turnstileSiteKey}
+                    resetKey={captchaResetKey}
+                    onVerify={setCaptchaToken}
+                    onExpire={handleCaptchaExpire}
+                  />
+                </Form.Item>
+              )}
+
               <Form.Item style={{ marginBottom: 16 }}>
-                <Button type="primary" htmlType="submit" loading={isRequesting} block style={{ height: 44 }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isRequesting}
+                  disabled={Boolean(turnstileSiteKey && !captchaToken)}
+                  block
+                  style={{ height: 44 }}
+                >
                   Gửi mã OTP
                 </Button>
               </Form.Item>
@@ -170,11 +211,28 @@ const ForgotPasswordPage = () => {
               </Form.Item>
             </Form>
 
+            {turnstileSiteKey && (
+              <div style={{ marginBottom: 12 }}>
+                <TurnstileCaptcha
+                  siteKey={turnstileSiteKey}
+                  resetKey={captchaResetKey}
+                  onVerify={setCaptchaToken}
+                  onExpire={handleCaptchaExpire}
+                />
+              </div>
+            )}
+
             <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Button type="link" onClick={() => setStep('request')} style={{ padding: 0 }}>
+              <Button type="link" onClick={() => { resetCaptcha(); setStep('request'); }} style={{ padding: 0 }}>
                 Đổi email
               </Button>
-              <Button type="link" onClick={() => handleRequestOtp({ email })} loading={isRequesting} style={{ padding: 0 }}>
+              <Button
+                type="link"
+                onClick={() => handleRequestOtp({ email })}
+                loading={isRequesting}
+                disabled={Boolean(turnstileSiteKey && !captchaToken)}
+                style={{ padding: 0 }}
+              >
                 Gửi lại OTP
               </Button>
             </Space>
