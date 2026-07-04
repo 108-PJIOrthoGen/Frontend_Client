@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Steps, Breadcrumb, Button, Popconfirm, Tag, message } from 'antd';
 import { HomeOutlined, UserOutlined, LogoutOutlined, SwapOutlined } from '@ant-design/icons';
 import { useLocation } from 'react-router-dom';
-import { S5AssessmentPji } from '@/components/user/diagnose_steps/AssessmentPji';
+import { S5AssessmentPji } from '@/components/user/diagnose_steps/assessment_pji/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
 import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
 import DoctorDiagnosisStep from '@/components/user/diagnose_steps/DoctorDiagnosisStep';
