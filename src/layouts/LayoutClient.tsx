@@ -145,22 +145,25 @@ export const LayoutClient = () => {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-slate-50">
+    <div
+      className="flex h-screen min-h-0 w-full overflow-hidden bg-slate-50"
+      style={{ height: '100dvh' }}
+    >
       {/* Sidebar */}
-      <aside className="flex w-72 flex-col justify-between border-r border-slate-200 bg-white flex-shrink-0 z-20 h-full">
-        <div className="flex flex-col">
+      <aside className="z-20 flex h-full min-h-0 w-72 max-w-[85vw] flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <div className="flex flex-col items-center gap-1 px-6 pt-3">
+          <div className="flex shrink-0 flex-col items-center gap-1 px-6 pt-3">
             <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
           </div>
 
           {/* Current Case */}
-          <div className={`mx-4 mb-6 mt-0 rounded-xl p-4 ${currentCase
+          <div className={`mx-4 mb-6 mt-0 shrink-0 rounded-xl p-4 ${currentCase
             ? 'bg-green-50 border border-green-200'
             : 'bg-slate-50 border border-slate-100'
             }`}>
             <div className="flex items-start gap-2">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${currentCase
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${currentCase
                 ? 'bg-green-200 text-green-700'
                 : 'bg-slate-200 text-slate-500'
                 }`}>
@@ -169,13 +172,13 @@ export const LayoutClient = () => {
                   : <span className="material-symbols-outlined text-lg">person_off</span>
                 }
               </div>
-              <div className="flex flex-col">
+              <div className="flex min-w-0 flex-1 flex-col">
                 <span className={`text-xs uppercase tracking-wider font-semibold ${currentCase ? 'text-green-600' : 'text-slate-500'
                   }`}>Ca bệnh hiện tại</span>
                 {currentCase ? (
                   <>
-                    <h2 className="text-green-900 text-sm font-bold">{currentCase.patient.fullName}</h2>
-                    <p className="text-green-600 text-md font-medium mt-1">
+                    <h2 className="truncate text-sm font-bold text-green-900">{currentCase.patient.fullName}</h2>
+                    <p className="mt-1 truncate text-sm font-medium text-green-600">
                       Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
                     </p>
                   </>
@@ -190,7 +193,11 @@ export const LayoutClient = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="flex flex-col gap-1 px-4">
+          <nav
+            aria-label="Điều hướng chính"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-4"
+          >
+            <div className="flex flex-col gap-1">
             <p className="px-2 pb-2 font-semibold text-slate-800 tracking-wider">Bệnh Án</p>
             {recordMenuItems.map((item) => (
               <NavLink
@@ -299,11 +306,12 @@ export const LayoutClient = () => {
               </Popover>
             </div>
 
+            </div>
           </nav>
         </div>
 
         {/* Footer: Pending tasks + User profile */}
-        <div className="border-t border-slate-200">
+        <div className="shrink-0 border-t border-slate-200 bg-white">
 
 
           {/* User Profile */}
@@ -327,7 +335,7 @@ export const LayoutClient = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-full overflow-hidden relative">
+      <main className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
         <Outlet />
       </main>
 
