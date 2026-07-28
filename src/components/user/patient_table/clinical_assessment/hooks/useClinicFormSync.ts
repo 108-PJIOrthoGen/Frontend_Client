@@ -7,6 +7,7 @@ import {
   ILabResult,
 } from '@/types/backend';
 import { TestItem } from '@/types/types';
+import { BIOCHEM_BACKEND_KEY_TO_ID } from '@/constants/canonicalLabRegistry';
 
 interface SyncProps {
   clinicalRecord?: IClinicalRecord | null;
@@ -108,22 +109,8 @@ export function useClinicFormSync({
 
         let bTests = [...prev.biochemistryTests];
         if (lab.biochemicalData) {
-          const mapping: Record<string, string> = {
-            glucose: 'bc_4',
-            ure: 'bc_5',
-            creatinine: 'bc_6',
-            eGFR: 'ht_20',
-            albumin: 'bc_7',
-            alb: 'bc_7',
-            ast: 'bc_8',
-            alt: 'bc_9',
-            natri: 'bc_10',
-            kali: 'bc_11',
-            clo: 'bc_12',
-            hba1c: 'bc_13',
-          };
           Object.entries(lab.biochemicalData).forEach(([key, val]) => {
-            const metricId = mapping[key] || key;
+            const metricId = BIOCHEM_BACKEND_KEY_TO_ID[key] || key;
             const numVal = (val as any)?.value;
             if (numVal != null) {
               bTests = bTests.map((t) => (t.id === metricId ? { ...t, result: String(numVal) } : t));

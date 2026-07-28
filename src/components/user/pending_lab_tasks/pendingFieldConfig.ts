@@ -1,4 +1,5 @@
 import type { IClinicFormState } from '@/types/types';
+import { CANONICAL_LABS, findPendingLab } from '@/constants/canonicalLabRegistry';
 
 /**
  * Explicit binding from a completeness `field` to the place in the clinic form
@@ -44,18 +45,24 @@ const SLICE_TO_FORM_KEY: Record<LabSection, keyof Pick<IClinicFormState,
 
 export const formKeyForSection = (section: LabSection) => SLICE_TO_FORM_KEY[section];
 
-export const LAB_FIELD_BINDINGS: Record<string, Omit<LabFieldBinding, 'kind' | 'unit' | 'normalRange'>> = {
-  serum_CRP: { section: 'hematology', id: 'ht_extra_crp', name: 'CRP' },
-  serum_ESR: { section: 'hematology', id: 'ht_7', name: 'Máu lắng' },
-  serum_D_Dimer: { section: 'hematology', id: 'ht_17', name: 'D-dimer' },
-  serum_IL6: { section: 'hematology', id: 'ht_18', name: 'Serum IL-6' },
-  synovial_WBC: { section: 'fluid', id: 'fa_3', name: 'Bạch cầu (Dịch)' },
-  synovial_PMN: { section: 'fluid', id: 'fa_6', name: '%PMN (Dịch)' },
-  synovial_alpha_defensin: { section: 'fluid', id: 'fa_extra_alpha_defensin', name: 'Alpha Defensin (dịch)' },
-  synovial_LE: { section: 'fluid', id: 'fa_extra_leukocyte_esterase', name: 'Leukocyte Esterase (dịch)' },
-  renal_function: { section: 'biochemistry', id: 'bc_6', name: 'Định lượng Creatinin' },
-  liver_function: { section: 'biochemistry', id: 'bc_9', name: 'Hoạt độ ALT' },
+const SECTION_BY_GROUP: Record<string, LabSection> = {
+  hematologyTests: 'hematology',
+  fluidAnalysis: 'fluid',
+  biochemistryTests: 'biochemistry',
 };
+
+export const LAB_FIELD_BINDINGS: Record<string, Omit<LabFieldBinding, 'kind' | 'unit' | 'normalRange'>> =
+  CANONICAL_LABS.reduce((acc, lab) => {
+    const preferred = lab.id === 'bc_6' || lab.id === 'bc_9';
+    if (lab.field && lab.pendingEligible && (!acc[lab.field] || preferred)) {
+      acc[lab.field] = {
+        section: SECTION_BY_GROUP[lab.group],
+        id: lab.id,
+        name: lab.name,
+      };
+    }
+    return acc;
+  }, {} as Record<string, Omit<LabFieldBinding, 'kind' | 'unit' | 'normalRange'>>);
 
 const CLINICAL_CONTROL_BY_FIELD: Record<string, ClinicalControl> = {
   infection_type: 'infectionType',
@@ -81,6 +88,7 @@ export const resolveBinding = (
     return { kind: 'clinical', control: (field && CLINICAL_CONTROL_BY_FIELD[field]) || 'text' };
   }
   // Default: lab
+  const lab = field ? findPendingLab(field) : undefined;
   const known = field ? LAB_FIELD_BINDINGS[field] : undefined;
   const resolvedSection: LabSection = known?.section
     ?? (section === 'fluid' ? 'fluid' : section === 'biochemical' ? 'biochemistry' : 'hematology');
@@ -91,8 +99,8 @@ export const resolveBinding = (
     section: resolvedSection,
     id: known?.id ?? `${prefix}_extra_${slug}`,
     name: known?.name ?? field ?? 'Xét nghiệm',
-    unit: unit ?? '',
-    normalRange: normalRange ?? '',
+    unit: unit ?? lab?.unit ?? '',
+    normalRange: normalRange ?? lab?.normalRange ?? '',
   };
 };
 
@@ -121,6 +129,9 @@ export const isClinicalBindingFilled = (form: IClinicFormState, control: Clinica
   }
 };
 
-/** Culture criterion: at least two named culture samples. */
+/** Culture completeness: at least one culture sample has a final/positive result. */
 export const isCultureFilled = (form: IClinicFormState): boolean =>
-  (form.cultureResults ?? []).filter((c) => (c.name ?? '').trim().length > 0).length >= 2;
+  (form.cultureResults ?? []).some((c) => {
+    const status = String(c.result ?? '').trim().toUpperCase();
+    return status !== '' && status !== 'PENDING' && status !== 'NOT_PERFORMED';
+  });

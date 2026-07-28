@@ -55,7 +55,7 @@ const CultureSamplesEditor: React.FC = () => {
                 className="w-full"
                 options={[
                   { value: 'POSITIVE', label: 'Dương tính' },
-                  { value: 'NEGATIVE', label: 'Âm tính' },
+                  { value: 'NO_GROWTH', label: 'Âm tính / không mọc' },
                   { value: 'CONTAMINATED', label: 'Nhiễm bẩn' },
                   { value: 'PENDING', label: 'Đang chờ kết quả' },
                 ]}

@@ -30,6 +30,7 @@ import { useEpisodeLock } from './hooks/useEpisodeLock';
 import EpisodeLockBanner from './EpisodeLockBanner';
 import { episodeToFormData, formDataToEpisodeRequest } from '@/utils/apiToForm';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
+import { BIOCHEM_ID_TO_BACKEND_KEY } from '@/constants/canonicalLabRegistry';
 
 interface MedicalExamDetailProps {
     open: boolean;
@@ -188,12 +189,6 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     .filter(t => t.result)
                     .map(t => ({ id: t.id, name: t.name, value: t.result, unit: t.unit, normalRange: t.normalRange }));
 
-            const reverseBioMapping: Record<string, string> = {
-                'bc_4': 'glucose', 'bc_5': 'ure', 'bc_6': 'creatinine', 'ht_20': 'eGFR',
-                'bc_7': 'albumin', 'bc_8': 'ast', 'bc_9': 'alt', 'bc_10': 'natri',
-                'bc_11': 'kali', 'bc_12': 'clo', 'bc_13': 'hba1c',
-            };
-
             // Numeric DB ids drive create-vs-update server-side; UI-only temp ids
             // (random base36) map to `undefined` so the server treats them as new.
             const numericId = (id: unknown): number | undefined =>
@@ -216,7 +211,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     fluidAnalysis: toLabTestItems(form.fluidAnalysis),
                     biochemicalData: form.biochemistryTests?.reduce((acc, test) => {
                         if (test.result) {
-                            const backendKey = reverseBioMapping[test.id] || test.id;
+                            const backendKey = BIOCHEM_ID_TO_BACKEND_KEY[test.id] || test.id;
                             acc[backendKey] = { value: Number(test.result), unit: test.unit };
                         }
                         return acc;

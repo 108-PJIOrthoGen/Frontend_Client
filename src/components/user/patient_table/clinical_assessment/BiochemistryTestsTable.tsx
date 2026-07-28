@@ -54,7 +54,7 @@ const BiochemistryTestsTable: React.FC<Props> = ({ patient }) => {
   const { form: clinicForm, setForm } = useClinicForm();
 
   // Recompute eGFR whenever creatinine, DOB, or gender change. This covers
-  // programmatic creatinine writes (lab-result hydration, quick-import, image extraction) — the bc_6 onChange path alone misses those (see patientSlice).
+  // programmatic creatinine writes
   const creatinineResult = clinicForm.biochemistryTests?.find((t) => t.id === 'bc_6')?.result ?? '';
   const dob = patient?.dateOfBirth;
   const gender = patient?.gender;

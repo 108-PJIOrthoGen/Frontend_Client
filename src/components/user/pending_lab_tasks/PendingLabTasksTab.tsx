@@ -3,7 +3,7 @@ import { Input, Select, Empty, Progress, Tag, Tooltip } from 'antd';
 import { useAppSelector, useClinicForm } from '@/redux/hook';
 import type { IPendingLabTask } from '@/types/backend';
 import type { IClinicFormState, TestItem } from '@/types/types';
-import CultureSamplesEditor from '../clinical_assessment/CultureSamplesEditor';
+import CultureSamplesEditor from '../patient_table/clinical_assessment/CultureSamplesEditor';
 import {
   resolveBinding,
   formKeyForSection,

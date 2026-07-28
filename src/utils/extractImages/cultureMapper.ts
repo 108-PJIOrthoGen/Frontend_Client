@@ -84,7 +84,7 @@ function normalizeCultureResult(raw?: string, organismName?: string): string | u
   if (!raw) return undefined;
   const normalized = normalizeText(raw);
   if (!normalized) return undefined;
-  if (/(am tinh|negative|khong moc)/.test(normalized)) return 'NEGATIVE';
+  if (/(am tinh|negative|khong moc)/.test(normalized)) return 'NO_GROWTH';
   if (/(dang cho|pending|cho ket qua)/.test(normalized)) return 'PENDING';
   if (/(duong tinh|positive|co moc|moc vi khuan)/.test(normalized)) return 'POSITIVE';
   if (/(nhiem ban|contaminated)/.test(normalized)) return 'CONTAMINATED';

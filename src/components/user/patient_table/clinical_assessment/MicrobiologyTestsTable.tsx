@@ -2,7 +2,7 @@ import React from 'react';
 import { Input } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { getTestRowKind } from './utils/testRowKind';
-import CultureSamplesEditor from '../../clinical_assessment/CultureSamplesEditor';
+import CultureSamplesEditor from './CultureSamplesEditor';
 
 const MicrobiologyTestsTable: React.FC = () => {
   const { form: clinicForm, setForm } = useClinicForm();
