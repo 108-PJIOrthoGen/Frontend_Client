@@ -82,7 +82,7 @@ Out of scope:
 - [x] Read repository workflow and relevant refactoring guidance.
 - [x] Refresh GitNexus and map current Redux/admin execution flows.
 - [x] Refactor Redux infrastructure and admin feature slices.
-- [ ] Reorganize admin pages and components by feature.
+- [x] Reorganize admin pages and components by feature.
 - [ ] Review remaining pages/components and record prioritized follow-ups.
 - [ ] Run final validation and move this plan to completed.
 
@@ -100,6 +100,12 @@ Out of scope:
 - 2026-07-28: Remove the old admin slice paths after all current consumers were
   migrated; keeping compatibility shims would leave two authoritative import
   paths without a demonstrated external consumer.
+- 2026-07-28: Keep `src/pages/admin` as stable route entries and colocate the
+  actual screens/private components under `src/features/admin`. This preserves
+  lazy-route boundaries while making feature ownership explicit.
+- 2026-07-28: Share only pagination/default-sort query assembly. Feature-specific
+  filter fields remain local so backend filtering rules do not disappear behind
+  a generic CRUD abstraction.
 
 ## Validation
 

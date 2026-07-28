@@ -5,7 +5,11 @@ import {
     type PaginatedListState,
 } from '@/redux/shared/paginatedState';
 import type { IRole } from '@/types/backend';
-import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import {
+    createAsyncThunk,
+    createSlice,
+    type PayloadAction,
+} from '@reduxjs/toolkit';
 
 interface RoleState extends PaginatedListState<IRole> {
     isFetchSingle: boolean;
@@ -53,7 +57,7 @@ export const roleSlice = createSlice({
     name: 'role',
     initialState,
     reducers: {
-        resetSingleRole: (state) => {
+        resetSingleRole: (state, _action: PayloadAction<unknown>) => {
             state.singleRole = createEmptyRole();
             state.singleError = null;
         },

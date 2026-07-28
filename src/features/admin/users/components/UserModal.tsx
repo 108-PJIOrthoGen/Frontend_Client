@@ -3,7 +3,7 @@ import { Col, Form, Row, message, notification } from "antd";
 import { useState, useEffect } from "react";
 import { callCreateUser, callUpdateUser } from "@/apis/users";
 import { callFetchRole } from "@/apis/roles";
-import { DebounceSelect } from "./debounce.select";
+import { DebounceSelect } from "./DebounceSelect";
 import { IUser } from "@/types/backend";
 
 /**
