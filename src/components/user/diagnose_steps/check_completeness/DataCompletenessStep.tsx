@@ -5,35 +5,12 @@ import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { callCreatePendingLabTasksFromCompleteness } from '@/apis/api';
 import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
 import type { IDataCompleteness, IMissingItem, IPermission } from '@/types/backend';
+import { categoryIcon, categoryLabel, importanceColor, importanceLabel } from './utils/Style';
 
 interface Props {
   onNext: () => void;
   onPrev: () => void;
 }
-
-const importanceColor = (imp?: string) => {
-  if (imp === 'CRITICAL') return 'red';
-  if (imp === 'HIGH') return 'orange';
-  return 'blue';
-};
-
-const importanceLabel = (imp?: string) => {
-  if (imp === 'CRITICAL') return 'Rất quan trọng';
-  if (imp === 'HIGH') return 'Quan trọng';
-  return 'Trung bình';
-};
-
-const categoryIcon = (cat?: string) => {
-  if (cat === 'ICM_MAJOR') return 'emergency';
-  if (cat === 'ICM_MINOR') return 'science';
-  return 'medical_information';
-};
-
-const categoryLabel = (cat?: string) => {
-  if (cat === 'ICM_MAJOR') return 'ICM Major';
-  if (cat === 'ICM_MINOR') return 'ICM Minor';
-  return 'Lâm sàng';
-};
 
 const PATIENT_RECORD_WRITE_PERMISSIONS = [
   { method: 'POST', apiPath: '/api/v1/episodes/{episodeId}/pending-lab-tasks/from-completeness' },
@@ -83,8 +60,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
         const detail = JSON.parse(cachedDetail);
         const dc = detail.run?.dataCompletenessJson;
         if (dc) setCompleteness(dc);
-        // "Already saved" now comes from the persisted run flag (survives reloads
-        // and follows the user across devices), not localStorage.
+        // "Already saved" now comes from the persisted run flag
         if (detail.run?.pendingTasksSaved === true) setSaved(true);
       } catch { /* ignore */ }
     }
@@ -218,8 +194,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
                       hover:shadow-md hover:-translate-y-0.5 transition-all flex items-start gap-4">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0
                       ${item.importance === 'CRITICAL' ? 'bg-red-50 text-red-500'
-                        : item.importance === 'HIGH' ? 'bg-orange-50 text-orange-500'
-                        : 'bg-blue-50 text-blue-500'}`}>
+                        : item.importance === 'HIGH' ? 'bg-orange-50 text-orange-500' : 'bg-blue-50 text-blue-500'}`}>
                       <span className="material-symbols-outlined">{categoryIcon(item.category)}</span>
                     </div>
                     <div className="flex-1">
@@ -259,12 +234,12 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
                         ? <CheckCircleOutlined />
                         : !canSaveReminders
                           ? <span className="material-symbols-outlined text-[16px]">lock</span>
-                        : <span className="material-symbols-outlined text-[16px]">bookmark_add</span>}
+                          : <span className="material-symbols-outlined text-[16px]">bookmark_add</span>}
                       className={saved
                         ? 'bg-emerald-500 border-emerald-500'
                         : !canSaveReminders
                           ? 'bg-slate-300 border-slate-300 text-slate-600'
-                        : 'bg-amber-500 border-amber-500 hover:bg-amber-600'}
+                          : 'bg-amber-500 border-amber-500 hover:bg-amber-600'}
                     >
                       {saved
                         ? 'Đã lưu nhắc nhở'

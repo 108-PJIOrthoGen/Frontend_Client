@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Avatar,
@@ -11,7 +10,6 @@ import {
   Space,
   Tag,
   Typography,
-  message,
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -24,9 +22,19 @@ import {
   InfoCircleOutlined,
   ReloadOutlined,
 } from '@ant-design/icons';
-import { useAppSelector } from '@/redux/hook';
-import { callEvaluatePjiDiagnostic } from '@/apis/api';
 import { pageStyles } from './style';
+import { usePjiAssessment } from './hooks/usePjiAssessment';
+import {
+  asArray,
+  conclusionLabel,
+  conclusionTone,
+  criterionDetailColor,
+  formatEnumText,
+  formatScore,
+  organismInitials,
+  severityAlertType,
+  toNumber,
+} from './utils/assessmentPresentation';
 
 interface ClinicalAssessmentProps {
   onNext?: () => void;
@@ -35,137 +43,18 @@ interface ClinicalAssessmentProps {
 
 const { Paragraph, Text, Title } = Typography;
 
-const DIAGNOSTIC_RESULT_KEY = 'pji_diagnosticResult';
 const SCORE_SCALE_MAX = 12;
 const NOT_INFECTED_MAX_SCORE = 3;
 const INFECTED_MIN_SCORE = 6;
 
-
-
-const asArray = <T,>(value: T[] | undefined | null): T[] => (Array.isArray(value) ? value : []);
-
-const toNumber = (value: unknown): number => {
-  const numberValue = Number(value);
-  return Number.isFinite(numberValue) ? numberValue : 0;
-};
-
-const formatScore = (value: number): string => (
-  Number.isInteger(value) ? String(value) : value.toFixed(1)
-);
-
-const conclusionLabel = (interpretation: unknown): string => {
-  switch (interpretation) {
-    case 'INFECTED':
-      return 'NHIỄM TRÙNG';
-    case 'NOT_INFECTED':
-      return 'KHÔNG NHIỄM';
-    case 'INCONCLUSIVE':
-      return 'CHƯA RÕ';
-    default:
-      return interpretation ? String(interpretation) : 'CHƯA CÓ';
-  }
-};
-
-const formatEnumText = (value: unknown): string => {
-  if (value === null || value === undefined || value === '') {
-    return 'Chưa xác định';
-  }
-  return String(value)
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/(^|\s)\S/g, match => match.toUpperCase());
-};
-
-const organismInitials = (name: unknown): string => {
-  const text = String(name || 'PJI').trim();
-  const initials = text
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(part => part[0])
-    .join('')
-    .toUpperCase();
-  return initials || 'PJI';
-};
-
-const criterionDetailColor = (result: unknown): string => {
-  if (result === true) return '#16a34a';
-  if (result === false) return '#ef4444';
-  return '#d97706';
-};
-
-const severityAlertType = (severity: unknown): 'error' | 'warning' | 'info' => {
-  if (severity === 'HIGH') return 'error';
-  if (severity === 'LOW') return 'info';
-  return 'warning';
-};
-
-const conclusionTone = (interpretation: unknown) => {
-  if (interpretation === 'INFECTED') {
-    return { color: '#dc2626', border: '#ffccc7', background: '#fff1f0' };
-  }
-  if (interpretation === 'INCONCLUSIVE') {
-    return { color: '#d97706', border: '#ffe58f', background: '#fffbe6' };
-  }
-  return { color: '#16a34a', border: '#b7eb8f', background: '#f6ffed' };
-};
-
 export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => {
-  const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [diagnosticData, setDiagnosticData] = useState<Record<string, any> | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const currentCase = useAppSelector(state => state.patient.currentCase);
-  const episodeId = currentCase?.episode?.id;
-
-  const applyDiagnosticResult = useCallback((diagnostic: any): boolean => {
-    if (!diagnostic?.itemJson) {
-      return false;
-    }
-    setDiagnosticData({ title: diagnostic.title, ...diagnostic.itemJson });
-    return true;
-  }, []);
-
-  useEffect(() => {
-    const cachedDiagnostic = localStorage.getItem(DIAGNOSTIC_RESULT_KEY);
-    if (cachedDiagnostic) {
-      try {
-        const diagnostic = JSON.parse(cachedDiagnostic);
-        if (applyDiagnosticResult(diagnostic)) {
-          setShowResults(true);
-        }
-      } catch {
-        localStorage.removeItem(DIAGNOSTIC_RESULT_KEY);
-      }
-    }
-  }, [applyDiagnosticResult]);
-
-  const handleEvaluateDiagnostic = async () => {
-    if (!episodeId) {
-      message.error('Không tìm thấy bệnh án. Vui lòng quay lại chọn bệnh nhân.');
-      return;
-    }
-
-    setIsDiagnosticLoading(true);
-    setErrorMsg(null);
-    try {
-      const res = await callEvaluatePjiDiagnostic(String(episodeId));
-      const diagnostic = res?.data;
-      if (!applyDiagnosticResult(diagnostic)) {
-        throw new Error('Không tìm thấy dữ liệu chẩn đoán hệ thống.');
-      }
-      localStorage.setItem(DIAGNOSTIC_RESULT_KEY, JSON.stringify(diagnostic));
-      setShowResults(true);
-      message.success('Đã tính chẩn đoán theo luật hệ thống.');
-    } catch (err: any) {
-      const msg = err?.message || 'Đã xảy ra lỗi khi tính chẩn đoán';
-      setErrorMsg(msg);
-      message.error(msg);
-    } finally {
-      setIsDiagnosticLoading(false);
-    }
-  };
+  const {
+    diagnosticData,
+    errorMsg,
+    evaluateDiagnostic,
+    isDiagnosticLoading,
+    showResults,
+  } = usePjiAssessment();
 
   const scoringSystem = diagnosticData?.scoring_system;
   const majorCriteria = diagnosticData?.major_criteria;
@@ -208,7 +97,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                   size="large"
                   icon={errorMsg ? <ReloadOutlined /> : <CalculatorOutlined />}
                   loading={isDiagnosticLoading}
-                  onClick={handleEvaluateDiagnostic}
+                  onClick={evaluateDiagnostic}
                   block
                 >
                   {errorMsg ? 'Thử lại' : 'Tính chẩn đoán'}
@@ -234,13 +123,15 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
       <div style={pageStyles.shell}>
         <Row align="top" justify="space-between" gutter={[20, 14]} style={pageStyles.header}>
           <Col flex="auto">
+            <Title level={5}>
+              Kết quả theo quy tắc chẩn đoán:
+            </Title>
             <Title level={2} style={pageStyles.title}>
               {primaryDiagnosis}
               {organism?.name && organism.name !== 'Chưa xác định' ? ` - ${organism.name}` : ''}
             </Title>
             <Space size={8} wrap style={{ marginTop: 10 }}>
               <Tag color="warning">{formatEnumText(aiReasoning?.infection_classification)}</Tag>
-              <Tag>Kết quả theo quy tắc chẩn đoán</Tag>
             </Space>
           </Col>
 
@@ -271,12 +162,14 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                       color: tone.color,
                       fontSize: 20,
                       lineHeight: 1.2,
+                      marginRight: 4,
                     }}
                   >
                     {formatScore(totalScore)}
                   </Text>
+                  <Text type="secondary">điểm</Text>
                 </div>
-                <Text type="secondary">điểm</Text>
+
               </div>
             </Card>
           </Col>

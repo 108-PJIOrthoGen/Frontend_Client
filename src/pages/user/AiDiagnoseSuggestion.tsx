@@ -1,137 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import { Steps, Breadcrumb, Button, Popconfirm, Tag, message } from 'antd';
+import { Steps, Breadcrumb, Button, Popconfirm, Tag } from 'antd';
 import { HomeOutlined, UserOutlined, LogoutOutlined, SwapOutlined } from '@ant-design/icons';
-import { useLocation } from 'react-router-dom';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/assessment_pji/AssessmentPji';
-import DataCompletenessStep from '@/components/user/diagnose_steps/DataCompletenessStep';
+import DataCompletenessStep from '@/components/user/diagnose_steps/check_completeness/DataCompletenessStep';
 import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
 import DoctorDiagnosisStep from '@/components/user/diagnose_steps/DoctorDiagnosisStep';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
-import { useAppDispatch, useAppSelector } from '@/redux/hook';
-import { clearCurrentCase, setCurrentCase } from '@/redux/slice/patientSlice';
-import { callFetchEpisodeById } from '@/apis/api';
-
-// Index in `steps` array — kept here so notification click navigation lands on
-// the right tab without depending on string matching.
-const STEP_TREATMENT_PLAN = 2;
+import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
 
 const AiDiagnosisSuggestion = () => {
-    const dispatch = useAppDispatch();
-    const location = useLocation();
-    const currentCase = useAppSelector(state => state.patient.currentCase);
-    const [currentStep, setCurrentStep] = useState(() => {
-        // Notification deep-link wins: if the user arrived via `?runId=...`,
-        // jump straight to the treatment-plan tab so the TreatmentPlan component
-        // mounts and rehydrates from the URL. Otherwise fall back to whatever
-        // step they were on last time.
-        if (new URLSearchParams(window.location.search).get('runId')) {
-            return STEP_TREATMENT_PLAN;
-        }
-        const saved = localStorage.getItem('pji_currentStep');
-        return saved ? parseInt(saved, 10) : 0;
-    });
-
-    // If the user is already on this page and clicks another notification, the
-    // component doesn't remount — we still need to react to the URL change.
-    useEffect(() => {
-        if (new URLSearchParams(location.search).get('runId')) {
-            setCurrentStep(STEP_TREATMENT_PLAN);
-        }
-    }, [location.search]);
-
-    // Notification deep-link also carries `episodeId`. If it points at a
-    // different episode than the one currently loaded in Redux (or none is
-    // loaded), fetch the episode so the sidebar's "Ca bệnh hiện tại" widget
-    // reflects the patient the user is now looking at.
-    useEffect(() => {
-        const episodeIdParam = new URLSearchParams(location.search).get('episodeId');
-        if (!episodeIdParam) return;
-        const epId = Number(episodeIdParam);
-        if (!Number.isFinite(epId)) return;
-        if (currentCase?.episode?.id != null
-            && Number(currentCase.episode.id) === epId) {
-            // Already loaded — nothing to do.
-            return;
-        }
-        let cancelled = false;
-        (async () => {
-            try {
-                const res: any = await callFetchEpisodeById(String(epId));
-                if (cancelled) return;
-                const episode = res?.data?.data ?? res?.data;
-                const patient = episode?.patient;
-                if (episode && patient) {
-                    dispatch(setCurrentCase({ patient, episode }));
-                } else {
-                    // Backend didn't include nested patient — sidebar widget
-                    // stays as-is. Not fatal: the assessment tab still loads.
-                    // eslint-disable-next-line no-console
-                    console.warn(
-                        'Notification deep-link: episode response missing nested patient',
-                        episode,
-                    );
-                }
-            } catch (err) {
-                // eslint-disable-next-line no-console
-                console.warn('Failed to load episode for notification deep-link', err);
-            }
-        })();
-        return () => { cancelled = true; };
-    }, [location.search, currentCase?.episode?.id, dispatch]);
-
-    useEffect(() => {
-        localStorage.setItem('pji_currentStep', currentStep.toString());
-    }, [currentStep]);
-
-    const next = () => setCurrentStep(prev => prev + 1);
-    const prev = () => {
-        if (currentStep <= 0) return;
-
-        const previousStep = currentStep - 1;
-        if (previousStep === 0) {
-            dispatch(clearCurrentCase());
-        }
-
-        setCurrentStep(previousStep);
-    };
-    const backToFirstStep = () => {
-        dispatch(clearCurrentCase());
-        setCurrentStep(0);
-    };
-
-    // Exit the current episode: clear the selected case and return to the
-    // patient-selection step. Lets doctors switch patients/cases at any point
-    // without clicking "Quay lại" through every intermediate step.
-    const handleExitCase = () => {
-        dispatch(clearCurrentCase());
-        setCurrentStep(0);
-        message.success('Đã thoát ca bệnh. Bạn có thể chọn bệnh nhân khác.');
-    };
-
-    // "Đổi bệnh nhân": clear the case, return to step 1, and pop the search
-    // modal straight away so the doctor can look up another patient without
-    // first clicking the "Tra cứu hồ sơ nhanh" card.
-    const [autoOpenSearch, setAutoOpenSearch] = useState(false);
-    const handleChangePatient = () => {
-        dispatch(clearCurrentCase());
-        setCurrentStep(0);
-        setAutoOpenSearch(true);
-    };
-
-    // Allow clicking the Steps header to jump backwards to an already-visited
-    // step. Forward jumps stay gated behind each step's own "Tiếp tục" button
-    // so we never land on a step whose data hasn't been produced yet.
-    const handleStepClick = (target: number) => {
-        if (target === currentStep) return;
-        if (target === 0) {
-            // Returning to step 1 means abandoning the current case selection.
-            backToFirstStep();
-            return;
-        }
-        if (target < currentStep) {
-            setCurrentStep(target);
-        }
-    };
+    const {
+        autoOpenSearch,
+        backToFirstStep,
+        changePatient,
+        consumeAutoOpenSearch,
+        currentCase,
+        currentStep,
+        exitCurrentCase,
+        next,
+        prev,
+        selectStep,
+    } = useDiagnosisWorkflow();
 
     const steps = [
         {
@@ -140,7 +28,7 @@ const AiDiagnosisSuggestion = () => {
                 <Step1PatientSelection
                     onNext={next}
                     autoOpenSearch={autoOpenSearch}
-                    onAutoSearchConsumed={() => setAutoOpenSearch(false)}
+                    onAutoSearchConsumed={consumeAutoOpenSearch}
                 />
             ),
         },
@@ -209,7 +97,7 @@ const AiDiagnosisSuggestion = () => {
                             </div>
                             <Button
                                 icon={<SwapOutlined />}
-                                onClick={handleChangePatient}
+                                onClick={changePatient}
                             >
                                 Đổi bệnh nhân
                             </Button>
@@ -218,7 +106,7 @@ const AiDiagnosisSuggestion = () => {
                                 description="Bạn sẽ quay lại bước chọn bệnh nhân. Tiến trình chưa lưu có thể mất."
                                 okText="Thoát"
                                 cancelText="Ở lại"
-                                onConfirm={handleExitCase}
+                                onConfirm={exitCurrentCase}
                             >
                                 <Button danger icon={<LogoutOutlined />}>
                                     Thoát
@@ -230,7 +118,7 @@ const AiDiagnosisSuggestion = () => {
                 <Steps
                     current={currentStep}
                     items={items}
-                    onChange={handleStepClick}
+                    onChange={selectStep}
                     className="mt-4 custom-steps"
                     size="small"
                 />

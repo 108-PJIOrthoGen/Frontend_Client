@@ -20,13 +20,13 @@ const { Text, Title } = Typography;
 const styles: Record<string, CSSProperties> = {
   wrap: {
     width: '100%',
-    padding: '28px 16px 20px',
-    background: 'linear-gradient(180deg, #ebe7d5 0%, #fff9e8 100%)',
-    borderRadius: 10,
+    height: '70vh',
+    padding: '20px 16px 20px',
+    background: 'linear-gradient(180deg, #d2eec0 0%, #e8fffa 100%)',
   },
   card: {
     width: '100%',
-    maxWidth: 1060,
+    maxWidth: 1000,
     margin: '0 auto',
     borderRadius: 10,
     border: '1px solid #f8efc8',
@@ -38,7 +38,7 @@ const styles: Record<string, CSSProperties> = {
     padding: '34px 40px 20px',
   },
   scroll: {
-    maxHeight: '58vh',
+    maxHeight: '60vh',
     overflowY: 'auto',
     paddingRight: 12,
   },
@@ -147,7 +147,7 @@ const ThoughtStreamConsole: React.FC<{ logs: ThoughtLog[] }> = ({ logs }) => {
         dot: <Spin indicator={<LoadingOutlined spin style={{ color: '#7a7a7a', fontSize: 16 }} />} />,
         children: (
           <Text style={styles.message}>
-            Đang khởi tạo phiên tạo phác đồ...
+            Đang khởi tạo phiên sinh phác đồ...
           </Text>
         ),
       }];
@@ -180,7 +180,7 @@ const ThoughtStreamConsole: React.FC<{ logs: ThoughtLog[] }> = ({ logs }) => {
       <Card variant="borderless" style={styles.card} styles={{ body: styles.body }}>
         <div ref={scrollerRef} style={styles.scroll}>
           <Title level={2} style={styles.title}>
-            Đang tạo phác đồ điều trị <span style={styles.titleMuted}>PJI...</span>
+            Đang sinh phác đồ điều trị <span style={styles.titleMuted}>PJI...</span>
           </Title>
 
           <Timeline

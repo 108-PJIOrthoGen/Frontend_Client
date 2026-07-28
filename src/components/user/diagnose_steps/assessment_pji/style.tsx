@@ -19,7 +19,7 @@ export const pageStyles: Record<string, CSSProperties> = {
     },
     title: {
         margin: 0,
-        color: '#111827',
+        color: '#2b4786',
         fontSize: 22,
         lineHeight: 1.25,
         fontWeight: 800,
@@ -36,8 +36,8 @@ export const pageStyles: Record<string, CSSProperties> = {
     },
     resultGrid: {
         display: 'grid',
-        gridTemplateColumns: '1fr auto 1fr',
-        gap: 18,
+        gridTemplateColumns: '2fr auto 1fr',
+        gap: 20,
         alignItems: 'center',
     },
     resultLabel: {

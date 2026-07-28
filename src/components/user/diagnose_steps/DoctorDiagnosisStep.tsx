@@ -1,21 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  Col,
-  Descriptions,
-  Form,
-  Input,
-  Radio,
-  Row,
-  Select,
-  Space,
-  Spin,
-  Tag,
-  Typography,
-  message,
-} from 'antd';
+import { Alert, Button, Card, Col, Descriptions, Form, Input, Radio, Row, Select, Space, Spin, Tag, Typography, message, } from 'antd';
 import {
   ArrowLeftOutlined,
   CheckCircleOutlined,
@@ -30,16 +14,12 @@ import { RootState } from '@/redux/store';
 import { clearCurrentCase } from '@/redux/slice/patientSlice';
 import {
   callCreateDoctorReview,
-  callFetchAiRecommendationRunDetail,
-  callFetchDoctorReviewByRunId,
 } from '@/apis/api';
 import type {
-  IAiRecommendationRunDetail,
   IDoctorDiagnosis,
   IPermission,
 } from '@/types/backend';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData } from '@/types/treatmentType';
-import { parseItemJson } from './treatment_plan/utils/itemJson';
 import {
   TREATMENT_REVIEW_WRITE_PERMISSION,
   hasPermission,
@@ -56,10 +36,14 @@ import {
   PJI_CONCLUSION_LABELS,
   aiConclusionOf,
   localAbxNames,
-  norm,
-  sameSet,
   systemicAbxNames,
 } from '@/utils/aiDoctorCompare';
+import {
+  buildModificationJson,
+  calculateAgreement,
+  clearDiagnosisWorkflowStorage,
+  loadDoctorDiagnosisModel,
+} from './doctor_diagnosis/doctorDiagnosisModel';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -83,27 +67,10 @@ const INFECTION_CLASSIFICATION_OPTIONS = [
   { value: 'UNKNOWN', label: 'Chưa rõ' },
 ];
 
-const POLL_INTERVAL_MS = 2000;
-const MAX_POLL_ATTEMPTS = 300;
-const TREATMENT_CATEGORIES = [
-  'SURGERY_PROCEDURE',
-  'SYSTEMIC_ANTIBIOTIC',
-  'LOCAL_ANTIBIOTIC',
-];
-
-const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
-  const categories = new Set(detail?.items?.map((item) => item.category));
-  return TREATMENT_CATEGORIES.every((category) => categories.has(category));
-};
-
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
 /**
- * Step "Chẩn đoán bác sĩ" — the single place where the doctor records their own
+ * final step — the single place where the doctor records their own
  * final diagnosis + treatment plan and decides on the AI recommendation.
- * The template mirrors what the AI returns (assessment + 3 plan categories) so
- * compare-result can put them side by side and the model can later learn from
- * the doctor's final word.
+ * The template mirrors what the AI returns so compare-result can put them side by side
  */
 const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => {
   const dispatch = useDispatch();
@@ -156,161 +123,54 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const fetchUntilTreatmentReady = async (runId: string) => {
-      for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-        const res = await callFetchAiRecommendationRunDetail(runId);
-        const detail = res?.data ?? null;
-        const status = detail?.run?.status;
-
-        if (hasTreatmentItems(detail)) return detail;
-        if (status === 'FAILED' || status === 'TIMEOUT') {
-          throw new Error(detail?.run?.errorMessage || 'AI tạo phác đồ thất bại.');
-        }
-        if (status === 'CANCELLED') {
-          throw new Error('Lần tạo phác đồ AI đã bị huỷ.');
-        }
-        if ((status === 'SUCCESS' || status === 'PARTIAL') && !hasTreatmentItems(detail)) {
-          throw new Error('AI chưa trả đủ 3 phác đồ điều trị.');
-        }
-
-        await wait(POLL_INTERVAL_MS);
-      }
-      throw new Error('AI tạo phác đồ quá lâu. Vui lòng quay lại sau.');
-    };
+    let cancelled = false;
 
     const load = async () => {
       setIsLoading(true);
       try {
-        let detail: IAiRecommendationRunDetail | null = null;
-        const cached = localStorage.getItem('pji_aiRunDetail');
-        const runId = localStorage.getItem('pji_aiRunId');
-        if (cached) {
-          detail = JSON.parse(cached);
+        const model = await loadDoctorDiagnosisModel();
+        if (cancelled) return;
+
+        runIdRef.current = model.runId;
+        setAiDiagnosis(model.aiDiagnosis);
+        setAiSurgery(model.aiSurgery);
+        setAiSystemic(model.aiSystemic);
+        setAiLocal(model.aiLocal);
+        setDoctorSurgeryInit(model.doctorSurgery);
+        setDoctorSystemicInit(model.doctorSystemic);
+        setDoctorLocalInit(model.doctorLocal);
+        setReviewNote(model.reviewNote);
+        setRejectionReason(model.rejectionReason);
+
+        if (model.reviewDecision) {
+          setDecision(model.reviewDecision);
         }
-        if ((!detail || !hasTreatmentItems(detail)) && runId) {
-          detail = await fetchUntilTreatmentReady(runId);
-          if (detail) {
-            localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
-            localStorage.removeItem('pending_pji_aiRunId');
-            localStorage.removeItem('pending_pji_thoughtLogs');
-          }
-        }
-        if (!detail?.items?.length || !detail.run?.id) {
-          setLoadError('Không tìm thấy dữ liệu gợi ý AI. Vui lòng quay lại bước trước.');
-          return;
-        }
-        runIdRef.current = String(detail.run.id);
-
-        // --- AI reference values -------------------------------------------
-        let assessment: Record<string, any> = {};
-        try {
-          const raw: any = detail.run.assessmentJson;
-          assessment = typeof raw === 'string' ? JSON.parse(raw) : raw ?? {};
-        } catch { /* keep empty */ }
-
-        const diagnosticItem = detail.items.find((i) => i.category === 'DIAGNOSTIC_TEST');
-        const diagJson: any = diagnosticItem ? parseItemJson(diagnosticItem) : null;
-        const aiReasoning = diagJson?.aiReasoning ?? {};
-
-        setAiDiagnosis({
-          pjiProbability: assessment?.pji_probability ?? assessment?.pjiProbability,
-          overallAssessment: assessment?.overall_assessment ?? assessment?.overallAssessment,
-          primaryDiagnosis: aiReasoning?.primaryDiagnosis,
-          infectionClassification: aiReasoning?.infectionClassification,
-          identifiedOrganism: aiReasoning?.identifiedOrganism?.name,
-        });
-
-        const surgeryItem = detail.items.find((i) => i.category === 'SURGERY_PROCEDURE');
-        const systemicItem = detail.items.find((i) => i.category === 'SYSTEMIC_ANTIBIOTIC');
-        const localItem = detail.items.find((i) => i.category === 'LOCAL_ANTIBIOTIC');
-        const aiSurgeryPlan = surgeryItem ? (parseItemJson(surgeryItem) as SurgeryPlanData) : null;
-        const aiSystemicPlan = systemicItem ? (parseItemJson(systemicItem) as SystemicPlanData) : null;
-        const aiLocalPlan = localItem ? (parseItemJson(localItem) as LocalPlanData) : null;
-        setAiSurgery(aiSurgeryPlan);
-        setAiSystemic(aiSystemicPlan);
-        setAiLocal(aiLocalPlan);
-
-        // --- Prefill doctor side from a previous review, else from AI ------
-        let previousPlan: Record<string, any> | null = null;
-        try {
-          const reviewRes = await callFetchDoctorReviewByRunId(String(detail.run.id));
-          const review = reviewRes?.data;
-          if (review) {
-            previousPlan = review.modificationJson ?? null;
-            const dd = review.doctorDiagnosisJson;
-            if (dd) {
-              form.setFieldsValue({
-                pji_conclusion: dd.pji_conclusion,
-                infection_classification: dd.infection_classification,
-                primary_diagnosis: dd.primary_diagnosis,
-                clinical_reasoning: dd.clinical_reasoning,
-                identified_organism: dd.identified_organism,
-              });
-            }
-            if (review.reviewStatus === 'ACCEPTED' || review.reviewStatus === 'MODIFIED'
-              || review.reviewStatus === 'REJECTED') {
-              setDecision(review.reviewStatus);
-            }
-            setReviewNote(review.reviewNote ?? '');
-            setRejectionReason(review.rejectionReason ?? '');
-          }
-        } catch { /* no previous review — fine */ }
-
-        setDoctorSurgeryInit((previousPlan?.surgery as SurgeryPlanData) ?? aiSurgeryPlan);
-        setDoctorSystemicInit((previousPlan?.systemicAntibiotic as SystemicPlanData) ?? aiSystemicPlan);
-        setDoctorLocalInit((previousPlan?.localAntibiotic as LocalPlanData) ?? aiLocalPlan);
-
-        // Sensible defaults for the diagnosis form when no previous review.
-        if (!form.getFieldValue('pji_conclusion')) {
-          form.setFieldsValue({
-            pji_conclusion: aiConclusionOf(assessment?.pji_probability),
-            infection_classification: aiReasoning?.infectionClassification,
-            primary_diagnosis: aiReasoning?.primaryDiagnosis,
-            identified_organism: aiReasoning?.identifiedOrganism?.name,
-          });
+        if (model.previousDiagnosis) {
+          form.setFieldsValue(model.previousDiagnosis);
+        } else if (!form.getFieldValue('pji_conclusion')) {
+          form.setFieldsValue(model.defaultDiagnosis);
         }
       } catch (err: any) {
-        setLoadError(err?.message || 'Lỗi khi tải dữ liệu.');
+        if (!cancelled) {
+          setLoadError(err?.message || 'Lỗi khi tải dữ liệu.');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [form]);
 
   const aiConclusion = useMemo(
     () => aiConclusionOf(aiDiagnosis.pjiProbability),
     [aiDiagnosis.pjiProbability],
   );
-
-  const computeAgreement = (
-    diagnosis: IDoctorDiagnosis,
-    doctorSurgery: SurgeryPlanData | null,
-    doctorSystemic: SystemicPlanData | null,
-    doctorLocal: LocalPlanData | null,
-  ) => {
-    const checks: Record<string, boolean> = {};
-    checks.diagnosis_conclusion = norm(diagnosis.pji_conclusion) === norm(aiConclusion);
-    if (aiDiagnosis.infectionClassification || diagnosis.infection_classification) {
-      checks.infection_classification =
-        norm(diagnosis.infection_classification) === norm(aiDiagnosis.infectionClassification);
-    }
-    if (aiSurgery || doctorSurgery) {
-      checks.surgery_strategy =
-        norm(doctorSurgery?.surgeryStrategyType) === norm(aiSurgery?.surgeryStrategyType);
-    }
-    if (aiSystemic || doctorSystemic) {
-      checks.systemic_antibiotics = sameSet(systemicAbxNames(doctorSystemic), systemicAbxNames(aiSystemic));
-    }
-    if (aiLocal || doctorLocal) {
-      checks.local_antibiotics = sameSet(localAbxNames(doctorLocal), localAbxNames(aiLocal));
-    }
-    const values = Object.values(checks);
-    const agreed = values.filter(Boolean).length;
-    const agreement_rate = values.length > 0 ? Math.round((agreed / values.length) * 100) : 100;
-    return { ...checks, agreement_rate };
-  };
 
   const handleSave = async () => {
     if (!canWriteReview) {
@@ -345,14 +205,22 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         clinical_reasoning: values.clinical_reasoning,
         identified_organism: values.identified_organism,
       };
-      const agreementJson = computeAgreement(
-        doctorDiagnosisJson, doctorSurgery, doctorSystemic, doctorLocal,
+      const agreementJson = calculateAgreement({
+        aiConclusion,
+        aiDiagnosis,
+        aiLocal,
+        aiSurgery,
+        aiSystemic,
+        diagnosis: doctorDiagnosisJson,
+        doctorLocal,
+        doctorSurgery,
+        doctorSystemic,
+      });
+      const modificationJson = buildModificationJson(
+        doctorSurgery,
+        doctorSystemic,
+        doctorLocal,
       );
-
-      const modificationJson: Record<string, any> = {};
-      if (doctorSurgery) modificationJson.surgery = doctorSurgery;
-      if (doctorSystemic) modificationJson.systemicAntibiotic = doctorSystemic;
-      if (doctorLocal) modificationJson.localAntibiotic = doctorLocal;
 
       await callCreateDoctorReview(String(episodeId), {
         runId: Number(runIdRef.current),
@@ -372,11 +240,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   };
 
   const backToHomepage = () => {
-    localStorage.removeItem('pji_aiRunId');
-    localStorage.removeItem('pji_aiRunDetail');
-    localStorage.removeItem('pji_diagnosticResult');
-    localStorage.removeItem('pji_selectedPatientId');
-    localStorage.removeItem('pji_selectedExamId');
+    clearDiagnosisWorkflowStorage();
     dispatch(clearCurrentCase());
     onBackToFirstStep();
   };
@@ -416,7 +280,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
             <Text strong style={{ fontSize: 16 }}>Chẩn đoán bác sĩ</Text>
             <div>
               <Text type="secondary" style={{ fontSize: 12 }}>
-                Nhập chẩn đoán + phác đồ của bạn — hệ thống sẽ so sánh với AI và dùng để cải thiện mô hình
+                Nhập chẩn đoán + phác đồ của bạn
               </Text>
             </div>
           </div>

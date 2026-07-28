@@ -48,6 +48,7 @@ export interface SurgeryStep {
   name: string;
   description: string;
   duration: string;
+  timing: string;
   surgeon: string;
   notes: string;
   risk: RiskLevel;
