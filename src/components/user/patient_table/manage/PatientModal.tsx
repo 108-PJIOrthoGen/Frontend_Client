@@ -162,7 +162,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Nghề nghiệp"
             name="career"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
           >
             <Input placeholder="Nhập nghề nghiệp" />
           </Form.Item>
@@ -175,7 +174,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Dân tộc"
             name="ethnicity"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
           >
             <Input placeholder="Nhập dân tộc" />
           </Form.Item>
@@ -216,21 +214,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             <Input placeholder="Nhập số thẻ BHYT" />
           </Form.Item>
         </Col>
-        <Col span={12}>
-          <Form.Item
-            labelCol={{ span: 24 }}
-            label="BHYT có giá trị đến ngày"
-            name="insuranceExpired"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
-          >
-            <DatePicker
-              locale={locale}
-              format="DD/MM/YYYY"
-              placeholder="Chọn ngày hết hạn"
-              style={{ width: '100%' }}
-            />
-          </Form.Item>
-        </Col>
       </Row>
 
       <Divider orientation="left">
@@ -242,7 +225,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Tên người thân"
             name={['relativeInfo', 'name']}
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
           >
             <Input placeholder="Nhập tên người thân" />
           </Form.Item>
@@ -252,7 +234,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Số điện thoại người thân"
             name={['relativeInfo', 'phone']}
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
           >
             <Input placeholder="Nhập SĐT người thân" />
           </Form.Item>

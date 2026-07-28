@@ -28,8 +28,7 @@ const ClinicalExamForm: React.FC = () => {
     }));
   };
 
-  // Auto-calculate BMI = weight(kg) / height(m)² whenever both are present.
-  // International formula, rounded to 2 decimals.
+  // Auto-calculate BMI
   useEffect(() => {
     if (heightCm && weightKg && heightCm > 0) {
       const meters = heightCm / 100;
@@ -56,24 +55,9 @@ const ClinicalExamForm: React.FC = () => {
       </div>
       <Form layout="vertical" className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Ngày khởi phát triệu chứng</span>}>
-            <Input
-              type="date"
-              value={clinicForm.clinicalRecord.illnessOnsetDate ?? ''}
-              onChange={(e) => handleChange('illnessOnsetDate', e.target.value)}
-              className="w-full rounded-lg h-11"
-            />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-slate-500">
-                Phân loại:{' '}
-                <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
-                  {clinicForm.isAcute ? 'Cấp tính (<3 tuần)' : 'Mãn tính (>3 tuần)'}
-                </span>
-              </span>
-            </div>
-          </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Chiều cao (cm)</span>}>
+
+          <Form.Item label={<span className=" font-medium text-slate-700">Chiều cao (cm)</span>}>
             <InputNumber
               placeholder="Ví dụ: 170"
               value={heightCm}
@@ -85,7 +69,7 @@ const ClinicalExamForm: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Cân nặng (kg)</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Cân nặng (kg)</span>}>
             <InputNumber
               placeholder="Ví dụ: 65"
               value={weightKg}
@@ -100,7 +84,7 @@ const ClinicalExamForm: React.FC = () => {
 
           <Form.Item
             label={
-              <span className="text-sm font-medium text-slate-700">
+              <span className=" font-medium text-slate-700">
                 BMI <span className="text-xs text-slate-400 font-normal">(tự động tính)</span>
               </span>
             }
@@ -123,7 +107,24 @@ const ClinicalExamForm: React.FC = () => {
             </div>
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Ngày khởi phát triệu chứng</span>}>
+            <Input
+              type="date"
+              value={clinicForm.clinicalRecord.illnessOnsetDate ?? ''}
+              onChange={(e) => handleChange('illnessOnsetDate', e.target.value)}
+              className="w-full rounded-lg h-11"
+            />
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-slate-500">
+                Phân loại:{' '}
+                <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
+                  {clinicForm.isAcute ? 'Cấp tính (<3 tuần)' : 'Mãn tính (>3 tuần)'}
+                </span>
+              </span>
+            </div>
+          </Form.Item>
+
+          <Form.Item label={<span className=" font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}>
             <Select
               value={clinicForm.clinicalRecord.suspectedInfectionType ?? ''}
               onChange={(val) => handleChange('suspectedInfectionType', val)}
@@ -134,13 +135,13 @@ const ClinicalExamForm: React.FC = () => {
                 { value: 'DELAYED', label: 'Nhiễm trùng muộn / trì hoãn' },
                 { value: 'LATE_HEMATOGENOUS', label: 'Nhiễm trùng đường máu (hơn 24 tháng)' },
                 { value: 'ACUTE_HEMATOGENOUS', label: 'Nhiễm trùng cấp đường máu' },
-                { value: 'CHRONIC', label: 'Nhiễm trung mãn tính' },
+                { value: 'CHRONIC', label: 'Nhiễm trung mạn tính' },
                 { value: 'UNKNOWN', label: 'Chưa rõ' },
               ]}
             />
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Tình trạng mô mềm</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Tình trạng mô mềm</span>}>
             <Input
               placeholder="Ví dụ:"
               value={clinicForm.clinicalRecord.softTissue ?? ''}
@@ -149,7 +150,7 @@ const ClinicalExamForm: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Độ ổn định cấy ghép</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Độ ổn định cấy ghép</span>}>
             <Select
               value={clinicForm.clinicalRecord.implantStability ?? ''}
               onChange={(val) => handleChange('implantStability', val)}
@@ -164,7 +165,7 @@ const ClinicalExamForm: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label={<span className="text-sm font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>}>
             <InputNumber
               placeholder="Ví dụ: 70"
               value={clinicForm.clinicalRecord.daysSinceIndexArthroplasty}
@@ -176,7 +177,7 @@ const ClinicalExamForm: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={<span className="text-sm font-medium text-slate-700">Khớp nhân tạo</span>}
+            label={<span className=" font-medium text-slate-700">Khớp nhân tạo</span>}
             className="col-span-3"
           >
             <Input
@@ -188,7 +189,7 @@ const ClinicalExamForm: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={<span className="text-sm font-medium text-slate-700">Khám bệnh toàn thân</span>}
+            label={<span className=" font-medium text-slate-700">Khám bệnh toàn thân</span>}
             className="col-span-3"
           >
             <Input
