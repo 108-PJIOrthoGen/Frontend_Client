@@ -4,7 +4,7 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview, IDoctorReviewStats, IPendingLabTask,
+    IDoctorRecommendationReview, IDoctorReviewStats,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -480,31 +480,13 @@ export const callFetchDoctorReviewsByEpisode = (episodeId: string): Promise<IBac
 /**
  * Module PendingLabTask
  */
-export const callFetchMyPendingLabTasks = (): Promise<IBackendRes<IPendingLabTask[]>> => {
-    return instance.get('/api/v1/pending-lab-tasks/my');
-};
-
-export const callFetchMyPendingLabTaskCount = (): Promise<IBackendRes<number>> => {
-    return instance.get('/api/v1/pending-lab-tasks/my/count');
-};
-
-export const callDismissPendingLabTask = (taskId: number): Promise<IBackendRes<void>> => {
-    return instance.post(`/api/v1/pending-lab-tasks/${taskId}/dismiss`);
-};
-
-export const callQuickEntryPendingLabTask = (
-    taskId: number,
-    data: { value: number | string; unit?: string }
-): Promise<IBackendRes<void>> => {
-    return instance.post(`/api/v1/pending-lab-tasks/${taskId}/quick-entry`, data);
-};
-
-export const callCreatePendingLabTasksFromCompleteness = (
-    episodeId: number,
-    data: { patientId?: number; runId?: number; missingItems: Record<string, any>[] }
-): Promise<IBackendRes<void>> => {
-    return instance.post(`/api/v1/episodes/${episodeId}/pending-lab-tasks/from-completeness`, data);
-};
+export {
+    callCreatePendingLabTasksFromCompleteness,
+    callDismissPendingLabTask,
+    callFetchMyPendingLabTaskCount,
+    callFetchMyPendingLabTasks,
+    callQuickEntryPendingLabTask,
+} from './pendingLabTasks';
 
 
 

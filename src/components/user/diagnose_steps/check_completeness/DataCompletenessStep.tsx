@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Tag, message, Empty, Alert } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
-import { callCreatePendingLabTasksFromCompleteness } from '@/apis/api';
+import { callCreatePendingLabTasksFromCompleteness } from '@/apis/pendingLabTasks';
 import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
 import type { IDataCompleteness, IMissingItem, IPermission } from '@/types/backend';
 import { categoryIcon, categoryLabel, importanceColor, importanceLabel } from './utils/Style';

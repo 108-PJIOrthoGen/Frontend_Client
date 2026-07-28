@@ -1,5 +1,8 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchMyPendingLabTasks, callFetchMyPendingLabTaskCount } from '@/apis/api';
+import {
+  callFetchMyPendingLabTaskCount,
+  callFetchMyPendingLabTasks,
+} from '@/apis/pendingLabTasks';
 import type { IPendingLabTask } from '@/types/backend';
 
 interface PendingLabTaskState {
