@@ -1,8 +1,8 @@
 import { Action, configureStore, ThunkAction } from '@reduxjs/toolkit';
-import roleReducer from '@/redux/slice/roleSlice';
+import roleReducer from '@/redux/features/admin/roles/roleSlice';
 import accountReducer from './slice/accountSlice';
-import permissionReducer from './slice/permissionSlice';
-import userReducer from './slice/userSlice';
+import permissionReducer from './features/admin/permissions/permissionSlice';
+import userReducer from './features/admin/users/userSlice';
 import patientReducer from './slice/patientSlice';
 import pendingLabTaskReducer from './slice/pendingLabTaskSlice';
 import { injectStore } from '../apis/axios.custom';

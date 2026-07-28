@@ -8,7 +8,7 @@ import { useState, useRef } from "react";
 import dayjs from "dayjs";
 import { callDeleteRole } from "@/apis/roles";
 import queryString from "query-string";
-import { fetchRole, fetchRoleById } from "@/redux/slice/roleSlice";
+import { fetchRole, fetchRoleById } from "@/redux/features/admin/roles/roleSlice";
 import ModalRole from "@/components/admin/manage_role/ModalRole";
 import { ALL_PERMISSIONS } from "@/constants/permission";
 import Access from "@/components/common/Access";

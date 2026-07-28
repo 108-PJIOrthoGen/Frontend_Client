@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react';
 import groupBy from 'lodash/groupBy';
 import map from 'lodash/map';
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
-import { resetSingleRole } from "@/redux/slice/roleSlice";
+import { resetSingleRole } from "@/redux/features/admin/roles/roleSlice";
 
 interface IProps {
     openModal: boolean;

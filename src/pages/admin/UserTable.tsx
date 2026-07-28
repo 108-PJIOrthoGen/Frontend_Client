@@ -1,6 +1,6 @@
 import DataTable from "@/components/DataTable";
 import { useAppDispatch, useAppSelector } from "@/redux/hook";
-import { fetchUser } from "@/redux/slice/userSlice";
+import { fetchUser } from "@/redux/features/admin/users/userSlice";
 import { IModelPaginate, IUser } from "@/types/backend";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
