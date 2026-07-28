@@ -4,7 +4,7 @@ import { KeyOutlined } from "@ant-design/icons";
 import { useSelector } from "react-redux";
 import { useAppDispatch } from "@/redux/hook";
 import { fetchAccount } from "@/redux/slice/accountSlice";
-import { callUpdateOwnProfile } from "@/apis/api";
+import { callUpdateOwnProfile } from "@/apis/auth";
 import ChangePasswordModal from "@/components/user/profile/ChangePasswordModal";
 
 interface IProps {

@@ -2,7 +2,7 @@ import { LockOutlined, MailOutlined, NumberOutlined } from '@ant-design/icons';
 import { Button, Card, Flex, Form, Input, Result, Space, Typography, message, notification } from 'antd';
 import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { forgotPasswordAPI, resetPasswordAPI } from '@/apis/api';
+import { forgotPasswordAPI, resetPasswordAPI } from '@/apis/auth';
 import TurnstileCaptcha from '@/components/common/TurnstileCaptcha';
 
 const { Title, Text, Paragraph } = Typography;

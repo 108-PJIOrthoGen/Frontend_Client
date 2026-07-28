@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAppDispatch } from "@/redux/hook";
 import { runLogoutAction } from "@/redux/slice/accountSlice";
-import { callChangeOwnPassword } from "@/apis/api";
+import { callChangeOwnPassword } from "@/apis/auth";
 
 interface IProps {
     open: boolean;

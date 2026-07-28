@@ -2,7 +2,7 @@ import { LockOutlined, NumberOutlined } from '@ant-design/icons';
 import { Button, Card, Flex, Form, Input, Typography, message, notification } from 'antd';
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { callVerifyDeviceAPI, loginAPI } from '@/apis/api';
+import { callVerifyDeviceAPI, loginAPI } from '@/apis/auth';
 import { runLoginAction } from '@/redux/slice/accountSlice';
 import { useAppDispatch } from '@/redux/hook';
 

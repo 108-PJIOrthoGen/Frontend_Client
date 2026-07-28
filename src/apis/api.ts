@@ -45,47 +45,17 @@ export const callCancelExtractImageJob = (jobId: string) => {
     return instance.post(`/api/v1/extract-images/jobs/${jobId}/cancel`);
 }
 // authentication
-export const registerAPI = (username: string, email: string, password: string, roleId: IRole) => {
-    return instance.post(`/api/v1/auth/register`, {
-        username, email, password,
-        role: {
-            "id": roleId
-        }
-    })
-}
-export const loginAPI = (username: string, password: string) => {
-    return instance.post(`/api/v1/auth/login`, { username, password })
-}
-export const forgotPasswordAPI = (email: string, captchaToken?: string) => {
-    return instance.post(`/api/v1/auth/forgot-password`, { email, captchaToken })
-}
-export const resetPasswordAPI = (email: string, otp: string, newPassword: string) => {
-    return instance.post(`/api/v1/auth/reset-password`, { email, otp, newPassword })
-}
-export const callFetchAccountAPI = () => {
-    return instance.get(`/api/v1/auth/account`)
-}
-export const LogoutAPI = () => {
-    return instance.post('/api/v1/auth/logout')
-}
-export const callVerifyDeviceAPI = (email: string, challengeId: string, otp: string) => {
-    return instance.post(`/api/v1/auth/verify-device`, { email, challengeId, otp })
-}
-export const callUpdateOwnProfile = (payload: {
-    fullName: string;
-    phone?: string;
-    department?: string;
-    avatar?: string;
-}): Promise<IBackendRes<IUser>> => {
-    return instance.put(`/api/v1/auth/account`, payload)
-}
-/** Đổi mật khẩu xong backend revoke toàn bộ session — client phải logout + đăng nhập lại. */
-export const callChangeOwnPassword = (payload: {
-    currentPassword: string;
-    newPassword: string;
-}): Promise<IBackendRes<void>> => {
-    return instance.post(`/api/v1/auth/change-password`, payload)
-}
+export {
+    callChangeOwnPassword,
+    callFetchAccountAPI,
+    callUpdateOwnProfile,
+    callVerifyDeviceAPI,
+    forgotPasswordAPI,
+    loginAPI,
+    LogoutAPI,
+    registerAPI,
+    resetPasswordAPI,
+} from './auth';
 export const callCreateRole = (role: IRole): Promise<IBackendRes<IRole>> => {
     return instance.post('/api/v1/add-role', { ...role })
 }

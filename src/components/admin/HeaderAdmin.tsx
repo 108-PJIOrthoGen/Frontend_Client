@@ -9,7 +9,7 @@ import {
 
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAppDispatch } from '@/redux/hook';
-import { LogoutAPI } from '@/apis/api';
+import { LogoutAPI } from '@/apis/auth';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { message } from 'antd';
 

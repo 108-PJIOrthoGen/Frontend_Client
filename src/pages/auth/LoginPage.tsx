@@ -9,7 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { fetchAccount, runLoginAction, runLogoutAction } from '../../redux/slice/accountSlice';
-import { loginAPI, LogoutAPI } from '@/apis/api';
+import { loginAPI, LogoutAPI } from '@/apis/auth';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 
 const { Title, Text, Paragraph } = Typography;

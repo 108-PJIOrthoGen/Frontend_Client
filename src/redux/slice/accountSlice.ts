@@ -1,4 +1,4 @@
-import { callFetchAccountAPI } from '@/apis/api';
+import { callFetchAccountAPI } from '@/apis/auth';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 
 // First, create the thunk
