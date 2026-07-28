@@ -6,7 +6,7 @@ import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Button, Popconfirm, Space, message, notification } from "antd";
 import { useState, useRef } from "react";
 import dayjs from "dayjs";
-import { callDeletePermission } from "@/apis/api";
+import { callDeletePermission } from "@/apis/permissions";
 import queryString from "query-string";
 import { fetchPermission } from "@/redux/slice/permissionSlice";
 import ViewDetailPermission from "@/components/admin/manage_permission/ViewPermission";

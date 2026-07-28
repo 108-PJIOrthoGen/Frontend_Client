@@ -1,6 +1,6 @@
 import instance from './axios.custom';
 import {
-    IBackendRes, IModelPaginate, IPatient, IPermission, IUser,
+    IBackendRes, IModelPaginate, IPatient, IUser,
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
@@ -69,18 +69,12 @@ export {
 /**
 Module Permission
  */
-export const callCreatePermission = (permission: IPermission): Promise<IBackendRes<IPermission>> => {
-    return instance.post('/api/v1/add-permission', { ...permission })
-}
-export const callUpdatePermission = (permission: IPermission, id: string): Promise<IBackendRes<IPermission>> => {
-    return instance.put(`/api/v1/update-permission`, { id, ...permission })
-}
-export const callDeletePermission = (id: string): Promise<IBackendRes<IPermission>> => {
-    return instance.delete(`/api/v1/delete-permission/${id}`);
-}
-export const callFetchPermission = (query: string): Promise<IBackendRes<IModelPaginate<IPermission>>> => {
-    return instance.get(`/api/v1/permissions?${query}`);
-}
+export {
+    callCreatePermission,
+    callDeletePermission,
+    callFetchPermission,
+    callUpdatePermission,
+} from './permissions';
 /**
  * 
 Module User

@@ -1,7 +1,7 @@
 import { ModalForm, ProFormSelect, ProFormText } from "@ant-design/pro-components";
 import { Col, Form, Row, message, notification } from "antd";
 import { isMobile } from 'react-device-detect';
-import { callCreatePermission, callUpdatePermission } from "@/apis/api";
+import { callCreatePermission, callUpdatePermission } from "@/apis/permissions";
 import { IPermission } from "@/types/backend";
 
 interface IProps {

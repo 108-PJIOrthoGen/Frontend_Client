@@ -1,5 +1,5 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
-import { callFetchPermission } from '@/apis/api';
+import { callFetchPermission } from '@/apis/permissions';
 import { IPermission } from '@/types/backend';
 
 interface IState {
