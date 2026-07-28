@@ -3,11 +3,11 @@ import { callFetchPatient } from '@/apis/api';
 import { IModelPaginate, IPatient, IEpisode } from '@/types/backend';
 import { IClinicFormState } from '@/types/types';
 import { labsForGroup } from '@/constants/canonicalLabRegistry';
-
-interface ICurrentCase {
-    patient: IPatient;
-    episode: IEpisode;
-}
+import {
+    loadClinicForm,
+    loadCurrentCase,
+    type CurrentCase,
+} from './patientStorage';
 
 interface IState {
     isFetching: boolean;
@@ -18,7 +18,7 @@ interface IState {
         total: number;
     },
     result: IPatient[];
-    currentCase: ICurrentCase | null;
+    currentCase: CurrentCase | null;
     clinicForm: IClinicFormState;
 }
 
@@ -54,24 +54,6 @@ export const defaultClinicForm: IClinicFormState = {
     isAcute: false,
 };
 
-const loadCurrentCase = (): ICurrentCase | null => {
-    try {
-        const saved = localStorage.getItem('pji_currentCase');
-        return saved ? JSON.parse(saved) : null;
-    } catch {
-        return null;
-    }
-};
-
-const loadClinicForm = (): IClinicFormState => {
-    try {
-        const saved = localStorage.getItem('pji_clinicForm');
-        return saved ? JSON.parse(saved) : defaultClinicForm;
-    } catch {
-        return defaultClinicForm;
-    }
-};
-
 const initialState: IState = {
     isFetching: true,
     meta: {
@@ -82,7 +64,7 @@ const initialState: IState = {
     },
     result: [],
     currentCase: loadCurrentCase(),
-    clinicForm: loadClinicForm(),
+    clinicForm: loadClinicForm(defaultClinicForm),
 };
 
 
@@ -90,21 +72,17 @@ export const patientSlice = createSlice({
     name: 'user',
     initialState,
     reducers: {
-        setCurrentCase: (state, action: PayloadAction<ICurrentCase>) => {
+        setCurrentCase: (state, action: PayloadAction<CurrentCase>) => {
             state.currentCase = action.payload;
-            localStorage.setItem('pji_currentCase', JSON.stringify(action.payload));
         },
         clearCurrentCase: (state) => {
             state.currentCase = null;
-            localStorage.removeItem('pji_currentCase');
         },
         setClinicForm: (state, action: PayloadAction<IClinicFormState>) => {
             state.clinicForm = action.payload;
-            localStorage.setItem('pji_clinicForm', JSON.stringify(action.payload));
         },
         resetClinicForm: (state) => {
             state.clinicForm = defaultClinicForm;
-            localStorage.removeItem('pji_clinicForm');
         },
     },
     extraReducers: (builder) => {

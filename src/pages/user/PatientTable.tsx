@@ -5,7 +5,7 @@ import MPatientCreateAndUpdate from '@/components/user/patient_table/manage/Pati
 import ManageMedicalDrawer from '@/components/user/patient_table/manage/ManageMedicalDrawer';
 import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
-import { fetchPatient, setCurrentCase } from '@/redux/slice/patientSlice';
+import { fetchPatient, setCurrentCase } from '@/redux/features/patients/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
 import { DeleteOutlined, DiffOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, LineChartOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";

@@ -6,7 +6,7 @@ import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
 import dayjs from 'dayjs';
 import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
-import { setCurrentCase } from '@/redux/slice/patientSlice';
+import { setCurrentCase } from '@/redux/features/patients/patientSlice';
 
 const getStatusTag = (status?: string) => {
     switch (status) {

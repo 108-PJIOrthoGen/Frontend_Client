@@ -23,7 +23,7 @@ import {
     callUpdateEpisodeFull,
 } from '@/apis/api';
 import { useClinicForm, useAppDispatch, useAppSelector } from '@/redux/hook';
-import { resetClinicForm } from '@/redux/slice/patientSlice';
+import { resetClinicForm } from '@/redux/features/patients/patientSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
 import PendingLabTasksTab from '@/components/user/pending_lab_tasks/PendingLabTasksTab';
 import { useEpisodeLock } from './hooks/useEpisodeLock';

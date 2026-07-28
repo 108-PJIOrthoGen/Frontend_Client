@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState, store } from '@/redux/store';
-import { setClinicForm } from '@/redux/slice/patientSlice';
+import { setClinicForm } from '@/redux/features/patients/patientSlice';
 import { IClinicFormState } from '@/types/types';
 
 

@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
-import { clearCurrentCase } from '@/redux/slice/patientSlice';
+import { clearCurrentCase } from '@/redux/features/patients/patientSlice';
 import {
   callCreateDoctorReview,
 } from '@/apis/api';

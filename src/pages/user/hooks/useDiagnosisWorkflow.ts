@@ -3,7 +3,7 @@ import { message } from 'antd';
 import { useLocation } from 'react-router-dom';
 import { callFetchEpisodeById } from '@/apis/api';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
-import { clearCurrentCase, setCurrentCase } from '@/redux/slice/patientSlice';
+import { clearCurrentCase, setCurrentCase } from '@/redux/features/patients/patientSlice';
 
 const FIRST_STEP = 0;
 const TREATMENT_PLAN_STEP = 2;

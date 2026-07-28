@@ -83,7 +83,9 @@ Out of scope:
 - [x] Refresh GitNexus and map current Redux/admin execution flows.
 - [x] Refactor Redux infrastructure and admin feature slices.
 - [x] Reorganize admin pages and components by feature.
-- [ ] Review remaining pages/components and record prioritized follow-ups.
+- [x] Move patient state persistence out of reducers without changing its public
+  state/action API.
+- [x] Review remaining pages/components and record prioritized follow-ups.
 - [ ] Run final validation and move this plan to completed.
 
 ## Decisions
@@ -106,6 +108,13 @@ Out of scope:
 - 2026-07-28: Share only pagination/default-sort query assembly. Feature-specific
   filter fields remain local so backend filtering rules do not disappear behind
   a generic CRUD abstraction.
+- 2026-07-28: Keep the patient state key, exports, localStorage keys, and action
+  payloads stable. Persistence moves to Redux listener middleware so reducers
+  remain deterministic.
+- 2026-07-28: Defer splitting `PatientTable` and `CompareResult` to dedicated
+  phases. The safe next boundaries are a patient-table deep-link/actions hook
+  and a comparison-data hook; both coordinate several backend flows and need
+  authenticated interaction proof.
 
 ## Validation
 
@@ -116,4 +125,26 @@ Out of scope:
 
 ## Result
 
-Pending implementation and validation.
+Implemented and awaiting final validation:
+
+- Admin list slices now share typed pagination state and live under explicit
+  Redux feature folders.
+- Admin route pages are one-line entries; screens and private components are
+  colocated under `src/features/admin`.
+- Admin table query assembly has one implementation while feature filters remain
+  local.
+- Patient slice persistence is isolated in storage and listener modules rather
+  than running side effects inside reducers.
+
+Prioritized follow-ups from the remaining page/component review:
+
+1. Extract `PatientTable` deep-link loading, patient actions, and table query
+   assembly into the patient feature while retaining the current drawer/modal
+   contracts.
+2. Extract the `CompareResult` episode/run/review fan-out and selection state
+   into `useComparisonData`; leave presentation in the page and existing
+   comparison components.
+3. Extract `AdminDashboard` data loading from its 370-line presentation module.
+4. Move account and pending-lab slices into feature folders after their layout
+   consumers can be migrated without overlapping the existing
+   `LayoutClient.tsx` worktree change.
