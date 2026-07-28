@@ -13,7 +13,7 @@ import ViewDetailUser from "@/components/admin/manage_user/UserView";
 import Access from "@/components/common/Access";
 import { ALL_PERMISSIONS } from "@/constants/permission";
 import { sfLike } from "spring-filter-query-builder";
-import { callDeleteUser, callUpdateUser } from "@/apis/api";
+import { callDeleteUser, callUpdateUser } from "@/apis/users";
 
 const UserPage = () => {
     const [openModal, setOpenModal] = useState<boolean>(false);

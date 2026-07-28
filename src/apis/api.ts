@@ -1,6 +1,6 @@
 import instance from './axios.custom';
 import {
-    IBackendRes, IModelPaginate, IPatient, IUser,
+    IBackendRes, IModelPaginate, IPatient,
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
@@ -79,21 +79,12 @@ export {
  * 
 Module User
  */
-export const callCreateUser = (user: IUser): Promise<IBackendRes<IUser>> => {
-    return instance.post('/api/v1/add-user', { ...user })
-}
-
-export const callUpdateUser = (user: IUser): Promise<IBackendRes<IUser>> => {
-    return instance.put(`/api/v1/update-user`, { ...user })
-}
-
-export const callDeleteUser = (id: string): Promise<IBackendRes<IUser>> => {
-    return instance.delete(`/api/v1/delete-user/${id}`);
-}
-
-export const callFetchUser = (query: string): Promise<IBackendRes<IModelPaginate<IUser>>> => {
-    return instance.get(`/api/v1/users?${query}`);
-}
+export {
+    callCreateUser,
+    callDeleteUser,
+    callFetchUser,
+    callUpdateUser,
+} from './users';
 /**
  * 
 Module Patient

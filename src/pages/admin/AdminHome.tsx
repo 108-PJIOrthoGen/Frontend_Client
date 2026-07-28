@@ -10,7 +10,8 @@ import {
     SyncOutlined,
     StopOutlined,
 } from "@ant-design/icons";
-import { callFetchUser, callFetchPatient, callFetchEpisodes } from "@/apis/api";
+import { callFetchPatient, callFetchEpisodes } from "@/apis/api";
+import { callFetchUser } from "@/apis/users";
 import { IEpisode } from "@/types/backend";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";

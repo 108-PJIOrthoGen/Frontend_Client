@@ -1,7 +1,7 @@
 import { ModalForm, ProForm, ProFormSelect, ProFormText } from "@ant-design/pro-components";
 import { Col, Form, Row, message, notification } from "antd";
 import { useState, useEffect } from "react";
-import { callCreateUser, callUpdateUser } from "@/apis/api";
+import { callCreateUser, callUpdateUser } from "@/apis/users";
 import { callFetchRole } from "@/apis/roles";
 import { DebounceSelect } from "./debounce.select";
 import { IUser } from "@/types/backend";
