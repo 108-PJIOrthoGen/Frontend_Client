@@ -4,7 +4,7 @@ Date: 2026-07-28
 
 ## Status
 
-Active
+Completed
 
 ## Outcome
 
@@ -86,7 +86,7 @@ Out of scope:
 - [x] Move patient state persistence out of reducers without changing its public
   state/action API.
 - [x] Review remaining pages/components and record prioritized follow-ups.
-- [ ] Run final validation and move this plan to completed.
+- [x] Run final validation and move this plan to completed.
 
 ## Decisions
 
@@ -118,14 +118,20 @@ Out of scope:
 
 ## Validation
 
-- Focused proof: import/reference scans and `git diff --check`.
-- Integration proof: production Vite build after each phase.
-- Repository-required checks: GitNexus impact before symbol edits and
-  `detect_changes` before every commit.
+- Focused proof: legacy import/reference scans and `git diff --check` passed.
+- Type proof: `npx tsc --noEmit --ignoreDeprecations 5.0` passed. The CLI
+  override is required because the repository's configured
+  `ignoreDeprecations` value is invalid for the installed TypeScript version.
+- Integration proof: the production Vite build passed after each phase and
+  after final integration.
+- Repository-required checks: GitNexus impact ran before symbol edits and
+  `detect_changes(scope: "staged")` reported low risk before each commit.
+- Known baseline warnings: three unresolved runtime image paths and shared
+  chunks over 500 kB remain.
 
 ## Result
 
-Implemented and awaiting final validation:
+Implemented and validated:
 
 - Admin list slices now share typed pagination state and live under explicit
   Redux feature folders.
