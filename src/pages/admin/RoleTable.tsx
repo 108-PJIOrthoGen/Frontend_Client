@@ -6,7 +6,7 @@ import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Button, Popconfirm, Space, Tag, message, notification } from "antd";
 import { useState, useRef } from "react";
 import dayjs from "dayjs";
-import { callDeleteRole } from "@/apis/api";
+import { callDeleteRole } from "@/apis/roles";
 import queryString from "query-string";
 import { fetchRole, fetchRoleById } from "@/redux/slice/roleSlice";
 import ModalRole from "@/components/admin/manage_role/ModalRole";

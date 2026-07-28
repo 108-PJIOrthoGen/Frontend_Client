@@ -1,7 +1,8 @@
 import { FooterToolbar, ModalForm, ProCard, ProFormSwitch, ProFormText, ProFormTextArea } from "@ant-design/pro-components";
 import { Button, Col, Form, Row, message, notification } from "antd";
 import { isMobile } from 'react-device-detect';
-import { callCreateRole, callFetchPermission, callUpdateRole } from "@/apis/api";
+import { callFetchPermission } from "@/apis/api";
+import { callCreateRole, callUpdateRole } from "@/apis/roles";
 import { IPermission } from "@/types/backend";
 import { CheckSquareOutlined } from "@ant-design/icons";
 import ModuleApi from "./ModuleApi";

@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
 import type { IRole, IModelPaginate } from '@/types/backend';
-import { callFetchRole, callFetchRoleById } from '@/apis/api';
+import { callFetchRole, callFetchRoleById } from '@/apis/roles';
 
 
 interface IState {
@@ -134,5 +134,4 @@ export const {
 } = roleSlide.actions;
 
 export default roleSlide.reducer;
-
 

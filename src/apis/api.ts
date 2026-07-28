@@ -1,6 +1,6 @@
 import instance from './axios.custom';
 import {
-    IBackendRes, IModelPaginate, IPatient, IPermission, IRole, IUser,
+    IBackendRes, IModelPaginate, IPatient, IPermission, IUser,
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
@@ -56,27 +56,16 @@ export {
     registerAPI,
     resetPasswordAPI,
 } from './auth';
-export const callCreateRole = (role: IRole): Promise<IBackendRes<IRole>> => {
-    return instance.post('/api/v1/add-role', { ...role })
-}
-
 /**
 Module Role
  */
-export const callUpdateRole = (role: IRole, id: string): Promise<IBackendRes<IRole>> => {
-    return instance.put(`/api/v1/update-role`, { id, ...role })
-}
-
-export const callDeleteRole = (id: string): Promise<IBackendRes<IRole>> => {
-    return instance.delete(`/api/v1/delete-role/${id}`);
-}
-export const callFetchRole = (query: string): Promise<IBackendRes<IModelPaginate<IRole>>> => {
-    return instance.get(`/api/v1/roles?${query}`);
-}
-
-export const callFetchRoleById = (id: string): Promise<IBackendRes<IRole>> => {
-    return instance.get(`/api/v1/role/${id}`);
-}
+export {
+    callCreateRole,
+    callDeleteRole,
+    callFetchRole,
+    callFetchRoleById,
+    callUpdateRole,
+} from './roles';
 /**
 Module Permission
  */
