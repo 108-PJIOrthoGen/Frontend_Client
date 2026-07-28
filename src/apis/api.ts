@@ -496,37 +496,13 @@ export {
 /**
  * Module Notification
  */
-import type { INotification } from '@/types/notification';
-
-export interface INotificationPage {
-    content: INotification[];
-    totalElements: number;
-    totalPages: number;
-    number: number;
-    size: number;
-    first: boolean;
-    last: boolean;
-}
-
-export const callFetchNotifications = (params: {
-    page?: number;
-    size?: number;
-    unreadOnly?: boolean;
-} = {}): Promise<IBackendRes<INotificationPage>> => {
-    return instance.get('/api/v1/notifications', { params });
-};
-
-export const callFetchUnreadNotificationCount = (): Promise<IBackendRes<{ unreadCount: number }>> => {
-    return instance.get('/api/v1/notifications/unread-count');
-};
-
-export const callMarkNotificationRead = (id: number): Promise<IBackendRes<{ updated: boolean }>> => {
-    return instance.patch(`/api/v1/notifications/${id}/read`);
-};
-
-export const callMarkAllNotificationsRead = (): Promise<IBackendRes<{ updated: number }>> => {
-    return instance.post('/api/v1/notifications/mark-all-read');
-};
+export {
+    callFetchNotifications,
+    callFetchUnreadNotificationCount,
+    callMarkAllNotificationsRead,
+    callMarkNotificationRead,
+    type INotificationPage,
+} from './notifications';
 
 export const callCancelAiRun = (runId: number | string): Promise<IBackendRes<void>> => {
     return instance.post(`/api/v1/ai-recommendations/runs/${runId}/cancel`);

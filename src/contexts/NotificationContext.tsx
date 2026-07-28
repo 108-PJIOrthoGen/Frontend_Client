@@ -14,7 +14,7 @@ import {
   callFetchUnreadNotificationCount,
   callMarkAllNotificationsRead,
   callMarkNotificationRead,
-} from '@/apis/api';
+} from '@/apis/notifications';
 import { openSse, type SseConnection } from '@/utils/sseClient';
 import type { INotification } from '@/types/notification';
 
