@@ -1,23 +1,29 @@
-import { LayoutClient } from "@/layouts/LayoutClient";
+import { lazy } from "react";
 import { createBrowserRouter } from "react-router-dom";
-
-import LoginPage from "@/pages/auth/LoginPage";
-import ForgotPasswordPage from "@/pages/auth/ForgotPasswordPage";
-import VerifyDevicePage from "@/pages/auth/VerifyDevicePage";
-import AiDiagnosisSuggestion from "@/pages/user/AiDiagnoseSuggestion";
 import Error404 from "@/pages/errors/NotFoundPage";
-import PatientTable from "@/pages/user/PatientTable";
-import ChartTesting from "@/pages/user/ChartTesting";
-import CompareResult from "@/pages/user/CompareResult";
-import ScenarioSimulator from "@/pages/user/ScenarioSimulator";
-import LayoutApp from "@/components/common/LayoutApp";
-import AdminHome from "@/pages/admin/AdminHome";
-import UserPage from "@/pages/admin/UserTable";
-import RolePage from "@/pages/admin/RoleTable";
-import PermissionPage from "@/pages/admin/PermissionTable";
-import LayoutAdmin from "@/layouts/LayoutAdmin";
 import ProtectedRoute from "@/components/common/protected/RouteProtected";
-import AntibioticCarePlanner from "@/pages/user/AntibioticCarePlanner";
+
+const LayoutApp = lazy(() => import("@/components/common/LayoutApp"));
+const LayoutClient = lazy(() => (
+    import("@/layouts/LayoutClient").then(module => ({ default: module.LayoutClient }))
+));
+const LayoutAdmin = lazy(() => import("@/layouts/LayoutAdmin"));
+
+const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
+const VerifyDevicePage = lazy(() => import("@/pages/auth/VerifyDevicePage"));
+
+const AiDiagnosisSuggestion = lazy(() => import("@/pages/user/AiDiagnoseSuggestion"));
+const PatientTable = lazy(() => import("@/pages/user/PatientTable"));
+const ChartTesting = lazy(() => import("@/pages/user/ChartTesting"));
+const CompareResult = lazy(() => import("@/pages/user/CompareResult"));
+const ScenarioSimulator = lazy(() => import("@/pages/user/ScenarioSimulator"));
+const AntibioticCarePlanner = lazy(() => import("@/pages/user/AntibioticCarePlanner"));
+
+const AdminHome = lazy(() => import("@/pages/admin/AdminHome"));
+const UserPage = lazy(() => import("@/pages/admin/UserTable"));
+const RolePage = lazy(() => import("@/pages/admin/RoleTable"));
+const PermissionPage = lazy(() => import("@/pages/admin/PermissionTable"));
 
 const router = createBrowserRouter([
     {

@@ -1,23 +1,34 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import router from './routes';
 import { useAppDispatch, useAppSelector } from './redux/hook';
 import { fetchAccount } from './redux/slice/accountSlice';
 import Loading from './components/common/ux/Loading';
 
+const ACCOUNT_BOOTSTRAP_EXCLUDED_PATHS = new Set(['/register', '/login']);
+const IMMEDIATE_ROUTER_PATHS = new Set(['/login', '/']);
+
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
-  const isLoading = useAppSelector(state => state.account.isLoading)
-  useEffect(() => {
-    if (window.location.pathname === '/register') return;
-    if (window.location.pathname === '/login') return;
-    dispatch(fetchAccount());
-  }, []);
+  const isLoading = useAppSelector(state => state.account.isLoading);
+  const pathname = window.location.pathname;
 
-  return <>{
-    isLoading === false || window.location.pathname === '/login' || window.location.pathname === '/'
-      ? <RouterProvider router={router} /> : <Loading />
-  }</>
+  useEffect(() => {
+    if (ACCOUNT_BOOTSTRAP_EXCLUDED_PATHS.has(pathname)) return;
+    dispatch(fetchAccount());
+  }, [dispatch, pathname]);
+
+  const canRenderRouter = !isLoading || IMMEDIATE_ROUTER_PATHS.has(pathname);
+
+  if (!canRenderRouter) {
+    return <Loading />;
+  }
+
+  return (
+    <Suspense fallback={<Loading />}>
+      <RouterProvider router={router} />
+    </Suspense>
+  );
 };
 
 export default App;
