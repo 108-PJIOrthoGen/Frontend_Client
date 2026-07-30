@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { NavLink, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import { useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, MenuProps, Avatar, Image, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
-import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
+import { Dropdown, Menu, MenuProps, Avatar, Image, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
+import { UserOutlined, SettingOutlined, LogoutOutlined, AlertOutlined, WechatOutlined, ExperimentOutlined, ForkOutlined } from '@ant-design/icons';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
@@ -133,15 +133,105 @@ export const LayoutClient = () => {
 
 
   const aiPredictionMenuItems = [
-    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: 'person', step: 'Tích hợp AI' },
-    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: 'experiment', step: 'Mô phỏng & so sánh kịch bản', comingSoon: true },
-    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: 'health_metrics', step: 'Quản lý bệnh học dài kỳ', comingSoon: true },
+    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: <WechatOutlined />, step: 'Tích hợp AI' },
+    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: <ExperimentOutlined />, step: 'Mô phỏng & so sánh kịch bản', comingSoon: true },
+    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: <ForkOutlined />, step: 'Quản lý bệnh học dài kỳ', comingSoon: true },
   ];
 
-  const isActive = (path: string) => {
-    if (path === '/' && location.pathname === '/') return true;
-    if (path !== '/' && location.pathname.startsWith(path)) return true;
-    return false;
+  const selectedNavigationKey = [...recordMenuItems, ...aiPredictionMenuItems]
+    .find((item) => (
+      item.path === '/'
+        ? location.pathname === '/'
+        : location.pathname.startsWith(item.path)
+    ))?.path;
+
+  const renderNavigationLabel = (label: string, step: string) => (
+    <div className="flex min-w-0 flex-col py-1 leading-tight">
+      <span className="truncate font-medium">{label}</span>
+      <span className="mt-1 truncate text-md opacity-70">{step}</span>
+    </div>
+  );
+
+  const navigationItems: MenuProps['items'] = [
+    {
+      key: 'medical-records',
+      label: <span className="font-semibold">Bệnh Án</span>,
+      children: recordMenuItems.map((item) => ({
+        key: item.path,
+        icon: <span className="material-symbols-outlined">{item.icon}</span>,
+        label: renderNavigationLabel(item.label, item.step),
+        style: { height: 'auto', lineHeight: 'normal', paddingBlock: 6 },
+      })),
+    },
+    {
+      key: 'ai-recommendations',
+      label: <span className="font-semibold">Sinh Khuyến Nghị</span>,
+      children: aiPredictionMenuItems.map((item) => ({
+        key: item.path,
+        disabled: item.comingSoon,
+        icon: <span className="material-symbols-outlined">{item.icon}</span>,
+        label: item.comingSoon ? (
+          <Tooltip title="Tính năng sắp ra mắt" placement="right">
+            <div className="flex min-w-0 flex-col py-1 leading-tight">
+              <span className="truncate font-medium">{item.label}</span>
+              <span className="mt-1 truncate text-[11px] text-green-500">
+                Sắp ra mắt · {item.step}
+              </span>
+            </div>
+          </Tooltip>
+        ) : renderNavigationLabel(item.label, item.step),
+        style: { height: 'auto', lineHeight: 'normal', paddingBlock: 6 },
+      })),
+    },
+    {
+      key: 'utilities',
+      label: <span className="font-semibold">Chức năng</span>,
+      children: [
+        {
+          key: 'notifications',
+          label: (
+            <div className="-mx-3">
+              <NotificationBell />
+            </div>
+          ),
+          style: { height: 'auto', lineHeight: 'normal', paddingBlock: 0 },
+        },
+        {
+          key: 'pending-lab-tasks',
+          label: (
+            <Popover
+              open={pendingPopoverOpen}
+              onOpenChange={setPendingPopoverOpen}
+              trigger="click"
+              placement="rightTop"
+              title="Tiến độ xét nghiệm chờ bổ sung"
+              content={pendingPopoverContent}
+            >
+              <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
+                <button
+                  type="button"
+                  className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-amber-200 hover:bg-amber-50"
+                >
+                  <Badge count={pendingCount} size="small" offset={[-1, 3]}>
+                    <AlertOutlined />
+                  </Badge>
+                  <span className="truncate font-medium text-slate-600">
+                    Xét nghiệm chờ bổ sung
+                  </span>
+                </button>
+              </Tooltip>
+            </Popover>
+          ),
+          style: { height: 'auto', lineHeight: 'normal', paddingBlock: 0 },
+        },
+      ],
+    },
+  ];
+
+  const handleNavigationClick: MenuProps['onClick'] = ({ key }) => {
+    if (key.startsWith('/') && key !== location.pathname) {
+      navigate(key);
+    }
   };
 
   return (
@@ -197,122 +287,20 @@ export const LayoutClient = () => {
             aria-label="Điều hướng chính"
             className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-4"
           >
-            <div className="flex flex-col gap-1">
-            <p className="px-2 pb-2 font-semibold text-slate-800 tracking-wider">Bệnh Án</p>
-            {recordMenuItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
-                  ? 'bg-primary/10 text-primary border-primary'
-                  : 'text-slate-600 hover:bg-slate-50 border-transparent'
-                  }`}
-              >
-                <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
-                  {item.icon}
-                </span>
-                <div className="flex flex-col">
-                  <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
-                    {item.label}
-                  </span>
-                  <span className="text-xs opacity-80"> {item.step} </span>
-                </div>
-              </NavLink>
-            ))}
-
-            <div className="my-3 border-t border-slate-100" />
-            <p className="px-2 pb-2 font-semibold text-slate-800 tracking-wider">Sinh Khuyến Nghị</p>
-            {aiPredictionMenuItems.map((item) => {
-              if (item.comingSoon) {
-                return (
-                  <Tooltip key={item.path} title="Tính năng sắp ra mắt" placement="right">
-                    <div
-                      aria-disabled="true"
-                      className="group flex cursor-not-allowed items-center gap-3 rounded-lg border-l-4 border-transparent bg-slate-50/70 px-3 py-3 text-slate-400 opacity-75"
-                    >
-                      <span className="material-symbols-outlined text-slate-300">
-                        {item.icon}
-                      </span>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-medium leading-snug">
-                            {item.label}
-                          </span>
-                          <span className="shrink-0 rounded-full border border-slate-400 bg-white px-2 py-0.5 text-[10px] font-semibold tracking-wide text-green-400">
-                            Coming Soon
-                          </span>
-                        </div>
-                        <span className="text-xs opacity-70"> {item.step} </span>
-                      </div>
-                    </div>
-                  </Tooltip>
-                );
-              }
-
-              return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) => `group flex items-center gap-3 px-3 py-3 rounded-lg border-l-4 transition-all ${isActive
-                    ? 'bg-primary/10 text-primary border-primary'
-                    : 'text-slate-600 hover:bg-slate-50 border-transparent'
-                    }`}
-                >
-                  <span className={`material-symbols-outlined ${isActive(item.path) ? 'icon-filled' : ''}`}>
-                    {item.icon}
-                  </span>
-                  <div className="flex flex-col">
-                    <span className={` ${isActive(item.path) ? 'font-bold' : 'font-medium'}`}>
-                      {item.label}
-                    </span>
-                    <span className="text-xs opacity-80"> {item.step} </span>
-                  </div>
-                </NavLink>
-              );
-            })}
-            <div className="my-3 border-t border-slate-100" />
-            <p className="px-2 font-semibold text-slate-800 tracking-wider">Chức năng</p>
-            {/* Notifications */}
-            <div className="pt-3 pb-1">
-              <NotificationBell />
-            </div>
-
-            <div className="px-3 pt-1 pb-1">
-              <Popover
-                open={pendingPopoverOpen}
-                onOpenChange={setPendingPopoverOpen}
-                trigger="click"
-                placement="rightTop"
-                title="Tiến độ xét nghiệm chờ bổ sung"
-                content={pendingPopoverContent}
-              >
-                <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
-                  <button
-                    className="w-full flex items-center gap-3 py-2 rounded-lg
-                    hover:bg-amber-50 transition-colors text-left border
-                    border-transparent hover:border-amber-200 group"
-                  >
-                    <Badge count={pendingCount} size="small" offset={[-2, 2]}>
-                      <span className="material-symbols-outlined 
-                      group-hover:text-amber-700">
-                        science
-                      </span>
-                    </Badge>
-                    <span className=" font-medium text-slate-600 group-hover:text-amber-700">
-                      Xét nghiệm chờ bổ sung
-                    </span>
-                  </button>
-                </Tooltip>
-              </Popover>
-            </div>
-
-            </div>
+            <Menu
+              mode="inline"
+              items={navigationItems}
+              selectedKeys={selectedNavigationKey ? [selectedNavigationKey] : []}
+              openKeys={['medical-records', 'ai-recommendations', 'utilities']}
+              onClick={handleNavigationClick}
+              className="border-0 bg-transparent"
+              inlineIndent={16}
+            />
           </nav>
         </div>
 
         {/* Footer: Pending tasks + User profile */}
         <div className="shrink-0 border-t border-slate-200 bg-white">
-
 
           {/* User Profile */}
           <div className="p-4 pt-1">

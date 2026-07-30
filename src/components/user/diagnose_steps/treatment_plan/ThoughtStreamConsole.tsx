@@ -20,9 +20,9 @@ const { Text, Title } = Typography;
 const styles: Record<string, CSSProperties> = {
   wrap: {
     width: '100%',
-    height: '70vh',
+    height: '64vh',
     padding: '20px 16px 20px',
-    background: 'linear-gradient(180deg, #d2eec0 0%, #e8fffa 100%)',
+    background: 'linear-gradient(180deg, #e2e7de 0%, #f0fbf88e 100%)',
   },
   card: {
     width: '100%',

@@ -1,18 +1,58 @@
 import React, { forwardRef, useEffect, useImperativeHandle } from 'react';
+import dayjs from 'dayjs';
+import {
+    Button,
+    Checkbox,
+    DatePicker,
+    Form,
+    Input,
+    InputNumber,
+    Select,
+    TimePicker,
+} from 'antd';
+import locale from 'antd/es/date-picker/locale/vi_VN';
 import { IEpisode } from '@/types/backend';
-import { Form, DatePicker, Input, Select, InputNumber } from 'antd';
-import locale from 'antd/es/date-picker/locale/en_US';
 import { stringToDayjs } from '@/config/utils';
 import { episodeToFormData } from '@/utils/apiToForm';
 
+export interface DepartmentTransferFormData {
+    department: string;
+    admissionDate: string;
+    admissionTime: string;
+    treatmentDays: string;
+}
+
 export interface EpisodeFormData {
-    arrivalTime: string;
+    admissionDate: string;
+    admissionTime: string;
+    dischargeDate: string;
     dischargeTime: string;
     department: string;
     admissionMethod: string;
     reason: string;
     referralSource: string;
+    admissionCount: string;
     treatmentDays: string;
+    initialDepartmentTreatmentDays: string;
+    initialDepartmentAdmissionDate: string;
+    initialDepartmentAdmissionTime: string;
+    departmentTransfers: DepartmentTransferFormData[];
+    hospitalTransferType: string;
+    hospitalTransferDestination: string;
+    dischargeDisposition: string;
+    referralDiagnosis: string;
+    emergencyDiagnosis: string;
+    inpatientDiagnosis: string;
+    hasIncident: boolean;
+    hasComplication: boolean;
+    complicationCause: string;
+    postoperativeTreatmentDays: string;
+    surgeryCount: string;
+    dischargePrimaryDiagnosis: string;
+    dischargeCause: string;
+    accompanyingDisease: string;
+    preoperativeDiagnosis: string;
+    postoperativeDiagnosis: string;
     treatmentResult: string;
     status: string;
 }
@@ -24,18 +64,48 @@ interface MedicalExaminationProps {
 }
 
 const emptyFormData: EpisodeFormData = {
-    arrivalTime: '',
+    admissionDate: '',
+    admissionTime: '',
+    dischargeDate: '',
     dischargeTime: '',
     department: '',
     admissionMethod: '',
     reason: '',
     referralSource: '',
+    admissionCount: '',
     treatmentDays: '',
+    initialDepartmentTreatmentDays: '',
+    initialDepartmentAdmissionDate: '',
+    initialDepartmentAdmissionTime: '',
+    departmentTransfers: [],
+    hospitalTransferType: '',
+    hospitalTransferDestination: '',
+    dischargeDisposition: '',
+    referralDiagnosis: '',
+    emergencyDiagnosis: '',
+    inpatientDiagnosis: '',
+    hasIncident: false,
+    hasComplication: false,
+    complicationCause: '',
+    postoperativeTreatmentDays: '',
+    surgeryCount: '',
+    dischargePrimaryDiagnosis: '',
+    dischargeCause: '',
+    accompanyingDisease: '',
+    preoperativeDiagnosis: '',
+    postoperativeDiagnosis: '',
     treatmentResult: '',
     status: '',
 };
 
+const pickerValue = (_value: unknown, valueString: string | string[]) =>
+    (Array.isArray(valueString) ? valueString[0] : valueString) || '';
 
+const stringToTimeValue = (value?: string) => {
+    if (!value) return null;
+    const parsed = dayjs(`2000-01-01T${value.length === 5 ? `${value}:00` : value}`);
+    return parsed.isValid() ? parsed : null;
+};
 
 export interface MedicalExaminationHandle {
     /** Runs the Antd field rules. Resolves true if valid, false if any rule fails. */
@@ -48,8 +118,6 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
 }, ref) => {
     const [form] = Form.useForm<EpisodeFormData>();
 
-    // Let the parent (the drawer's Save button) trigger this form's validation,
-    // so the Antd `rules` actually fire and inline field errors are shown.
     useImperativeHandle(ref, () => ({
         validate: async () => {
             try {
@@ -61,152 +129,407 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
         },
     }), [form]);
 
-    // Initialize form with episode data
     useEffect(() => {
         const data = episodeData ? episodeToFormData(episodeData) : emptyFormData;
         form.setFieldsValue(data);
     }, [episodeData, form]);
 
-    // Handle form value changes and notify parent
     const handleValuesChange = (_changedValues: Partial<EpisodeFormData>, allValues: EpisodeFormData) => {
         onFormChange?.(allValues);
     };
 
     const requiredRule = { required: true, message: 'Trường này bắt buộc điền' };
+    const integerRules = [{ pattern: /^\d*$/, message: 'Chỉ nhập số nguyên không âm' }];
+
+    const renderDiagnosisRow = (
+        label: string,
+        field: keyof EpisodeFormData,
+    ) => (
+        <Form.Item
+            name={field}
+            label={<span className="font-medium text-slate-700">{label}</span>}
+        >
+            <Input.TextArea
+                autoSize={{ minRows: 2, maxRows: 4 }}
+                placeholder={`Nhập ${label.toLocaleLowerCase('vi')}`}
+                className="rounded-lg"
+            />
+        </Form.Item>
+    );
 
     return (
-        <div className="flex-1 overflow-y-auto p-8 pb-32">
-            <div className="max-w-5xl mx-auto space-y-6">
-                <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Quản lý bệnh án</h1>
-                            <p className="text-slate-500 text-sm mt-1">Thông tin tiếp nhận, khám bệnh và điều trị.</p>
+        <div className="flex-1 overflow-y-auto p-4 pb-32 md:p-8">
+            <div className="mx-auto max-w-6xl">
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onValuesChange={handleValuesChange}
+                    initialValues={emptyFormData}
+                    className="space-y-6"
+                >
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                                Quản lý người bệnh
+                            </h1>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Thông tin vào viện, quá trình điều trị và ra viện.
+                            </p>
                         </div>
-                    </div>
 
-                    <Form
-                        form={form}
-                        layout="vertical"
-                        onValuesChange={handleValuesChange}
-                        className="p-6"
-                        initialValues={emptyFormData}
-                    >
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Form.Item
-                                name="arrivalTime"
-                                label={<span className="text-sm font-medium text-slate-700">Thời gian vào viện</span>}
-                                rules={[requiredRule]}
-                                getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
-                                getValueProps={(val) => ({ value: stringToDayjs(val) })}
-                            >
-                                <DatePicker
-                                    locale={locale}
-                                    format="DD/MM/YYYY"
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full h-11"
-                                />
-                            </Form.Item>
-
-                            <Form.Item
-                                name="dischargeTime"
-                                label={<span className="text-sm font-medium text-slate-700">Thời gian ra viện </span>}
-                                getValueFromEvent={(_date, dateString) => (Array.isArray(dateString) ? dateString[0] : dateString) || ''}
-                                getValueProps={(val) => ({ value: stringToDayjs(val) })}
-                            >
-                                <DatePicker
-                                    locale={locale}
-                                    format="DD/MM/YYYY"
-                                    placeholder="dd/mm/yyyy"
-                                    className="w-full h-11"
-                                />
-                            </Form.Item>
-
-                            <Form.Item
-                                name="reason"
-                                label={<span className="text-sm font-medium text-slate-700">Lý do vào viện</span>}
-                                className="col-span-2"
-                            >
-                                <Input
-                                    placeholder="VD:Bị đau ở vai gáy"
-                                    className="h-11 rounded-lg"
-                                />
-                            </Form.Item>
-
-                            <Form.Item
-                                name="department"
-                                label={<span className="text-sm font-medium text-slate-700">Khoa tiếp nhận </span>}
-                                rules={[requiredRule]}
-                            >
-                                <Input
-                                    placeholder="VD: Khoa chỉnh hình"
-                                    className="h-11 rounded-lg"
-                                />
-                            </Form.Item>
+                        <div className="space-y-7 p-6">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                <Form.Item
+                                    name="admissionDate"
+                                    label={<span className="font-medium text-slate-700">12. Ngày vào viện</span>}
+                                    rules={[requiredRule]}
+                                    getValueFromEvent={pickerValue}
+                                    getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                >
+                                    <DatePicker
+                                        locale={locale}
+                                        format="DD/MM/YYYY"
+                                        placeholder="dd/mm/yyyy"
+                                        className="h-11 w-full"
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="admissionTime"
+                                    label={<span className="font-medium text-slate-700">Giờ vào viện</span>}
+                                    getValueFromEvent={pickerValue}
+                                    getValueProps={(value) => ({ value: stringToTimeValue(value) })}
+                                >
+                                    <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
+                                </Form.Item>
+                                <Form.Item
+                                    name="admissionMethod"
+                                    label={<span className="font-medium text-slate-700">13. Trực tiếp vào</span>}
+                                    rules={[requiredRule]}
+                                >
+                                    <Select
+                                        placeholder="Chọn hình thức"
+                                        className="h-11"
+                                        options={[
+                                            { value: 'CC', label: '1. Cấp cứu' },
+                                            { value: 'KKB', label: '2. KKB' },
+                                            { value: 'KDT', label: '3. Khoa điều trị' },
+                                        ]}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="admissionCount"
+                                    label={<span className="font-medium text-slate-700">Vào viện do bệnh này lần thứ</span>}
+                                    rules={integerRules}
+                                >
+                                    <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                </Form.Item>
+                            </div>
 
                             <Form.Item
-                                name="admissionMethod"
-                                label={<span className="text-sm font-medium text-slate-700">Trực tiếp vào </span>}
-                                rules={[requiredRule]}
+                                name="referralSource"
+                                label={<span className="font-medium text-slate-700">14. Nơi giới thiệu</span>}
                             >
                                 <Select
-                                    placeholder="-- Vào theo hình thức --"
-                                    className="h-11 rounded-lg"
+                                    placeholder="Chọn nơi giới thiệu"
+                                    className="h-11"
                                     options={[
-                                        { value: 'CC', label: 'Cấp cứu' },
-                                        { value: 'KKB', label: 'Khám bệnh' },
-                                        { value: 'KDT', label: 'Khám theo yêu cầu' },
+                                        { value: 'MEDICAL_FACILITY', label: '1. Cơ quan y tế' },
+                                        { value: 'SELF', label: '2. Tự đến' },
+                                        { value: 'OTHER', label: '3. Khác' },
                                     ]}
                                 />
                             </Form.Item>
 
-                            <Form.Item
-                                name="referralSource"
-                                label={<span className="text-sm font-medium text-slate-700">Nơi giới thiệu</span>}
-                            >
-                                <Input
-                                    placeholder="VD: BV tuyến dưới"
-                                    className="h-11 rounded-lg"
-                                />
-                            </Form.Item>
+                            <div className="overflow-hidden rounded-lg border border-slate-200">
+                                <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                                    <h2 className="font-bold text-slate-800">15–16. Quá trình vào/chuyển khoa</h2>
+                                </div>
+                                <div className="space-y-4 p-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
+                                        <Form.Item
+                                            name="department"
+                                            label={<span className="font-medium text-slate-700">15. Vào khoa</span>}
+                                            rules={[requiredRule]}
+                                            className="lg:col-span-4"
+                                        >
+                                            <Input placeholder="Ví dụ: B1-C" className="h-11 rounded-lg" />
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="initialDepartmentAdmissionDate"
+                                            label={<span className="font-medium text-slate-700">Ngày vào khoa</span>}
+                                            getValueFromEvent={pickerValue}
+                                            getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                            className="lg:col-span-3"
+                                        >
+                                            <DatePicker
+                                                locale={locale}
+                                                format="DD/MM/YYYY"
+                                                placeholder="dd/mm/yyyy"
+                                                className="h-11 w-full"
+                                            />
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="initialDepartmentAdmissionTime"
+                                            label={<span className="font-medium text-slate-700">Giờ vào khoa</span>}
+                                            getValueFromEvent={pickerValue}
+                                            getValueProps={(value) => ({ value: stringToTimeValue(value) })}
+                                            className="lg:col-span-2"
+                                        >
+                                            <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
+                                        </Form.Item>
+                                        <Form.Item
+                                            name="initialDepartmentTreatmentDays"
+                                            label={<span className="font-medium text-slate-700">Ngày điều trị</span>}
+                                            rules={integerRules}
+                                            className="lg:col-span-3"
+                                        >
+                                            <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                        </Form.Item>
+                                    </div>
 
-                            <Form.Item
-                                name="treatmentDays"
-                                label={<span className="text-sm font-medium text-slate-700">Tổng số ngày điều trị</span>}
-                                rules={[
-                                    {
-                                        pattern: /^\d*$/,
-                                        message: 'Chỉ nhập số',
-                                    },
-                                ]}
-                            >
-                                <InputNumber
-                                    placeholder="VD: 12"
-                                    className="w-full h-11 rounded-lg"
-                                    min={0}
-                                    controls={false}
-                                    stringMode
-                                />
-                            </Form.Item>
+                                    <Form.List name="departmentTransfers">
+                                        {(fields, { add, remove }) => (
+                                            <div className="space-y-4">
+                                                {fields.map((field, index) => (
+                                                    <div
+                                                        key={field.key}
+                                                        className="grid grid-cols-1 gap-4 rounded-lg bg-slate-50 p-3 md:grid-cols-2 lg:grid-cols-12"
+                                                    >
+                                                        <Form.Item
+                                                            {...field}
+                                                            name={[field.name, 'department']}
+                                                            label={`16. Chuyển khoa ${index + 1}`}
+                                                            className="mb-0 lg:col-span-4"
+                                                        >
+                                                            <Input placeholder="Tên khoa" className="h-11" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            name={[field.name, 'admissionDate']}
+                                                            label="Ngày chuyển"
+                                                            getValueFromEvent={pickerValue}
+                                                            getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                                            className="mb-0 lg:col-span-3"
+                                                        >
+                                                            <DatePicker
+                                                                locale={locale}
+                                                                format="DD/MM/YYYY"
+                                                                placeholder="dd/mm/yyyy"
+                                                                className="h-11 w-full"
+                                                            />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            name={[field.name, 'admissionTime']}
+                                                            label="Giờ chuyển"
+                                                            getValueFromEvent={pickerValue}
+                                                            getValueProps={(value) => ({ value: stringToTimeValue(value) })}
+                                                            className="mb-0 lg:col-span-2"
+                                                        >
+                                                            <TimePicker format="HH:mm" className="h-11 w-full" />
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            name={[field.name, 'treatmentDays']}
+                                                            label="Ngày điều trị"
+                                                            rules={integerRules}
+                                                            className="mb-0 lg:col-span-2"
+                                                        >
+                                                            <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                                        </Form.Item>
+                                                        <div className="flex items-end lg:col-span-1">
+                                                            <Button danger type="text" onClick={() => remove(field.name)}>
+                                                                Xóa
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <Button
+                                                    type="dashed"
+                                                    onClick={() => add({
+                                                        department: '',
+                                                        admissionDate: '',
+                                                        admissionTime: '',
+                                                        treatmentDays: '',
+                                                    })}
+                                                    disabled={fields.length >= 3}
+                                                    block
+                                                >
+                                                    Thêm chuyển khoa
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </Form.List>
+                                </div>
+                            </div>
 
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                <Form.Item
+                                    name="hospitalTransferType"
+                                    label={<span className="font-medium text-slate-700">17. Chuyển viện</span>}
+                                >
+                                    <Select
+                                        allowClear
+                                        placeholder="Chọn hình thức chuyển viện"
+                                        className="h-11"
+                                        options={[
+                                            { value: 'TRANSFER_IN', label: '1. Chuyển đến' },
+                                            { value: 'TRANSFER_OUT', label: '2. Chuyển đi' },
+                                            { value: 'CK', label: '3. CK' },
+                                        ]}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="hospitalTransferDestination"
+                                    label={<span className="font-medium text-slate-700">Chuyển đến</span>}
+                                >
+                                    <Input placeholder="Tên cơ sở tiếp nhận" className="h-11 rounded-lg" />
+                                </Form.Item>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+                                <Form.Item
+                                    name="dischargeDate"
+                                    label={<span className="font-medium text-slate-700">18. Ngày ra viện</span>}
+                                    getValueFromEvent={pickerValue}
+                                    getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                >
+                                    <DatePicker
+                                        locale={locale}
+                                        format="DD/MM/YYYY"
+                                        placeholder="dd/mm/yyyy"
+                                        className="h-11 w-full"
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="dischargeTime"
+                                    label={<span className="font-medium text-slate-700">Giờ ra viện</span>}
+                                    getValueFromEvent={pickerValue}
+                                    getValueProps={(value) => ({ value: stringToTimeValue(value) })}
+                                >
+                                    <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
+                                </Form.Item>
+                                <Form.Item
+                                    name="dischargeDisposition"
+                                    label={<span className="font-medium text-slate-700">Hình thức ra viện</span>}
+                                >
+                                    <Select
+                                        allowClear
+                                        placeholder="Chọn hình thức"
+                                        className="h-11"
+                                        options={[
+                                            { value: 'DISCHARGED', label: '1. Ra viện' },
+                                            { value: 'REQUESTED', label: '2. Xin về' },
+                                            { value: 'LEFT', label: '3. Bỏ về' },
+                                            { value: 'TAKEN_HOME', label: '4. Đưa về' },
+                                        ]}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="treatmentDays"
+                                    label={<span className="font-medium text-slate-700">20. Tổng số ngày điều trị</span>}
+                                    rules={integerRules}
+                                >
+                                    <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                </Form.Item>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+                            <h2 className="text-2xl font-bold tracking-tight text-slate-900">Chẩn đoán</h2>
+                            <p className="mt-1 text-sm text-slate-500">
+                                Chẩn đoán theo từng giai đoạn của đợt điều trị.
+                            </p>
+                        </div>
+
+                        <div className="space-y-2 p-6">
+                            {renderDiagnosisRow('20. Nơi chuyển đến', 'referralDiagnosis')}
+                            {renderDiagnosisRow('21. KKB/Cấp cứu', 'emergencyDiagnosis')}
+                            {renderDiagnosisRow('22. Khi vào khoa điều trị', 'inpatientDiagnosis')}
+
+                            <div className="grid grid-cols-1 gap-5 border-y border-slate-100 py-5 lg:grid-cols-4">
+                                <Form.Item name="hasIncident" valuePropName="checked" className="mb-0">
+                                    <Checkbox>Tai biến</Checkbox>
+                                </Form.Item>
+                                <Form.Item name="hasComplication" valuePropName="checked" className="mb-0">
+                                    <Checkbox>Biến chứng</Checkbox>
+                                </Form.Item>
+                                <Form.Item
+                                    name="complicationCause"
+                                    label={<span className="font-medium text-slate-700">Nguyên nhân</span>}
+                                    className="mb-0 lg:col-span-2"
+                                >
+                                    <Select
+                                        allowClear
+                                        placeholder="Chọn nguyên nhân"
+                                        options={[
+                                            { value: 'SURGERY', label: '1. Do phẫu thuật' },
+                                            { value: 'ANESTHESIA', label: '2. Do gây mê' },
+                                            { value: 'INFECTION', label: '3. Do nhiễm khuẩn' },
+                                            { value: 'OTHER', label: '4. Khác' },
+                                        ]}
+                                    />
+                                </Form.Item>
+                                <Form.Item
+                                    name="postoperativeTreatmentDays"
+                                    label={<span className="font-medium text-slate-700">23. Tổng số ngày điều trị sau phẫu thuật</span>}
+                                    rules={integerRules}
+                                    className="mb-0 lg:col-span-2"
+                                >
+                                    <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                </Form.Item>
+                                <Form.Item
+                                    name="surgeryCount"
+                                    label={<span className="font-medium text-slate-700">24. Tổng số lần phẫu thuật</span>}
+                                    rules={integerRules}
+                                    className="mb-0 lg:col-span-2"
+                                >
+                                    <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                </Form.Item>
+                            </div>
+
+                            {renderDiagnosisRow(
+                                '25. Ra viện - Bệnh chính (tổn thương)',
+                                'dischargePrimaryDiagnosis',
+                            )}
+                            {renderDiagnosisRow('Nguyên nhân', 'dischargeCause')}
+                            {renderDiagnosisRow('Bệnh kèm theo', 'accompanyingDisease')}
+                            {renderDiagnosisRow(
+                                'Chẩn đoán trước phẫu thuật',
+                                'preoperativeDiagnosis',
+                            )}
+                            {renderDiagnosisRow(
+                                'Chẩn đoán sau phẫu thuật',
+                                'postoperativeDiagnosis',
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                        <div className="border-b border-slate-200 bg-slate-50 px-6 py-4">
+                            <h2 className="text-lg font-bold text-slate-900">Thông tin hồ sơ</h2>
+                        </div>
+                        <div className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2">
+                            <Form.Item
+                                name="reason"
+                                label={<span className="font-medium text-slate-700">Lý do vào viện</span>}
+                                className="md:col-span-2"
+                            >
+                                <Input placeholder="Nhập lý do vào viện" className="h-11 rounded-lg" />
+                            </Form.Item>
                             <Form.Item
                                 name="treatmentResult"
-                                label={<span className="text-sm font-medium text-slate-700">Kết quả điều trị</span>}
+                                label={<span className="font-medium text-slate-700">Kết quả điều trị</span>}
                             >
-                                <Input
-                                    placeholder="VD: Done"
-                                    className="h-11 rounded-lg"
-                                />
+                                <Input placeholder="Nhập kết quả điều trị" className="h-11 rounded-lg" />
                             </Form.Item>
-
                             <Form.Item
                                 name="status"
-                                label={<span className="text-sm font-medium text-slate-700">Trạng thái hồ sơ </span>}
+                                label={<span className="font-medium text-slate-700">Trạng thái hồ sơ</span>}
                                 rules={[requiredRule]}
                             >
                                 <Select
-                                    placeholder="-- Trạng thái hồ sơ --"
-                                    className="h-11 rounded-lg"
+                                    placeholder="Chọn trạng thái hồ sơ"
+                                    className="h-11"
                                     options={[
                                         { value: 'processing', label: 'Đang điều trị' },
                                         { value: 'completed', label: 'Hoàn thành' },
@@ -215,8 +538,8 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 />
                             </Form.Item>
                         </div>
-                    </Form>
-                </section>
+                    </section>
+                </Form>
             </div>
         </div>
     );

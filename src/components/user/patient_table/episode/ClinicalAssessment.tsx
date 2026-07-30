@@ -104,15 +104,6 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
 
   return (
     <>
-      <button
-        type="button"
-        onClick={openQuickImport}
-        className="text-slate-900 bg-green-400 mt-1 flex items-center gap-2 rounded font-mono px-2 py-1 font-bold hover:bg-cyan-400"
-      >
-        <span className="material-symbols-outlined text-md">accessibility_new</span>
-        Import nhanh
-      </button>
-
       <QuickImportImagesModal
         open={quickImportOpen}
         onClose={handleQuickImportClose}
@@ -130,17 +121,35 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
       />
 
       <div className="flex-1 overflow-y-auto p-8 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto h-full">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6 pb-20">
+        <div className="mx-auto h-full max-w-[1600px]">
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
+            <div className="flex min-w-0 flex-col gap-6">
               <SymptomsChecklist />
               <ClinicalExamForm />
+            </div>
 
-              <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-                  <h3 className="text-slate-900 font-bold text-lg flex items-center gap-2">
-                    Xét nghiệm chẩn đoán PJI
-                  </h3>
+            <div className="flex min-w-0 flex-col gap-6 pb-20">
+              <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="flex flex-col gap-4 border-b border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                      Xét nghiệm chẩn đoán PJI
+                    </h3>
+                    <p id="quick-import-description" className="mt-1 text-sm text-slate-500">
+                      Nhập kết quả thủ công hoặc tải phiếu xét nghiệm để tự động điền.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={openQuickImport}
+                    aria-describedby="quick-import-description"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 focus-visible:ring-offset-2 sm:self-auto"
+                  >
+                    <span className="material-symbols-outlined text-[20px]" aria-hidden="true">
+                      upload_file
+                    </span>
+                    Import nhanh
+                  </button>
                 </div>
                 <HematologyTestsTable />
                 <BiochemistryTestsTable patient={patient} />

@@ -1,5 +1,4 @@
 import { callDeletePatient, callFetchPatientById, callFetchEpisodesByPatient } from '@/apis/api';
-import Access from '@/components/common/Access';
 import DataTable from '@/components/DataTable';
 import MPatientCreateAndUpdate from '@/components/user/patient_table/manage/PatientModal';
 import ManageMedicalDrawer from '@/components/user/patient_table/manage/ManageMedicalDrawer';
@@ -7,9 +6,9 @@ import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { fetchPatient, setCurrentCase } from '@/redux/features/patients/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
-import { DeleteOutlined, DiffOutlined, EditOutlined, FolderOpenOutlined, HomeOutlined, LineChartOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
+import { DeleteOutlined, DiffOutlined, EditOutlined, FolderOpenOutlined, LineChartOutlined, MoreOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
-import { Breadcrumb, Button, Card, message, notification, Popconfirm, Space } from "antd";
+import { Button, Card, Dropdown, message, Modal, notification, type MenuProps } from "antd";
 import dayjs from "dayjs";
 import queryString from "query-string";
 import { useEffect, useRef, useState } from "react";
@@ -18,6 +17,7 @@ import { sfLike } from "spring-filter-query-builder";
 
 const PatientTable = () => {
 
+    const [modal, modalContextHolder] = Modal.useModal();
     const [dataInit, setDataInit] = useState<IPatient | null>(null);
     const [openModalCreate, setOpenModalCreate] = useState<boolean>(false);
     const [openMedicalDrawer, setOpenMedicalDrawer] = useState<boolean>(false);
@@ -32,7 +32,19 @@ const PatientTable = () => {
     // const isFetching = useAppSelector((state) => state.patient.isFetching);
     const meta = useAppSelector((state) => state.patient.meta);
     const users = useAppSelector((state) => state.patient.result);
+    const permissions = useAppSelector((state) => state.account.user.role.permissions);
     const dispatch = useAppDispatch();
+
+    const aclDisabled = import.meta.env.VITE_ACL_ENABLE === 'false';
+    const hasPermission = (required: { apiPath: string; method: string; module: string }) => (
+        aclDisabled
+        || !permissions?.length
+        || permissions.some((permission) => (
+            permission.apiPath === required.apiPath
+            && permission.method === required.method
+            && permission.module === required.module
+        ))
+    );
 
     // Open an AI feature (chart-testing / compare-result) scoped to a patient:
     // resolve their most recent episode, load it as the current case, then
@@ -68,6 +80,64 @@ const PatientTable = () => {
                 });
             }
         }
+    };
+
+    const confirmDeletePatient = (patient: IPatient) => {
+        modal.confirm({
+            title: 'Xác nhận xóa bệnh nhân',
+            content: `Bạn có chắc chắn muốn xóa ${patient.fullName || 'bệnh nhân này'}?`,
+            icon: <DeleteOutlined className="text-red-500" />,
+            okText: 'Xóa',
+            cancelText: 'Hủy',
+            okButtonProps: { danger: true },
+            onOk: () => handleDeleteUser(patient.id),
+        });
+    };
+
+    const getPatientActionItems = (patient: IPatient): MenuProps['items'] => {
+        const items: MenuProps['items'] = [];
+
+        if (hasPermission(ALL_PERMISSIONS.PATIENTS.UPDATE)) {
+            items.push({
+                key: 'edit',
+                icon: <EditOutlined className="text-amber-600" />,
+                label: 'Sửa thông tin bệnh nhân',
+                onClick: () => {
+                    setOpenModalCreate(true);
+                    setDataInit(patient);
+                },
+            });
+        }
+
+        items.push(
+            {
+                key: 'inflammation-chart',
+                icon: <LineChartOutlined className="text-sky-600" />,
+                label: 'Chỉ số viêm',
+                onClick: () => openAiFeatureForPatient(patient, '/chart-testing'),
+            },
+            {
+                key: 'compare-ai',
+                icon: <DiffOutlined className="text-violet-600" />,
+                label: 'So sánh AI',
+                onClick: () => openAiFeatureForPatient(patient, '/compare-result'),
+            },
+        );
+
+        if (hasPermission(ALL_PERMISSIONS.PATIENTS.DELETE)) {
+            items.push(
+                { type: 'divider' },
+                {
+                    key: 'delete',
+                    danger: true,
+                    icon: <DeleteOutlined />,
+                    label: 'Xóa bệnh nhân',
+                    onClick: () => confirmDeletePatient(patient),
+                },
+            );
+        }
+
+        return items;
     };
 
     const reloadTable = () => {
@@ -133,8 +203,6 @@ const PatientTable = () => {
             dataIndex: "id",
             hidden: true
         },
-
-
         {
             title: "Quốc tịnh",
             dataIndex: "nationality",
@@ -183,87 +251,43 @@ const PatientTable = () => {
             hideInSearch: true,
         },
         {
-            title: "Tác vụ",
+            title: "Bệnh án",
             hideInSearch: true,
-            width: 100,
+            width: 118,
+            align: "center",
             render: (_value, entity, _index, _action) => (
-                <Space>
-                    <FolderOpenOutlined
-                        style={{
-                            fontSize: 20,
-                            color: "#1890ff",
-                        }}
-                        title="Quản lý bệnh án"
-                        onClick={() => {
-                            setDataInit(entity);
-                            setOpenMedicalDrawer(true);
-                        }}
-                    /> Bệnh án
-
-                    <Access permission={ALL_PERMISSIONS.PATIENTS.UPDATE} hideChildren>
-                        <EditOutlined
-                            style={{
-                                fontSize: 20,
-                                color: "#ffa500",
-                            }}
-                            title="Chỉnh sửa bệnh nhân"
-                            onClick={() => {
-                                setOpenModalCreate(true);
-                                setDataInit(entity);
-                            }}
-                        /> Sửa
-                    </Access>
-                </Space>
+                <Button
+                    type="text"
+                    size="small"
+                    icon={<FolderOpenOutlined />}
+                    className="!inline-flex !items-center !text-blue-600 hover:!bg-blue-50"
+                    onClick={() => {
+                        setDataInit(entity);
+                        setOpenMedicalDrawer(true);
+                    }}
+                >
+                    Mở Bệnh Án
+                </Button>
             ),
         },
         {
-            title: "Theo dõi",
+            title: "Thao tác",
             hideInSearch: true,
-            width: 100,
+            width: 82,
+            align: "center",
             render: (_value, entity, _index, _action) => (
-                <Space>
-
-
-                    <LineChartOutlined
-                        style={{ fontSize: 20, color: "#0ea5e9" }}
-                        title="Biểu đồ chỉ số viêm"
-                        onClick={() => openAiFeatureForPatient(entity, '/chart-testing')}
-                    /> Chỉ số viêm
-
-                    <DiffOutlined
-                        style={{ fontSize: 20, color: "#7c3aed" }}
-                        title="So sánh kết quả AI & Bác sĩ"
-                        onClick={() => openAiFeatureForPatient(entity, '/compare-result')}
-                    /> So sánh
-                </Space>
-            ),
-        },
-        {
-            title: "Nguy hiểm",
-            hideInSearch: true,
-            width: 100,
-            render: (_value, entity, _index, _action) => (
-                <Space>
-                    <Access permission={ALL_PERMISSIONS.PATIENTS.DELETE} hideChildren>
-                        <Popconfirm
-                            placement="leftTop"
-                            title={"Xác nhận xóa user"}
-                            description={"Bạn có chắc chắn muốn xóa user này ?"}
-                            onConfirm={() => handleDeleteUser(entity.id)}
-                            okText="Xác nhận"
-                            cancelText="Hủy"
-                        >
-                            <span style={{ cursor: "pointer", margin: "0 10px" }}>
-                                <DeleteOutlined
-                                    style={{
-                                        fontSize: 20,
-                                        color: "#ff4d4f",
-                                    }}
-                                /> Xóa
-                            </span>
-                        </Popconfirm>
-                    </Access>
-                </Space>
+                <Dropdown
+                    trigger={['click']}
+                    placement="bottomRight"
+                    menu={{ items: getPatientActionItems(entity) }}
+                >
+                    <Button
+                        type="text"
+                        shape="circle"
+                        icon={<MoreOutlined />}
+                        aria-label={`Mở thao tác cho ${entity.fullName || 'bệnh nhân'}`}
+                    />
+                </Dropdown>
             ),
         },
     ];
@@ -318,6 +342,7 @@ const PatientTable = () => {
 
     return (
         <div style={{ padding: "0 10px", marginTop: "10px" }}>
+            {modalContextHolder}
             {/* DataTable Card */}
             <Card
                 style={{

@@ -100,28 +100,48 @@ export interface IRole {
 export interface IEpisodeRequest {
     patientId?: number;
     admissionDate?: string;
+    admissionTime?: string;
     dischargeDate?: string;
+    dischargeTime?: string;
+    admissionCount?: number;
     treatmentDays?: number;
+    initialDepartmentTreatmentDays?: number;
+    initialDepartmentAdmissionDate?: string;
+    initialDepartmentAdmissionTime?: string;
     reason?: string;
     department?: string;
     direct?: string;
     referralSource?: string;
+    departmentTransfers?: IEpisodeDepartmentTransfer[];
+    hospitalTransferType?: string;
+    hospitalTransferDestination?: string;
+    dischargeDisposition?: string;
+    referralDiagnosis?: string;
+    emergencyDiagnosis?: string;
+    inpatientDiagnosis?: string;
+    hasIncident?: boolean;
+    hasComplication?: boolean;
+    complicationCause?: string;
+    postoperativeTreatmentDays?: number;
+    surgeryCount?: number;
+    dischargePrimaryDiagnosis?: string;
+    dischargeCause?: string;
+    accompanyingDisease?: string;
+    preoperativeDiagnosis?: string;
+    postoperativeDiagnosis?: string;
     result?: string;
     status?: string;
 }
 
-export interface IEpisode {
-    id?: string;
-    patientId?: number;
-    admissionDate?: string;
-    dischargeDate?: string;
-    treatmentDays?: number;
-    reason?: string;
+export interface IEpisodeDepartmentTransfer {
     department?: string;
-    direct?: string;
-    referralSource?: string;
-    result?: string;
-    status?: string;
+    admissionDate?: string;
+    admissionTime?: string;
+    treatmentDays?: number;
+}
+
+export interface IEpisode extends IEpisodeRequest {
+    id?: string;
     patient?: IPatient;
     createdAt?: string;
     updatedAt?: string;
@@ -133,7 +153,7 @@ export interface IEpisode {
 export interface IClinicalRecord {
     id?: string;
     episodeId?: number;
-    illnessOnsetDate?: string;
+    onsetTiming?: string;
     bloodPressure?: string;
     heightCm?: number;
     weightKg?: number;
@@ -145,12 +165,11 @@ export interface IClinicalRecord {
     sinusTract?: boolean;
     hematogenousSuspected?: boolean;
     pmmaAllergy?: boolean;
-    suspectedInfectionType?: string;
+    suspectedTransmissionRoute?: string;
     softTissue?: string;
     implantStability?: string;
     prosthesisJoint?: string;
-    daysSinceIndexArthroplasty?: number;
-    notations?: string;
+    surgicalDisease?: string;
     createdAt?: string;
     updatedAt?: string;
 }

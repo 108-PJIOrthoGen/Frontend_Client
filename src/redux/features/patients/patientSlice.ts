@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { callFetchPatient } from '@/apis/api';
-import { IModelPaginate, IPatient, IEpisode } from '@/types/backend';
+import { IModelPaginate, IPatient } from '@/types/backend';
 import { IClinicFormState } from '@/types/types';
 import { labsForGroup } from '@/constants/canonicalLabRegistry';
 import {

@@ -23,7 +23,7 @@ export interface LabFieldBinding {
   normalRange: string;
 }
 
-export type ClinicalControl = 'infectionType' | 'implantStability' | 'sinusTract' | 'allergy' | 'text';
+export type ClinicalControl = 'onsetTiming' | 'implantStability' | 'sinusTract' | 'allergy' | 'text';
 
 export interface ClinicalFieldBinding {
   kind: 'clinical';
@@ -65,7 +65,8 @@ export const LAB_FIELD_BINDINGS: Record<string, Omit<LabFieldBinding, 'kind' | '
   }, {} as Record<string, Omit<LabFieldBinding, 'kind' | 'unit' | 'normalRange'>>);
 
 const CLINICAL_CONTROL_BY_FIELD: Record<string, ClinicalControl> = {
-  infection_type: 'infectionType',
+  infection_type: 'onsetTiming',
+  onset_timing: 'onsetTiming',
   implant_stability: 'implantStability',
   sinus_tract: 'sinusTract',
   allergies: 'allergy',
@@ -114,8 +115,8 @@ export const isLabBindingFilled = (form: IClinicFormState, binding: LabFieldBind
 export const isClinicalBindingFilled = (form: IClinicFormState, control: ClinicalControl): boolean => {
   const cr = form.clinicalRecord ?? {};
   switch (control) {
-    case 'infectionType':
-      return !!cr.suspectedInfectionType;
+    case 'onsetTiming':
+      return !!cr.onsetTiming;
     case 'implantStability':
       return !!cr.implantStability;
     case 'sinusTract':
@@ -125,7 +126,7 @@ export const isClinicalBindingFilled = (form: IClinicFormState, control: Clinica
       return form.medicalHistory?.isAllergy === true || form.medicalHistory?.isAllergy === false;
     case 'text':
     default:
-      return !!(cr.notations && cr.notations.trim().length > 0);
+      return !!(cr.surgicalDisease && cr.surgicalDisease.trim().length > 0);
   }
 };
 

@@ -18,7 +18,7 @@ interface SyncProps {
 
 /**
  * Mirrors the four useEffect blocks that hydrate the clinicForm from
- * backend props, plus the surgery/illness-onset acute-vs-chronic computation.
+ * backend props.
  */
 export function useClinicFormSync({
   clinicalRecord,
@@ -35,7 +35,7 @@ export function useClinicFormSync({
         ...prev,
         clinicalRecord: {
           ...prev.clinicalRecord,
-          illnessOnsetDate: clinicalRecord.illnessOnsetDate ?? '',
+          onsetTiming: clinicalRecord.onsetTiming ?? '',
           bloodPressure: clinicalRecord.bloodPressure ?? '',
           heightCm: clinicalRecord.heightCm,
           weightKg: clinicalRecord.weightKg,
@@ -47,12 +47,11 @@ export function useClinicFormSync({
           sinusTract: clinicalRecord.sinusTract ?? false,
           hematogenousSuspected: clinicalRecord.hematogenousSuspected ?? false,
           pmmaAllergy: clinicalRecord.pmmaAllergy ?? false,
-          suspectedInfectionType: clinicalRecord.suspectedInfectionType ?? '',
+          suspectedTransmissionRoute: clinicalRecord.suspectedTransmissionRoute ?? '',
           softTissue: clinicalRecord.softTissue ?? '',
           implantStability: clinicalRecord.implantStability ?? '',
           prosthesisJoint: clinicalRecord.prosthesisJoint ?? '',
-          daysSinceIndexArthroplasty: clinicalRecord.daysSinceIndexArthroplasty,
-          notations: clinicalRecord.notations ?? '',
+          surgicalDisease: clinicalRecord.surgicalDisease ?? '',
         },
       }));
     } else {
@@ -182,17 +181,4 @@ export function useClinicFormSync({
     }
   }, [imageResults, setForm]);
 
-  // isAcute logic
-  useEffect(() => {
-    if (clinicForm.surgeryDate && clinicForm.clinicalRecord.illnessOnsetDate) {
-      const surgery = new Date(clinicForm.surgeryDate);
-      const symptom = new Date(clinicForm.clinicalRecord.illnessOnsetDate);
-      const diffTime = Math.abs(symptom.getTime() - surgery.getTime());
-      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const isAcute = diffDays < 21;
-      if (clinicForm.isAcute !== isAcute) {
-        setForm((prev) => ({ ...prev, isAcute }));
-      }
-    }
-  }, [clinicForm.surgeryDate, clinicForm.clinicalRecord.illnessOnsetDate, clinicForm.isAcute, setForm]);
 }

@@ -1,9 +1,6 @@
 /**
  * Minimal SSE client built on fetch + ReadableStream so we can send the
- * Authorization header (the native EventSource API can't).
- *
- * Parses the standard event stream format (`event:`, `data:`, blank line
- * terminator) into { event, data } and forwards each frame to `onEvent`.
+ * Authorization header.
  */
 
 export interface SseConnection {
@@ -61,8 +58,11 @@ export const openSse = ({
 
                 // SSE frames are separated by a blank line.
                 let sepIdx;
+                //đảm bảo xử lý hết tất cả các frame trọn vẹn có trong buffer
                 while ((sepIdx = buffer.indexOf('\n\n')) !== -1) {
+                    //Trích xuất 1 frame hoàn chỉnh
                     const frame = buffer.slice(0, sepIdx);
+                    //Xóa frame đã đọc khỏi đệm (bỏ đi 2 ký tự \n\n)
                     buffer = buffer.slice(sepIdx + 2);
                     const parsed = parseFrame(frame);
                     if (parsed) onEvent(parsed);

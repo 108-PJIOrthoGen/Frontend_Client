@@ -3,6 +3,19 @@ import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IClinicalRecord } from '@/types/backend';
 
+const ONSET_TIMING_OPTIONS = [
+  { value: 'EARLY', label: 'Sớm (3 tháng)' },
+  { value: 'DELAYED_SUBACUTE', label: 'Chậm/bán cấp (3–24 tháng)' },
+  { value: 'LATE', label: 'Muộn (>24 tháng)' },
+];
+
+const TRANSMISSION_ROUTE_OPTIONS = [
+  { value: 'PERIOPERATIVE_LOCAL', label: 'Quanh phẫu thuật/tại chỗ' },
+  { value: 'HEMATOGENOUS', label: 'Đường máu' },
+  { value: 'CONTIGUOUS_SPREAD', label: 'Lan từ mô kế cận' },
+  { value: 'UNKNOWN', label: 'Chưa rõ' },
+];
+
 // WHO international BMI classification (kg/m²).
 const classifyBmi = (bmi: number): { label: string; color: string } => {
   if (bmi < 18.5) return { label: 'Thiếu cân', color: 'blue' };
@@ -107,43 +120,29 @@ const ClinicalExamForm: React.FC = () => {
             </div>
           </Form.Item>
 
-          <Form.Item label={<span className=" font-medium text-slate-700">Ngày khởi phát triệu chứng</span>}>
-            <Input
-              type="date"
-              value={clinicForm.clinicalRecord.illnessOnsetDate ?? ''}
-              onChange={(e) => handleChange('illnessOnsetDate', e.target.value)}
-              className="w-full rounded-lg h-11"
+          <Form.Item label={<span className=" font-medium text-slate-700">Thời điểm khởi phát (so với phẫu thuật gần nhất)</span>}>
+            <Select
+              value={clinicForm.clinicalRecord.onsetTiming ?? undefined}
+              onChange={(val) => handleChange('onsetTiming', val)}
+              placeholder="Chọn thời điểm khởi phát"
+              className="h-11 rounded-lg"
+              options={ONSET_TIMING_OPTIONS}
             />
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-slate-500">
-                Phân loại:{' '}
-                <span className={`font-bold ${clinicForm.isAcute ? 'text-danger' : 'text-warning'}`}>
-                  {clinicForm.isAcute ? 'Cấp tính (<3 tuần)' : 'Mãn tính (>3 tuần)'}
-                </span>
-              </span>
-            </div>
           </Form.Item>
 
-          <Form.Item label={<span className=" font-medium text-slate-700">Loại nhiễm trùng nghi ngờ</span>}>
+          <Form.Item label={<span className=" font-medium text-slate-700">Đường lây nhiễm nghi ngờ</span>}>
             <Select
-              value={clinicForm.clinicalRecord.suspectedInfectionType ?? ''}
-              onChange={(val) => handleChange('suspectedInfectionType', val)}
-              placeholder="Chọn tình trạng"
+              value={clinicForm.clinicalRecord.suspectedTransmissionRoute ?? undefined}
+              onChange={(val) => handleChange('suspectedTransmissionRoute', val)}
+              placeholder="Chọn đường lây nhiễm"
               className="h-11 rounded-lg"
-              options={[
-                { value: 'EARLY_POSTOPERATIVE', label: 'Nhiễm trùng hậu phẫu sớm' },
-                { value: 'DELAYED', label: 'Nhiễm trùng muộn / trì hoãn' },
-                { value: 'LATE_HEMATOGENOUS', label: 'Nhiễm trùng đường máu (hơn 24 tháng)' },
-                { value: 'ACUTE_HEMATOGENOUS', label: 'Nhiễm trùng cấp đường máu' },
-                { value: 'CHRONIC', label: 'Nhiễm trung mạn tính' },
-                { value: 'UNKNOWN', label: 'Chưa rõ' },
-              ]}
+              options={TRANSMISSION_ROUTE_OPTIONS}
             />
           </Form.Item>
 
           <Form.Item label={<span className=" font-medium text-slate-700">Tình trạng mô mềm</span>}>
             <Input
-              placeholder="Ví dụ:"
+              placeholder="Ví dụ:sưng, đau, chảy dịch, hoại tử.."
               value={clinicForm.clinicalRecord.softTissue ?? ''}
               onChange={(e) => handleChange('softTissue', e.target.value)}
               className="h-11 rounded-lg"
@@ -158,21 +157,10 @@ const ClinicalExamForm: React.FC = () => {
               className="h-11 rounded-lg"
               options={[
                 { value: 'STABLE', label: 'Ổn định' },
-                { value: 'POSSIBLY_LOOSE', label: 'Có thể lỏng' },
+                { value: 'POSSIBLY_LOOSE', label: 'Nghi ngờ lỏng' },
                 { value: 'LOOSE', label: 'Lỏng lẻo' },
                 { value: 'UNKNOWN', label: 'Chưa rõ' },
               ]}
-            />
-          </Form.Item>
-
-          <Form.Item label={<span className=" font-medium text-slate-700">Số ngày từ lần thay khớp đầu</span>}>
-            <InputNumber
-              placeholder="Ví dụ: 70"
-              value={clinicForm.clinicalRecord.daysSinceIndexArthroplasty}
-              onChange={(val) => handleChange('daysSinceIndexArthroplasty', val)}
-              className="w-full h-11 rounded-lg"
-              min={0}
-              controls={false}
             />
           </Form.Item>
 
@@ -189,13 +177,13 @@ const ClinicalExamForm: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={<span className=" font-medium text-slate-700">Khám bệnh toàn thân</span>}
+            label={<span className=" font-medium text-slate-700">Bệnh ngoại khoa</span>}
             className="col-span-3"
           >
             <Input
-              placeholder="Ví dụ: Tỉnh táo, tiếp xúc tốt..."
-              value={clinicForm.clinicalRecord.notations ?? ''}
-              onChange={(e) => handleChange('notations', e.target.value)}
+              placeholder="Ví dụ: Mô tả bệnh ngoại khoa..."
+              value={clinicForm.clinicalRecord.surgicalDisease ?? ''}
+              onChange={(e) => handleChange('surgicalDisease', e.target.value)}
               className="h-11 rounded-lg"
             />
           </Form.Item>

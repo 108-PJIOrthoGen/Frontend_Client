@@ -26,13 +26,10 @@ const importanceColor = (imp?: string) => {
   return 'blue';
 };
 
-const INFECTION_TYPE_OPTIONS = [
-  { value: 'EARLY_POSTOPERATIVE', label: 'Sớm sau mổ (Early postoperative)' },
-  { value: 'DELAYED', label: 'Muộn (Delayed)' },
-  { value: 'LATE_HEMATOGENOUS', label: 'Đường máu muộn (Late hematogenous)' },
-  { value: 'ACUTE_HEMATOGENOUS', label: 'Cấp đường máu (Acute hematogenous)' },
-  { value: 'CHRONIC', label: 'Mạn tính (Chronic)' },
-  { value: 'UNKNOWN', label: 'Chưa rõ' },
+const ONSET_TIMING_OPTIONS = [
+  { value: 'EARLY', label: 'Sớm (3 tháng)' },
+  { value: 'DELAYED_SUBACUTE', label: 'Chậm/bán cấp (3–24 tháng)' },
+  { value: 'LATE', label: 'Muộn (>24 tháng)' },
 ];
 
 const IMPLANT_STABILITY_OPTIONS = [
@@ -138,14 +135,14 @@ const PendingLabTasksTab: React.FC<Props> = ({ episodeId }) => {
   const renderClinicalControl = (control: ClinicalControl) => {
     const cr = form.clinicalRecord ?? {};
     switch (control) {
-      case 'infectionType':
+      case 'onsetTiming':
         return (
           <Select
-            value={cr.suspectedInfectionType || undefined}
-            onChange={(v) => setClinicalRecord({ suspectedInfectionType: v })}
-            placeholder="-- Chọn phân loại nhiễm trùng --"
+            value={cr.onsetTiming || undefined}
+            onChange={(v) => setClinicalRecord({ onsetTiming: v })}
+            placeholder="-- Chọn thời điểm khởi phát --"
             className="w-full"
-            options={INFECTION_TYPE_OPTIONS}
+            options={ONSET_TIMING_OPTIONS}
           />
         );
       case 'implantStability':
@@ -204,8 +201,8 @@ const PendingLabTasksTab: React.FC<Props> = ({ episodeId }) => {
       default:
         return (
           <TextArea
-            value={cr.notations ?? ''}
-            onChange={(e) => setClinicalRecord({ notations: e.target.value })}
+            value={cr.surgicalDisease ?? ''}
+            onChange={(e) => setClinicalRecord({ surgicalDisease: e.target.value })}
             placeholder="Nhập mô tả lâm sàng / kết quả giải phẫu bệnh..."
             autoSize={{ minRows: 3 }}
           />

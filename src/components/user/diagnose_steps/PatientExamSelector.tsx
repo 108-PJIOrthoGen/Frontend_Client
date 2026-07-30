@@ -268,7 +268,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                 )}
 
                 <div className="grid gap-4 xl:grid-cols-[0.95fr_1.2fr_0.95fr]">
-                    <section className="flex min-h-[520px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <section className="flex h-[520px] min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
                         <div className="border-b border-slate-100 px-4 py-3">
                             <div className="mb-3 flex items-center justify-between gap-3">
                                 <h3 className="font-semibold text-slate-800">Bệnh nhân</h3>
@@ -313,7 +313,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                         </div>
                     </section>
 
-                    <section className="flex min-h-[520px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <section className="flex h-[520px] min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
                         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                             <h3 className="font-semibold text-slate-800">Bệnh án</h3>
                             <Tag color={exams.length ? 'green' : 'default'} className="m-0">{exams.length}</Tag>
@@ -351,7 +351,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                         </div>
                     </section>
 
-                    <section className="flex min-h-[520px] flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <section className="flex h-[520px] min-h-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white">
                         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
                             <div className="flex min-w-0 items-center gap-2">
                                 <HistoryOutlined className="text-indigo-500" />

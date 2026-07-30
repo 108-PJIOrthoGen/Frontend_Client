@@ -193,7 +193,6 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Địa chỉ thường trú"
             name="address"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
           >
             <Input placeholder="Nhập địa chỉ" />
           </Form.Item>
