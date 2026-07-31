@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { message } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import {
@@ -6,23 +6,32 @@ import {
   callFetchExtractImageJob,
   callCancelExtractImageJob,
 } from '@/apis/api';
+import { callCreateUploadSession } from '@/apis/uploadSessions';
 import {
   ExtractApplyCandidate,
   ExtractedMedicalResult,
   ExtractImageJobStatus,
 } from '@/types/extractImages';
 import {
+  UploadSessionCreateResponse,
+  UploadSessionEvent,
+} from '@/types/uploadSession';
+import {
   applyExtractCandidatesToClinicForm,
   buildCandidatesFromExtracted,
   normalizeUpstreamExtracted,
 } from '@/utils/extractImagesMapper';
+import { openSse, SseConnection } from '@/utils/sseClient';
 
 export type QuickImportStatus = ExtractImageJobStatus | 'idle' | 'uploading';
 
 const QUICK_IMPORT_POLL_INTERVAL_MS = 2_500;
 const QUICK_IMPORT_MAX_POLL_MS = 10 * 60_000;
 
-export function useQuickImportFlow(episodeId?: string | number) {
+export function useQuickImportFlow(
+  episodeId?: string | number,
+  patientId?: string | number,
+) {
   const { form: clinicForm, setForm } = useClinicForm();
 
   const [quickImportOpen, setQuickImportOpen] = useState(false);
@@ -31,22 +40,42 @@ export function useQuickImportFlow(episodeId?: string | number) {
   const [quickImportError, setQuickImportError] = useState<string | null>(null);
   const [extractCandidates, setExtractCandidates] = useState<ExtractApplyCandidate[]>([]);
   const [extractedRaw, setExtractedRaw] = useState<ExtractedMedicalResult | null>(null);
+  const [qrSession, setQrSession] = useState<UploadSessionCreateResponse | null>(null);
+  const [qrEvent, setQrEvent] = useState<UploadSessionEvent | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   const pollTimerRef = useRef<number | null>(null);
   const pollStartRef = useRef<number>(0);
   const currentJobIdRef = useRef<string | null>(null);
+  const sseRef = useRef<SseConnection | null>(null);
+  const clinicFormRef = useRef(clinicForm);
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const stopPolling = () => {
+  useEffect(() => {
+    clinicFormRef.current = clinicForm;
+  }, [clinicForm]);
+
+  const stopPolling = useCallback(() => {
     if (pollTimerRef.current != null) {
       window.clearInterval(pollTimerRef.current);
       pollTimerRef.current = null;
     }
-  };
+  }, []);
 
-  useEffect(() => () => stopPolling(), []);
+  const closeQrStream = useCallback(() => {
+    sseRef.current?.close();
+    sseRef.current = null;
+  }, []);
 
-  const pollExtractJob = async (jobId: string) => {
+  useEffect(
+    () => () => {
+      stopPolling();
+      closeQrStream();
+    },
+    [closeQrStream, stopPolling],
+  );
+
+  const pollExtractJob = useCallback(async (jobId: string) => {
     try {
       const res: any = await callFetchExtractImageJob(jobId);
       const job = res?.data?.data || res?.data;
@@ -55,7 +84,7 @@ export function useQuickImportFlow(episodeId?: string | number) {
       if (status === 'completed') {
         stopPolling();
         const normalized = normalizeUpstreamExtracted(job?.extracted);
-        const candidates = buildCandidatesFromExtracted(normalized, clinicForm);
+        const candidates = buildCandidatesFromExtracted(normalized, clinicFormRef.current);
         setExtractedRaw(normalized);
         setExtractCandidates(candidates);
         setQuickImportStatus('completed');
@@ -72,7 +101,6 @@ export function useQuickImportFlow(episodeId?: string | number) {
       }
 
       if (status === 'cancelled') {
-        // Worker confirmed the cancel — stop quietly, no error toast.
         stopPolling();
         setQuickImportStatus('idle');
         return;
@@ -92,7 +120,19 @@ export function useQuickImportFlow(episodeId?: string | number) {
       setQuickImportStatus('failed');
       setQuickImportError('Không thể lấy kết quả trích xuất');
     }
-  };
+  }, [stopPolling]);
+
+  const startPolling = useCallback((jobId: string) => {
+    stopPolling();
+    currentJobIdRef.current = jobId;
+    setQuickImportStatus('queued');
+    pollStartRef.current = Date.now();
+    void pollExtractJob(jobId);
+    pollTimerRef.current = window.setInterval(
+      () => void pollExtractJob(jobId),
+      QUICK_IMPORT_POLL_INTERVAL_MS,
+    );
+  }, [pollExtractJob, stopPolling]);
 
   const handleQuickImportSubmit = async (files: File[]) => {
     setQuickImportStatus('uploading');
@@ -103,34 +143,70 @@ export function useQuickImportFlow(episodeId?: string | number) {
       if (!jobId) {
         throw new Error('Không nhận được jobId từ server');
       }
-      currentJobIdRef.current = jobId;
-      setQuickImportStatus('queued');
-      pollStartRef.current = Date.now();
-      pollTimerRef.current = window.setInterval(
-        () => pollExtractJob(jobId),
-        QUICK_IMPORT_POLL_INTERVAL_MS,
-      );
+      startPolling(jobId);
     } catch (err: any) {
       setQuickImportStatus('failed');
       setQuickImportError(err?.message || 'Không thể tạo job trích xuất');
     }
   };
 
+  const openQrStream = useCallback((session: UploadSessionCreateResponse) => {
+    closeQrStream();
+    const base = ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '')
+      .replace(/\/+$/, '');
+    const token = window.localStorage.getItem('access_token');
+    sseRef.current = openSse({
+      url: `${base}/api/v1/upload-sessions/${session.sessionId}/events`,
+      token,
+      onEvent: (frame) => {
+        if (frame.event !== 'uploaded') return;
+        try {
+          const event = JSON.parse(frame.data) as UploadSessionEvent;
+          setQrEvent(event);
+          setQrError(null);
+          closeQrStream();
+          startPolling(event.jobId);
+        } catch {
+          setQrError('Dữ liệu đồng bộ từ điện thoại không hợp lệ');
+        }
+      },
+      onError: () => {
+        if (Date.now() < new Date(session.expiresAt).getTime()) {
+          setQrError('Mất kết nối đồng bộ. Hãy tạo lại mã QR nếu ảnh không xuất hiện.');
+        }
+      },
+    });
+  }, [closeQrStream, startPolling]);
+
+  const createQrSession = useCallback(async () => {
+    if (patientId == null || episodeId == null) {
+      throw new Error('Cần lưu bệnh án trước khi tải ảnh từ điện thoại');
+    }
+    setQrError(null);
+    setQrEvent(null);
+    const session = await callCreateUploadSession(patientId, episodeId);
+    setQrSession(session);
+    openQrStream(session);
+    return session;
+  }, [episodeId, openQrStream, patientId]);
+
   const handleQuickImportClose = () => {
     if (
-      quickImportStatus === 'uploading' ||
-      quickImportStatus === 'queued' ||
-      quickImportStatus === 'processing'
+      quickImportStatus === 'uploading'
+      || quickImportStatus === 'queued'
+      || quickImportStatus === 'processing'
     ) {
       stopPolling();
     }
+    closeQrStream();
     setQuickImportOpen(false);
     setQuickImportStatus('idle');
     setQuickImportError(null);
+    setQrSession(null);
+    setQrEvent(null);
+    setQrError(null);
   };
 
-  // Cancel an in-flight job: tell the server to drop + delete it, stop polling,
-  // and reset the modal back to the upload state so the user can retry.
   const handleCancelExtract = async () => {
     const jobId = currentJobIdRef.current;
     stopPolling();
@@ -143,7 +219,6 @@ export function useQuickImportFlow(episodeId?: string | number) {
       await callCancelExtractImageJob(jobId);
       message.info('Đã huỷ trích xuất');
     } catch {
-      // Server-side guard still drops a late result, so reset locally regardless.
       message.warning('Đã yêu cầu huỷ (máy chủ phản hồi lỗi)');
     } finally {
       currentJobIdRef.current = null;
@@ -156,6 +231,9 @@ export function useQuickImportFlow(episodeId?: string | number) {
   const openQuickImport = () => {
     setQuickImportError(null);
     setQuickImportStatus('idle');
+    setQrSession(null);
+    setQrEvent(null);
+    setQrError(null);
     setQuickImportOpen(true);
   };
 
@@ -164,7 +242,7 @@ export function useQuickImportFlow(episodeId?: string | number) {
       setReviewOpen(false);
       return;
     }
-    setForm((prev) => applyExtractCandidatesToClinicForm(prev, candidates, extractedRaw));
+    setForm((previous) => applyExtractCandidatesToClinicForm(previous, candidates, extractedRaw));
     message.success('Đã áp dụng dữ liệu trích xuất vào form');
     setReviewOpen(false);
     setExtractCandidates([]);
@@ -184,11 +262,15 @@ export function useQuickImportFlow(episodeId?: string | number) {
     quickImportError,
     isCancelling,
     extractCandidates,
+    qrSession,
+    qrEvent,
+    qrError,
     openQuickImport,
     handleQuickImportClose,
     handleQuickImportSubmit,
     handleCancelExtract,
     handleApplyCandidates,
     handleReviewCancel,
+    createQrSession,
   };
 }

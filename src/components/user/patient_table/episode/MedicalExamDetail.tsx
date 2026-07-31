@@ -298,7 +298,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const tabItems = [
         {
             key: '1',
-            label: 'Bệnh Án Ngoại Khoa',
+            label: 'Quản lý người bệnh',
             forceRender: true,
             children: (
                 <MedicalExamination

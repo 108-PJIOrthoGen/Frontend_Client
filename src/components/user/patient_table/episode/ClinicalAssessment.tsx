@@ -44,13 +44,17 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
     quickImportError,
     isCancelling,
     extractCandidates,
+    qrSession,
+    qrEvent,
+    qrError,
     openQuickImport,
     handleQuickImportClose,
     handleQuickImportSubmit,
     handleCancelExtract,
     handleApplyCandidates,
     handleReviewCancel,
-  } = useQuickImportFlow(episodeId);
+    createQrSession,
+  } = useQuickImportFlow(episodeId, patient?.id);
 
   // Image upload modal state (selecting image type after picking a file)
   const [uploading, setUploading] = useState(false);
@@ -108,6 +112,10 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         open={quickImportOpen}
         onClose={handleQuickImportClose}
         onSubmit={handleQuickImportSubmit}
+        onCreateQr={createQrSession}
+        qrSession={qrSession}
+        qrEvent={qrEvent}
+        qrError={qrError}
         onCancelJob={handleCancelExtract}
         isCancelling={isCancelling}
         status={quickImportStatus}

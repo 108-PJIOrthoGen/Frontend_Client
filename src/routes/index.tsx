@@ -12,6 +12,7 @@ const LayoutAdmin = lazy(() => import("@/layouts/LayoutAdmin"));
 const LoginPage = lazy(() => import("@/pages/auth/LoginPage"));
 const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPasswordPage"));
 const VerifyDevicePage = lazy(() => import("@/pages/auth/VerifyDevicePage"));
+const MobileUploadPage = lazy(() => import("@/pages/mobile/MobileUploadPage"));
 
 const AiDiagnosisSuggestion = lazy(() => import("@/pages/user/AiDiagnoseSuggestion"));
 const PatientTable = lazy(() => import("@/pages/user/PatientTable"));
@@ -105,6 +106,10 @@ const router = createBrowserRouter([
     {
         path: "/verify-device",
         element: <VerifyDevicePage />,
+    },
+    {
+        path: "/m/upload/:sessionId",
+        element: <MobileUploadPage />,
     },
 ]);
 export default router
