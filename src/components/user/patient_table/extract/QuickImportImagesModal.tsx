@@ -1,15 +1,11 @@
-import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
-import { Modal, Upload, Button, message, Spin } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Modal, Upload, Button, message, Spin, QRCode } from 'antd';
 import type { UploadFile, RcFile } from 'antd/es/upload/interface';
 import { ExtractImageJobStatus } from '@/types/extractImages';
 import {
   UploadSessionCreateResponse,
   UploadSessionEvent,
 } from '@/types/uploadSession';
-
-const QRCode = lazy(() =>
-  import('qrcode.react').then((module) => ({ default: module.QRCodeSVG })),
-);
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_FILES = 10;
@@ -22,6 +18,7 @@ interface QuickImportImagesModalProps {
   onClose: () => void;
   onSubmit: (files: File[]) => void;
   onCreateQr: () => Promise<UploadSessionCreateResponse>;
+  canCreateQr: boolean;
   qrSession?: UploadSessionCreateResponse | null;
   qrEvent?: UploadSessionEvent | null;
   qrError?: string | null;
@@ -62,6 +59,7 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
   onClose,
   onSubmit,
   onCreateQr,
+  canCreateQr,
   qrSession,
   qrEvent,
   qrError,
@@ -149,6 +147,10 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
   };
 
   const openQrMode = () => {
+    if (!canCreateQr) {
+      message.warning('Vui lòng lưu bệnh án trước khi tải ảnh từ điện thoại.');
+      return;
+    }
     setMode('qr');
     if (!qrSession) void createQr();
   };
@@ -209,14 +211,21 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
           <button
             type="button"
             onClick={openQrMode}
-            className="group flex min-h-44 flex-col items-start rounded-xl border border-slate-200 bg-white p-6 text-left transition hover:border-blue-500 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            aria-disabled={!canCreateQr}
+            className={`group flex min-h-44 flex-col items-start rounded-xl border p-6 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+              canCreateQr
+                ? 'border-slate-200 bg-white hover:border-blue-500 hover:shadow-sm'
+                : 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
+            }`}
           >
             <span className="mb-5 grid h-11 w-11 place-items-center rounded-lg bg-blue-50 text-blue-600">
               <span className="material-symbols-outlined" aria-hidden="true">smartphone</span>
             </span>
             <span className="text-base font-semibold text-slate-900">Tải ảnh từ điện thoại</span>
             <span className="mt-2 text-sm leading-6 text-slate-500">
-              Quét mã QR để chụp và gửi ảnh thẳng về bệnh án đang mở.
+              {canCreateQr
+                ? 'Quét mã QR để chụp và gửi ảnh thẳng về bệnh án đang mở.'
+                : 'Cần lưu bệnh án trước khi sử dụng tính năng này.'}
             </span>
           </button>
           <div className="sm:col-span-2 flex items-center gap-2 border-t border-slate-100 pt-4 text-xs text-slate-500">
@@ -266,15 +275,14 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
             <div className="mt-5 grid min-h-56 min-w-56 place-items-center rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               {creatingQr ? <Spin size="large" /> : null}
               {!creatingQr && qrSession && remainingSeconds > 0 ? (
-                <Suspense fallback={<Spin />}>
-                  <QRCode
-                    value={qrSession.qrPayload}
-                    size={210}
-                    level="M"
-                    marginSize={1}
-                    aria-label="Mã QR tải ảnh từ điện thoại"
-                  />
-                </Suspense>
+                <QRCode
+                  value={qrSession.qrPayload}
+                  size={210}
+                  type="svg"
+                  errorLevel="M"
+                  bordered={false}
+                  aria-label="Mã QR tải ảnh từ điện thoại"
+                />
               ) : null}
               {!creatingQr && (!qrSession || remainingSeconds === 0) ? (
                 <div className="max-w-48 text-sm text-slate-500">

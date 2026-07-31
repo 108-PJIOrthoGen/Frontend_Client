@@ -113,6 +113,7 @@ export const ClinicalAssessmentPage: React.FC<ClinicalAssessmentProps> = ({
         onClose={handleQuickImportClose}
         onSubmit={handleQuickImportSubmit}
         onCreateQr={createQrSession}
+        canCreateQr={patient?.id != null && episodeId != null}
         qrSession={qrSession}
         qrEvent={qrEvent}
         qrError={qrError}

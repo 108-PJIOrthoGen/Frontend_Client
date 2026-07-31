@@ -1,18 +1,16 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Button, Form, Input, Switch, message, Modal, notification,
-  Typography, Card, Space, Flex,
-  Image,
 } from 'antd';
 import {
-  UserOutlined, LockOutlined, MedicineBoxOutlined,
+  LockOutlined, MenuOutlined, UserOutlined,
 } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { fetchAccount, runLoginAction, runLogoutAction } from '../../redux/slice/accountSlice';
 import { loginAPI, LogoutAPI } from '@/apis/auth';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
-
-const { Title, Text, Paragraph } = Typography;
+import synoeticTeamImage from '@/assets/teams/synoetic.png';
+import ibmeTeamImage from '@/assets/teams/no-slg.png';
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -70,98 +68,151 @@ const LoginPage = () => {
   };
 
   return (
-    <Flex
-      style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #5fd4d4 0%, #61c55d 100%)',
-      }}
-      align="center"
-      justify="center"
+    <main
+      className="min-h-screen overflow-y-auto"
+      style={{ minHeight: '100dvh' }}
     >
-      <Card
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          margin: 16,
-          borderRadius: 12,
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-        }}
-        styles={{ body: { padding: '40px 32px' } }}
+      <section
+        className="grid min-h-screen w-full overflow-hidden bg-white lg:grid-cols-[minmax(360px,0.36fr)_minmax(0,0.64fr)]"
+        style={{ minHeight: '100dvh' }}
       >
-        <Flex vertical align="center" gap={4} style={{ marginBottom: 32 }}>
-          <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
-          <Title level={3} style={{ margin: '12px 0 0', textAlign: 'center' }}>
-            Hệ thống quản lý bệnh án & hỗ trợ chẩn đoán PJI 108
-          </Title>
+        <div id="login-panel" className="relative flex flex-col bg-white px-7 py-5 sm:px-12 sm:py-10">
+          <img
+            src="/108POG-logo.png"
+            alt="POG 108"
+            className="h-auto w-full max-w-[220px] object-contain"
+          />
 
-        </Flex>
+          <div className="my-auto py-10">
+            <div className="mx-auto mb-7 flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#213872] text-[44px] text-white shadow-[0_12px_30px_rgba(33,56,114,0.24)]">
+              <UserOutlined />
+            </div>
 
-        <Form
-          onFinish={onFinish}
-          layout="vertical"
-          initialValues={{ remember: true }}
-          size="large"
-        >
-          <Form.Item
-            name="username"
-            rules={[{ required: true, message: 'Không để trống!' }]}
-          >
-            <Input
-              prefix={<UserOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="Email "
-            />
-          </Form.Item>
 
-          <Form.Item
-            name="password"
-            rules={[{ required: true, message: 'Không để trống!' }]}
-          >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: '#bfbfbf' }} />}
-              placeholder="Mật khẩu"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="remember"
-            valuePropName="checked"
-            style={{ marginBottom: 16 }}
-          >
-            <Flex justify="space-between" align="center">
-              <Space>
-                <Switch defaultChecked size="small" />
-                <Text type="secondary">Ghi nhớ đăng nhập</Text>
-              </Space>
-              <Link to="/forgot-password">Quên mật khẩu?</Link>
-            </Flex>
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 16 }}>
-            <Button
-              type="primary"
-              htmlType="submit"
-              loading={isLoading}
-              block
-              style={{
-                height: 44,
-                borderRadius: 8,
-                background: 'linear-gradient(135deg, #66ea92 0%, #233c81 100%)',
-                border: 'none',
-                fontWeight: 600,
-              }}
+            <Form
+              onFinish={onFinish}
+              layout="vertical"
+              initialValues={{ remember: true }}
+              size="large"
+              className="mx-auto max-w-[390px]"
             >
-              Đăng nhập
-            </Button>
-          </Form.Item>
+              <Form.Item
+                name="username"
+                rules={[{ required: true, message: 'Không để trống!' }]}
+              >
+                <Input
+                  prefix={<UserOutlined className="text-slate-400" />}
+                  placeholder="Email"
+                  autoComplete="username"
+                  className="h-12 rounded-full border-2 border-slate-300 px-5 hover:border-[#29488e] focus:border-[#29488e]"
+                />
+              </Form.Item>
 
-          <Paragraph
-            type="secondary"
-            style={{ textAlign: 'center', fontSize: 13, marginBottom: 0 }}
-          >
-            Tài khoản chỉ được cấp cho các Bác Sĩ. Nếu có vấn đề liên quan tài khoản liên hệ với QTV hệ thống!
-          </Paragraph>
-        </Form>
-      </Card>
+              <Form.Item
+                name="password"
+                rules={[{ required: true, message: 'Không để trống!' }]}
+              >
+                <Input.Password
+                  prefix={<LockOutlined className="text-slate-400" />}
+                  placeholder="Mật khẩu"
+                  autoComplete="current-password"
+                  className="h-12 rounded-full border-2 border-slate-300 px-5 hover:border-[#29488e] focus:border-[#29488e]"
+                />
+              </Form.Item>
+
+              <div className="mb-5 flex items-center justify-between gap-3 text-[13px]">
+                <label className="flex cursor-pointer items-center gap-2 text-slate-600">
+                  <Form.Item name="remember" valuePropName="checked" noStyle>
+                    <Switch size="small" />
+                  </Form.Item>
+                  <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <Link className="font-medium text-[#29488e] hover:text-[#1b3168]" to="/forgot-password">
+                  Quên mật khẩu?
+                </Link>
+              </div>
+
+              <Form.Item className="mb-4">
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isLoading}
+                  block
+                  className="h-12 rounded-full border-0 bg-[#263e7d] text-[15px] font-bold tracking-wide shadow-[0_8px_20px_rgba(38,62,125,0.24)] hover:!bg-[#1d3167]"
+                >
+                  Đăng nhập
+                </Button>
+              </Form.Item>
+
+              <p className="mb-0 text-center text-[12px] leading-relaxed text-slate-500">
+                Tài khoản chỉ được cấp cho các Bác Sĩ. Nếu có vấn đề liên quan tài khoản, vui lòng liên hệ QTV hệ thống.
+              </p>
+            </Form>
+          </div>
+
+          <div className="flex justify-center gap-2" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-full bg-[#263e7d]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#263e7d]" />
+            <span className="h-2.5 w-2.5 rounded-full bg-[#263e7d]" />
+          </div>
+          <div className="mt-5 border-t border-slate-100 pt-4">
+            <p className="mb-1 text-center text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Sản phẩm được phát triển bởi
+            </p>
+            <div className="flex items-center justify-center gap-4 sm:gap-8">
+              <img
+                src={synoeticTeamImage}
+                alt="Nhóm phát triển Synoetic"
+                className="h-14 w-46 rounded-md object-cover object-center"
+              />
+              <span className="h-8 w-px bg-slate-200" aria-hidden="true" />
+              <img
+                src={ibmeTeamImage}
+                alt="Nhóm phát triển iBME"
+                className="h-11 w-28 object-contain"
+              />
+            </div>
+          </div>
+
+        </div>
+
+        <div
+          className="relative flex min-h-[460px] flex-col overflow-hidden px-6 py-7 text-white sm:px-10 lg:min-h-0 lg:px-12"
+          style={{
+            background: [
+              'radial-gradient(circle at 12% 12%, rgba(125, 203, 252, 0.88) 0%, rgba(14, 116, 164, 0.38) 22%, transparent 38%)',
+              'radial-gradient(circle at 86% 70%, rgba(163, 230, 53, 0.20) 0%, transparent 34%)',
+              'linear-gradient(135deg, #0f2d68 0%, #24d281 48%, #11285f 100%)',
+            ].join(', '),
+          }}
+        >
+
+
+          <nav aria-label="Điều hướng trang đăng nhập" className="relative z-10 flex items-center justify-end gap-5 text-[11px] font-semibold tracking-wider sm:gap-7">
+            <a href="#development-teams" className="text-white/80 transition-colors hover:text-white">GIỚI THIỆU</a>
+            <Link to="/forgot-password" className="text-white/80 transition-colors hover:text-white">HỖ TRỢ</Link>
+            <a href="#login-panel" className="rounded-full border border-white/40 bg-[#213872]/70 px-5 py-2 text-white transition-colors hover:bg-[#213872]">
+              ĐĂNG NHẬP
+            </a>
+            <button
+              type="button"
+              aria-label="Đi tới biểu mẫu đăng nhập"
+              onClick={() => document.getElementById('login-panel')?.scrollIntoView({ behavior: 'smooth' })}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-lg text-white/85 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <MenuOutlined />
+            </button>
+          </nav>
+
+          <div id="development-teams" className="relative z-10 my-auto flex flex-col items-center py-12 text-center">
+            <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">Chào mừng!</h2>
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-blue-50/85 sm:text-base">
+              Đồng hành cùng đội ngũ y tế trong chuyển đổi số, ứng dụng công nghệ vào thực tiễn lâm sàng.
+            </p>
+
+          </div>
+        </div>
+      </section>
 
       <Modal
         title="Ban da dang nhap"
@@ -183,7 +234,7 @@ const LoginPage = () => {
       >
         <p>Ban se dang xuat khoi tai khoan hien tai, neu tiep tuc truy cap duong dan nay!</p>
       </Modal>
-    </Flex>
+    </main>
   );
 };
 

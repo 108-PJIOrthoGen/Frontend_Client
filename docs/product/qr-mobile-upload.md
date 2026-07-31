@@ -5,6 +5,10 @@ The existing **Import nhanh** action offers two paths:
 - select one or more images on the laptop; or
 - create a five-minute QR code and send images from a phone.
 
+The mobile option is unavailable until the episode has been saved and has an
+`episodeId`. Selecting the locked option explains that the doctor must save the
+episode first.
+
 The QR view shows a countdown and waits on an authenticated SSE stream. When
 the backend sends the terminal upload event, the modal shows temporary image
 previews and starts the existing OCR polling/review flow automatically.

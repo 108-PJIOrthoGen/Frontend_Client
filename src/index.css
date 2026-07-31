@@ -8,6 +8,14 @@ body {
 .icon-filled {
   font-variation-settings: 'FILL' 1;
 }
+.client-sidebar-menu .ant-menu-item-icon,
+.client-sidebar-menu button .anticon {
+  min-width: 21px;
+  font-size: 21px !important;
+}
+.client-sidebar-menu .ant-menu-item-icon > .anticon {
+  font-size: inherit !important;
+}
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

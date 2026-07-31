@@ -49,6 +49,9 @@ export const callCreateUploadSession = async (
     `/api/v1/patients/${patientId}/upload-sessions`,
     { episodeId: Number(episodeId) },
   ) as unknown as BackendEnvelope<UploadSessionCreateResponse>;
+  if (!response?.data?.sessionId || !response.data.qrPayload || !response.data.expiresAt) {
+    throw new Error(response?.message || 'Không thể tạo mã QR');
+  }
   return response.data;
 };
 

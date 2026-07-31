@@ -128,7 +128,7 @@ export const LayoutClient = () => {
   ];
 
   const recordMenuItems = [
-    { path: '/table-patients', label: 'Quản lý bệnh án', icon: 'clinical_notes', step: "Thông tin" },
+    { path: '/table-patients', label: 'Quản lý hồ sơ', icon: 'clinical_notes', step: "Thông tin" },
   ];
 
 
@@ -147,34 +147,34 @@ export const LayoutClient = () => {
 
   const renderNavigationLabel = (label: string, step: string) => (
     <div className="flex min-w-0 flex-col py-1 leading-tight">
-      <span className="truncate font-medium">{label}</span>
-      <span className="mt-1 truncate text-md opacity-70">{step}</span>
+      <span className="truncate text-[15px] font-semibold">{label}</span>
+      <span className="mt-1 truncate text-[13px] opacity-70">{step}</span>
     </div>
   );
 
   const navigationItems: MenuProps['items'] = [
     {
       key: 'medical-records',
-      label: <span className="font-semibold">Bệnh Án</span>,
+      label: <span className="text-[15px] font-bold">Bệnh Án</span>,
       children: recordMenuItems.map((item) => ({
         key: item.path,
-        icon: <span className="material-symbols-outlined">{item.icon}</span>,
+        icon: <span className="material-symbols-outlined text-[23px]">{item.icon}</span>,
         label: renderNavigationLabel(item.label, item.step),
         style: { height: 'auto', lineHeight: 'normal', paddingBlock: 6 },
       })),
     },
     {
       key: 'ai-recommendations',
-      label: <span className="font-semibold">Sinh Khuyến Nghị</span>,
+      label: <span className="text-[15px] font-bold">Sinh Khuyến Nghị</span>,
       children: aiPredictionMenuItems.map((item) => ({
         key: item.path,
         disabled: item.comingSoon,
-        icon: <span className="material-symbols-outlined">{item.icon}</span>,
+        icon: <span className="flex items-center text-[21px]">{item.icon}</span>,
         label: item.comingSoon ? (
           <Tooltip title="Tính năng sắp ra mắt" placement="right">
             <div className="flex min-w-0 flex-col py-1 leading-tight">
-              <span className="truncate font-medium">{item.label}</span>
-              <span className="mt-1 truncate text-[11px] text-green-500">
+              <span className="truncate text-[15px] font-semibold">{item.label}</span>
+              <span className="mt-1 truncate text-[12px] text-green-500">
                 Sắp ra mắt · {item.step}
               </span>
             </div>
@@ -185,12 +185,12 @@ export const LayoutClient = () => {
     },
     {
       key: 'utilities',
-      label: <span className="font-semibold">Chức năng</span>,
+      label: <span className="text-[15px] font-bold">Chức năng</span>,
       children: [
         {
           key: 'notifications',
           label: (
-            <div className="-mx-3">
+            <div className="-mx-3 [&_button]:text-[15px] [&_svg]:text-[22px]">
               <NotificationBell />
             </div>
           ),
@@ -213,9 +213,9 @@ export const LayoutClient = () => {
                   className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-amber-200 hover:bg-amber-50"
                 >
                   <Badge count={pendingCount} size="small" offset={[-1, 3]}>
-                    <AlertOutlined />
+                    <AlertOutlined className="text-[21px]" />
                   </Badge>
-                  <span className="truncate font-medium text-slate-600">
+                  <span className="truncate text-[15px] font-semibold text-slate-600">
                     Xét nghiệm chờ bổ sung
                   </span>
                 </button>
@@ -240,7 +240,7 @@ export const LayoutClient = () => {
       style={{ height: '100dvh' }}
     >
       {/* Sidebar */}
-      <aside className="z-20 flex h-full min-h-0 w-72 max-w-[85vw] flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
+      <aside className="z-20 flex h-full min-h-0 w-[19rem] max-w-[85vw] flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           {/* Header */}
           <div className="flex shrink-0 flex-col items-center gap-1 px-6 pt-3">
@@ -248,7 +248,7 @@ export const LayoutClient = () => {
           </div>
 
           {/* Current Case */}
-          <div className={`mx-4 mb-6 mt-0 shrink-0 rounded-xl p-4 ${currentCase
+          <div data-tour="sidebar-current-case" className={`mx-4 mb-6 mt-0 shrink-0 rounded-xl p-4 ${currentCase
             ? 'bg-green-50 border border-green-200'
             : 'bg-slate-50 border border-slate-100'
             }`}>
@@ -263,19 +263,19 @@ export const LayoutClient = () => {
                 }
               </div>
               <div className="flex min-w-0 flex-1 flex-col">
-                <span className={`text-xs uppercase tracking-wider font-semibold ${currentCase ? 'text-green-600' : 'text-slate-500'
+                <span className={`text-[13px] uppercase tracking-wider font-semibold ${currentCase ? 'text-green-600' : 'text-slate-500'
                   }`}>Ca bệnh hiện tại</span>
                 {currentCase ? (
                   <>
-                    <h2 className="truncate text-sm font-bold text-green-900">{currentCase.patient.fullName}</h2>
+                    <h2 className="truncate text-base font-bold text-green-900">{currentCase.patient.fullName}</h2>
                     <p className="mt-1 truncate text-sm font-medium text-green-600">
                       Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
                     </p>
                   </>
                 ) : (
                   <>
-                    <h2 className="text-slate-900 text-sm font-bold">Chưa chọn ca bệnh</h2>
-                    <p className="text-slate-400 text-xs font-medium mt-1">Vui lòng chọn bệnh nhân</p>
+                    <h2 className="text-base font-bold text-slate-900">Chưa chọn ca bệnh</h2>
+                    <p className="mt-1 text-[13px] font-medium text-slate-400">Vui lòng chọn bệnh nhân</p>
                   </>
                 )}
               </div>
@@ -284,6 +284,7 @@ export const LayoutClient = () => {
 
           {/* Navigation */}
           <nav
+            data-tour="sidebar-navigation"
             aria-label="Điều hướng chính"
             className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-4"
           >
@@ -293,7 +294,7 @@ export const LayoutClient = () => {
               selectedKeys={selectedNavigationKey ? [selectedNavigationKey] : []}
               openKeys={['medical-records', 'ai-recommendations', 'utilities']}
               onClick={handleNavigationClick}
-              className="border-0 bg-transparent"
+              className="client-sidebar-menu border-0 bg-transparent"
               inlineIndent={16}
             />
           </nav>
@@ -303,7 +304,7 @@ export const LayoutClient = () => {
         <div className="shrink-0 border-t border-slate-200 bg-white">
 
           {/* User Profile */}
-          <div className="p-4 pt-1">
+          <div data-tour="sidebar-account" className="p-4 pt-1">
             <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="topLeft">
               <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200">
                 <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
