@@ -4,6 +4,7 @@ import {
   UploadSessionCreateResponse,
   UploadSessionValidation,
 } from '@/types/uploadSession';
+import { getRuntimeApiBase } from '@/config/runtimeUrls';
 
 interface BackendEnvelope<T> {
   statusCode?: number;
@@ -11,14 +12,11 @@ interface BackendEnvelope<T> {
   data: T;
 }
 
-const apiBase = () =>
-  ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '').replace(/\/+$/, '');
-
 const publicRequest = async <T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> => {
-  const response = await fetch(`${apiBase()}${path}`, {
+  const response = await fetch(`${getRuntimeApiBase()}${path}`, {
     ...init,
     credentials: 'omit',
     headers: {

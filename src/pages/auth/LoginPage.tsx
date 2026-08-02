@@ -57,12 +57,12 @@ const LoginPage = () => {
     if (res?.data?.access_token) {
       localStorage.setItem('access_token', res.data.access_token);
       dispatch(runLoginAction(res.data.user));
-      message.success('Dang nhap thanh cong');
+      message.success('Đăng nhập thành công');
       navigate(from, { replace: true });
     } else {
       notification.error({
-        message: 'Co loi xay ra',
-        description: res?.message ?? 'Thong tin dang nhap chua chinh xac!',
+        message: 'Đăng nhập thất bại',
+        description: res?.message ?? 'Thông tin đăng nhập chưa chính xác!',
       });
     }
   };
@@ -180,17 +180,17 @@ const LoginPage = () => {
           className="relative flex min-h-[460px] flex-col overflow-hidden px-6 py-7 text-white sm:px-10 lg:min-h-0 lg:px-12"
           style={{
             background: [
-              'radial-gradient(circle at 12% 12%, rgba(125, 203, 252, 0.88) 0%, rgba(14, 116, 164, 0.38) 22%, transparent 38%)',
+              'radial-gradient(circle at 12% 12%, rgba(98, 164, 205, 0.88) 0%, rgba(30, 150, 205, 0.38) 22%, transparent 38%)',
               'radial-gradient(circle at 86% 70%, rgba(163, 230, 53, 0.20) 0%, transparent 34%)',
-              'linear-gradient(135deg, #0f2d68 0%, #24d281 48%, #11285f 100%)',
+              'linear-gradient(135deg, #0f2d68 0%, #17aa65 48%, #11285f 100%)',
             ].join(', '),
           }}
         >
 
 
           <nav aria-label="Điều hướng trang đăng nhập" className="relative z-10 flex items-center justify-end gap-5 text-[11px] font-semibold tracking-wider sm:gap-7">
-            <a href="#development-teams" className="text-white/80 transition-colors hover:text-white">GIỚI THIỆU</a>
-            <Link to="/forgot-password" className="text-white/80 transition-colors hover:text-white">HỖ TRỢ</Link>
+            <a href="https://www.facebook.com/synoeticorg" className="text-white/80 transition-colors hover:text-white">VỀ CHÚNG TÔI</a>
+            <Link to="/forgot-password" className="text-white/80 transition-colors hover:text-white">QUÊN MẬT KHẨU</Link>
             <a href="#login-panel" className="rounded-full border border-white/40 bg-[#213872]/70 px-5 py-2 text-white transition-colors hover:bg-[#213872]">
               ĐĂNG NHẬP
             </a>

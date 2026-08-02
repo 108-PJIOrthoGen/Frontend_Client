@@ -9,6 +9,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RootState } from '@/redux/store';
+import { getRuntimeApiBase } from '@/config/runtimeUrls';
 import {
   callCancelAiRun,
   callGenerateAiRecommendation,
@@ -66,7 +67,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
 
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
-  const apiBase = ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '').replace(/\/+$/, '');
+  const apiBase = getRuntimeApiBase();
   const location = useLocation();
   const navigate = useNavigate();
 

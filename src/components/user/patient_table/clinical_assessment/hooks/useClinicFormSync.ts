@@ -50,7 +50,7 @@ export function useClinicFormSync({
           suspectedTransmissionRoute: clinicalRecord.suspectedTransmissionRoute ?? '',
           softTissue: clinicalRecord.softTissue ?? '',
           implantStability: clinicalRecord.implantStability ?? '',
-          prosthesisJoint: clinicalRecord.prosthesisJoint ?? '',
+          generalExam: clinicalRecord.generalExam ?? '',
           surgicalDisease: clinicalRecord.surgicalDisease ?? '',
         },
       }));
@@ -142,36 +142,41 @@ export function useClinicFormSync({
   useEffect(() => {
     if (imageResults && imageResults.length > 0) {
       setForm((prev) => {
-        const newImages = imageResults.map((img) => {
-          // Prefer the top-level `url` from the new backend response — it's a fresh
-          // presigned URL valid for the configured expiry window.
-          let url = img.url || '';
-          let name = 'Hinh anh';
-          if (!url && img.fileMetadata) {
-            if (img.fileMetadata.startsWith('{')) {
-              try {
-                const meta = JSON.parse(img.fileMetadata);
-                url = meta.url || meta.fileName || '';
-                name = meta.name || meta.originalName || name;
-              } catch {
-                /* legacy plain-string fileMetadata */
+        const newImages = imageResults
+          // An ImageResult may intentionally contain findings without an
+          // attached object. It should hydrate the description, not render as
+          // a broken image thumbnail.
+          .filter((img) => Boolean(img.url || img.bucket || img.objectKey || img.fileMetadata))
+          .map((img) => {
+            // Prefer the top-level `url` from the new backend response — it's a fresh
+            // presigned URL valid for the configured expiry window.
+            let url = img.url || '';
+            let name = 'Hinh anh';
+            if (!url && img.fileMetadata) {
+              if (img.fileMetadata.startsWith('{')) {
+                try {
+                  const meta = JSON.parse(img.fileMetadata);
+                  url = meta.url || meta.fileName || '';
+                  name = meta.name || meta.originalName || name;
+                } catch {
+                  /* legacy plain-string fileMetadata */
+                  url = img.fileMetadata;
+                }
+              } else {
                 url = img.fileMetadata;
               }
-            } else {
-              url = img.fileMetadata;
             }
-          }
-          return {
-            id: img.id?.toString() || Math.random().toString(36).substring(2, 11),
-            url,
-            type: img.type || 'X-ray',
-            name,
-            // re-saves preserve the canonical identifier even if the
-            // server-side URL has expired by then.
-            bucket: img.bucket,
-            objectKey: img.objectKey,
-          };
-        });
+            return {
+              id: img.id?.toString() || Math.random().toString(36).substring(2, 11),
+              url,
+              type: img.type || 'X-ray',
+              name,
+              // re-saves preserve the canonical identifier even if the
+              // server-side URL has expired by then.
+              bucket: img.bucket,
+              objectKey: img.objectKey,
+            };
+          });
         return {
           ...prev,
           formImages: newImages,

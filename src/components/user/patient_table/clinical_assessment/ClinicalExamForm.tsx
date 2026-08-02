@@ -67,9 +67,7 @@ const ClinicalExamForm: React.FC = () => {
         </h3>
       </div>
       <Form layout="vertical" className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-
+        <div className="grid grid-cols-1 gap-x-6 gap-y-0 md:grid-cols-2 xl:grid-cols-3">
           <Form.Item label={<span className=" font-medium text-slate-700">Chiều cao (cm)</span>}>
             <InputNumber
               placeholder="Ví dụ: 170"
@@ -140,15 +138,6 @@ const ClinicalExamForm: React.FC = () => {
             />
           </Form.Item>
 
-          <Form.Item label={<span className=" font-medium text-slate-700">Tình trạng mô mềm</span>}>
-            <Input
-              placeholder="Ví dụ:sưng, đau, chảy dịch, hoại tử.."
-              value={clinicForm.clinicalRecord.softTissue ?? ''}
-              onChange={(e) => handleChange('softTissue', e.target.value)}
-              className="h-11 rounded-lg"
-            />
-          </Form.Item>
-
           <Form.Item label={<span className=" font-medium text-slate-700">Độ ổn định cấy ghép</span>}>
             <Select
               value={clinicForm.clinicalRecord.implantStability ?? ''}
@@ -165,20 +154,32 @@ const ClinicalExamForm: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label={<span className=" font-medium text-slate-700">Khớp nhân tạo</span>}
-            className="col-span-3"
+            label={<span className=" font-medium text-slate-700">Tình trạng mô mềm</span>}
+            className="md:col-span-2 xl:col-span-3"
           >
             <Input
-              placeholder="Ví dụ: Mô tả về vị trí khớp, có phải mổ lại không, phương pháp cố định..."
-              value={clinicForm.clinicalRecord.prosthesisJoint ?? ''}
-              onChange={(e) => handleChange('prosthesisJoint', e.target.value)}
+              placeholder="Ví dụ: sưng, đau, chảy dịch, hoại tử..."
+              value={clinicForm.clinicalRecord.softTissue ?? ''}
+              onChange={(e) => handleChange('softTissue', e.target.value)}
+              className="h-11 rounded-lg"
+            />
+          </Form.Item>
+
+          <Form.Item
+            label={<span className=" font-medium text-slate-700">Khám toàn thân</span>}
+            className="md:col-span-2 xl:col-span-3"
+          >
+            <Input
+              placeholder="Ví dụ: Toàn trạng, dấu hiệu sinh tồn và các bất thường khi khám..."
+              value={clinicForm.clinicalRecord.generalExam ?? ''}
+              onChange={(e) => handleChange('generalExam', e.target.value)}
               className="h-11 rounded-lg"
             />
           </Form.Item>
 
           <Form.Item
             label={<span className=" font-medium text-slate-700">Bệnh ngoại khoa</span>}
-            className="col-span-3"
+            className="md:col-span-2 xl:col-span-3"
           >
             <Input
               placeholder="Ví dụ: Mô tả bệnh ngoại khoa..."

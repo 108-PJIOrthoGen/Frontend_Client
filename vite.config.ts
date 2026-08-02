@@ -8,6 +8,7 @@ dns.setDefaultResultOrder('verbatim')
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
+  const devBackendTarget = env.VITE_DEV_BACKEND_TARGET || 'http://127.0.0.1:8085'
   return {
     plugins: [
       react(),
@@ -20,8 +21,24 @@ export default defineConfig(({ command, mode }) => {
       assetsDir: 'assets',
     },
     server: {
+      host: true,
       port: Number(env.PORT) || Number(process.env.PORT) || 5173,
-      strictPort: true
+      strictPort: true,
+      proxy: command === 'serve'
+        ? {
+            '/api': {
+              target: devBackendTarget,
+              changeOrigin: true,
+              configure: (proxy) => {
+                // The browser request is same-origin with Vite. Do not forward
+                // its LAN Origin to Spring as a new cross-origin request.
+                proxy.on('proxyReq', (proxyRequest) => {
+                  proxyRequest.removeHeader('origin')
+                })
+              },
+            },
+          }
+        : undefined,
     },
     optimizeDeps: {
       esbuildOptions: {

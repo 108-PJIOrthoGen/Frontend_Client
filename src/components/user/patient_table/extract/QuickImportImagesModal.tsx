@@ -6,6 +6,7 @@ import {
   UploadSessionCreateResponse,
   UploadSessionEvent,
 } from '@/types/uploadSession';
+import { resolveBrowserReachableUrl } from '@/config/runtimeUrls';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_FILES = 10;
@@ -276,7 +277,7 @@ export const QuickImportImagesModal: React.FC<QuickImportImagesModalProps> = ({
               {creatingQr ? <Spin size="large" /> : null}
               {!creatingQr && qrSession && remainingSeconds > 0 ? (
                 <QRCode
-                  value={qrSession.qrPayload}
+                  value={resolveBrowserReachableUrl(qrSession.qrPayload)}
                   size={210}
                   type="svg"
                   errorLevel="M"

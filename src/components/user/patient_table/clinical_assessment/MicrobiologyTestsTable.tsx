@@ -42,7 +42,7 @@ const MicrobiologyTestsTable: React.FC = () => {
             <tr>
               <th className="px-4 py-3 border-r border-slate-200">Tên xét nghiệm</th>
               <th className="px-4 py-3 border-r border-slate-200">Kết quả</th>
-              <th className="px-4 py-3 border-r border-slate-200 w-32">Chỉ số BT</th>
+              <th className="px-4 py-3 border-r border-slate-200 w-20">Chỉ số BT</th>
               <th className="px-4 py-3 border-r border-slate-200">Đơn vị</th>
               <th className="px-4 py-3 w-12"></th>
             </tr>

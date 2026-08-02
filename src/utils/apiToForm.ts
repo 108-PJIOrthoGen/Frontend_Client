@@ -15,9 +15,7 @@ const transferToFormData = (transfer: IEpisodeDepartmentTransfer) => ({
 export function episodeToFormData(ep: IEpisode): EpisodeFormData {
     return {
         admissionDate: parseDateFromApi(ep.admissionDate),
-        admissionTime: ep.admissionTime ?? '',
         dischargeDate: parseDateFromApi(ep.dischargeDate),
-        dischargeTime: ep.dischargeTime ?? '',
         department: ep.department ?? '',
         admissionMethod: ep.direct ?? '',
         reason: ep.reason ?? '',
@@ -27,7 +25,6 @@ export function episodeToFormData(ep: IEpisode): EpisodeFormData {
         initialDepartmentTreatmentDays:
             ep.initialDepartmentTreatmentDays != null ? String(ep.initialDepartmentTreatmentDays) : '',
         initialDepartmentAdmissionDate: parseDateFromApi(ep.initialDepartmentAdmissionDate),
-        initialDepartmentAdmissionTime: ep.initialDepartmentAdmissionTime ?? '',
         departmentTransfers: (ep.departmentTransfers ?? []).map(transferToFormData),
         hospitalTransferType: ep.hospitalTransferType ?? '',
         hospitalTransferDestination: ep.hospitalTransferDestination ?? '',
@@ -54,9 +51,7 @@ export function episodeToFormData(ep: IEpisode): EpisodeFormData {
 export function formDataToEpisodeRequest(form: EpisodeFormData) {
     return {
         admissionDate: form.admissionDate || undefined,
-        admissionTime: form.admissionTime || undefined,
         dischargeDate: form.dischargeDate || undefined,
-        dischargeTime: form.dischargeTime || undefined,
         department: form.department || undefined,
         direct: form.admissionMethod || undefined,
         reason: form.reason || undefined,
@@ -65,7 +60,6 @@ export function formDataToEpisodeRequest(form: EpisodeFormData) {
         treatmentDays: toOptionalNumber(form.treatmentDays),
         initialDepartmentTreatmentDays: toOptionalNumber(form.initialDepartmentTreatmentDays),
         initialDepartmentAdmissionDate: form.initialDepartmentAdmissionDate || undefined,
-        initialDepartmentAdmissionTime: form.initialDepartmentAdmissionTime || undefined,
         departmentTransfers: form.departmentTransfers
             .filter((transfer) => transfer.department || transfer.admissionDate || transfer.admissionTime || transfer.treatmentDays)
             .map((transfer) => ({

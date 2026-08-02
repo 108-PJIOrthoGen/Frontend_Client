@@ -147,7 +147,7 @@ export const callCreateEpisodeFull = (data: IEpisodeFullRequest): Promise<IBacke
     return instance.post('/api/v1/episodes/full', data);
 }
 
-export const callUpdateEpisodeFull = (id: string, data: IEpisodeFullRequest): Promise<IBackendRes<IEpisodeFullResponse>> => {
+export const callUpdateEpisodeFull = (id: string, data: IEpisodeFullRequest): Promise<IBackendRes<void>> => {
     return instance.put(`/api/v1/episodes/${id}/full`, data);
 }
 

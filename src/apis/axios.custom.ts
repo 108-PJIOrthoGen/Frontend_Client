@@ -1,5 +1,6 @@
 import { setRefreshTokenAction } from "@/redux/slice/accountSlice";
 import { IBackendRes } from "@/types/backend";
+import { getRuntimeApiBase } from "@/config/runtimeUrls";
 import { notification } from "antd";
 import axios from "axios";
 
@@ -15,7 +16,7 @@ const PUBLIC_AUTH_URLS = [
 ];
 
 const instance = axios.create({
-    baseURL: import.meta.env.VITE_BACKEND_URL as string,
+    baseURL: getRuntimeApiBase(),
     withCredentials: true
 });
 

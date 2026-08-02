@@ -26,7 +26,7 @@ AGENTS.md
 *.njsproj
 *.sln
 *.sw?
-
+.playwright-mcp
 # Harness core maintenance binary
 scripts/bin/harness
 scripts/bin/harness.exe

@@ -100,14 +100,11 @@ export interface IRole {
 export interface IEpisodeRequest {
     patientId?: number;
     admissionDate?: string;
-    admissionTime?: string;
     dischargeDate?: string;
-    dischargeTime?: string;
     admissionCount?: number;
     treatmentDays?: number;
     initialDepartmentTreatmentDays?: number;
     initialDepartmentAdmissionDate?: string;
-    initialDepartmentAdmissionTime?: string;
     reason?: string;
     department?: string;
     direct?: string;
@@ -168,7 +165,7 @@ export interface IClinicalRecord {
     suspectedTransmissionRoute?: string;
     softTissue?: string;
     implantStability?: string;
-    prosthesisJoint?: string;
+    generalExam?: string;
     surgicalDisease?: string;
     createdAt?: string;
     updatedAt?: string;

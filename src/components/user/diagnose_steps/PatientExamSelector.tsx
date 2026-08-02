@@ -22,9 +22,10 @@ const getStatusTag = (status?: string) => {
 
 const getEpisodeStatusTag = (status?: string) => {
     switch (status) {
-        case 'normal': return <Tag color="processing">Đang điều trị</Tag>;
-        case 'bad': return <Tag color="success">Hoàn thành</Tag>;
-        default: return <Tag>{status || 'N/A'}</Tag>;
+        case 'processing': return <Tag color="processing">Đang điều trị</Tag>;
+        case 'completed': return <Tag color="success">Hoàn thành</Tag>;
+        case 'cancelled': return <Tag color="error">Đã hủy</Tag>;
+        default: return <Tag color="default">{status || 'N/A'}</Tag>;
     }
 };
 

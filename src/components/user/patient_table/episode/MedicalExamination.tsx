@@ -24,9 +24,7 @@ export interface DepartmentTransferFormData {
 
 export interface EpisodeFormData {
     admissionDate: string;
-    admissionTime: string;
     dischargeDate: string;
-    dischargeTime: string;
     department: string;
     admissionMethod: string;
     reason: string;
@@ -35,7 +33,6 @@ export interface EpisodeFormData {
     treatmentDays: string;
     initialDepartmentTreatmentDays: string;
     initialDepartmentAdmissionDate: string;
-    initialDepartmentAdmissionTime: string;
     departmentTransfers: DepartmentTransferFormData[];
     hospitalTransferType: string;
     hospitalTransferDestination: string;
@@ -65,9 +62,7 @@ interface MedicalExaminationProps {
 
 const emptyFormData: EpisodeFormData = {
     admissionDate: '',
-    admissionTime: '',
     dischargeDate: '',
-    dischargeTime: '',
     department: '',
     admissionMethod: '',
     reason: '',
@@ -76,7 +71,6 @@ const emptyFormData: EpisodeFormData = {
     treatmentDays: '',
     initialDepartmentTreatmentDays: '',
     initialDepartmentAdmissionDate: '',
-    initialDepartmentAdmissionTime: '',
     departmentTransfers: [],
     hospitalTransferType: '',
     hospitalTransferDestination: '',
@@ -144,10 +138,12 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
     const renderDiagnosisRow = (
         label: string,
         field: keyof EpisodeFormData,
+        className = '',
     ) => (
         <Form.Item
             name={field}
             label={<span className="font-medium text-slate-700">{label}</span>}
+            className={className}
         >
             <Input.TextArea
                 autoSize={{ minRows: 2, maxRows: 4 }}
@@ -178,7 +174,7 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                         </div>
 
                         <div className="space-y-7 p-6">
-                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2 xl:grid-cols-4">
                                 <Form.Item
                                     name="admissionDate"
                                     label={<span className="font-medium text-slate-700">12. Ngày vào viện</span>}
@@ -192,14 +188,6 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                         placeholder="dd/mm/yyyy"
                                         className="h-11 w-full"
                                     />
-                                </Form.Item>
-                                <Form.Item
-                                    name="admissionTime"
-                                    label={<span className="font-medium text-slate-700">Giờ vào viện</span>}
-                                    getValueFromEvent={pickerValue}
-                                    getValueProps={(value) => ({ value: stringToTimeValue(value) })}
-                                >
-                                    <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
                                 </Form.Item>
                                 <Form.Item
                                     name="admissionMethod"
@@ -223,34 +211,32 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 >
                                     <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
                                 </Form.Item>
+                                <Form.Item
+                                    name="referralSource"
+                                    label={<span className="font-medium text-slate-700">14. Nơi giới thiệu</span>}
+                                >
+                                    <Select
+                                        placeholder="Chọn nơi giới thiệu"
+                                        className="h-11"
+                                        options={[
+                                            { value: 'MEDICAL_FACILITY', label: '1. Cơ quan y tế' },
+                                            { value: 'SELF', label: '2. Tự đến' },
+                                            { value: 'OTHER', label: '3. Khác' },
+                                        ]}
+                                    />
+                                </Form.Item>
                             </div>
-
-                            <Form.Item
-                                name="referralSource"
-                                label={<span className="font-medium text-slate-700">14. Nơi giới thiệu</span>}
-                            >
-                                <Select
-                                    placeholder="Chọn nơi giới thiệu"
-                                    className="h-11"
-                                    options={[
-                                        { value: 'MEDICAL_FACILITY', label: '1. Cơ quan y tế' },
-                                        { value: 'SELF', label: '2. Tự đến' },
-                                        { value: 'OTHER', label: '3. Khác' },
-                                    ]}
-                                />
-                            </Form.Item>
 
                             <div className="overflow-hidden rounded-lg border border-slate-200">
                                 <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
                                     <h2 className="font-bold text-slate-800">15–16. Quá trình vào/chuyển khoa</h2>
                                 </div>
                                 <div className="space-y-4 p-4">
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-12">
+                                    <div className="grid grid-cols-1 gap-x-4 md:grid-cols-2 xl:grid-cols-3">
                                         <Form.Item
                                             name="department"
                                             label={<span className="font-medium text-slate-700">15. Vào khoa</span>}
                                             rules={[requiredRule]}
-                                            className="lg:col-span-4"
                                         >
                                             <Input placeholder="Ví dụ: B1-C" className="h-11 rounded-lg" />
                                         </Form.Item>
@@ -259,7 +245,6 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                             label={<span className="font-medium text-slate-700">Ngày vào khoa</span>}
                                             getValueFromEvent={pickerValue}
                                             getValueProps={(value) => ({ value: stringToDayjs(value) })}
-                                            className="lg:col-span-3"
                                         >
                                             <DatePicker
                                                 locale={locale}
@@ -269,19 +254,9 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                             />
                                         </Form.Item>
                                         <Form.Item
-                                            name="initialDepartmentAdmissionTime"
-                                            label={<span className="font-medium text-slate-700">Giờ vào khoa</span>}
-                                            getValueFromEvent={pickerValue}
-                                            getValueProps={(value) => ({ value: stringToTimeValue(value) })}
-                                            className="lg:col-span-2"
-                                        >
-                                            <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
-                                        </Form.Item>
-                                        <Form.Item
                                             name="initialDepartmentTreatmentDays"
                                             label={<span className="font-medium text-slate-700">Ngày điều trị</span>}
                                             rules={integerRules}
-                                            className="lg:col-span-3"
                                         >
                                             <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
                                         </Form.Item>
@@ -384,7 +359,7 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 </Form.Item>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-x-5 md:grid-cols-2 xl:grid-cols-3">
                                 <Form.Item
                                     name="dischargeDate"
                                     label={<span className="font-medium text-slate-700">18. Ngày ra viện</span>}
@@ -397,14 +372,6 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                         placeholder="dd/mm/yyyy"
                                         className="h-11 w-full"
                                     />
-                                </Form.Item>
-                                <Form.Item
-                                    name="dischargeTime"
-                                    label={<span className="font-medium text-slate-700">Giờ ra viện</span>}
-                                    getValueFromEvent={pickerValue}
-                                    getValueProps={(value) => ({ value: stringToTimeValue(value) })}
-                                >
-                                    <TimePicker format="HH:mm" placeholder="giờ:phút" className="h-11 w-full" />
                                 </Form.Item>
                                 <Form.Item
                                     name="dischargeDisposition"
@@ -441,10 +408,12 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                             </p>
                         </div>
 
-                        <div className="space-y-2 p-6">
-                            {renderDiagnosisRow('20. Nơi chuyển đến', 'referralDiagnosis')}
-                            {renderDiagnosisRow('21. KKB/Cấp cứu', 'emergencyDiagnosis')}
-                            {renderDiagnosisRow('22. Khi vào khoa điều trị', 'inpatientDiagnosis')}
+                        <div className="space-y-6 p-6">
+                            <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+                                {renderDiagnosisRow('20. Nơi chuyển đến', 'referralDiagnosis', 'mb-0')}
+                                {renderDiagnosisRow('21. KKB/Cấp cứu', 'emergencyDiagnosis', 'mb-0')}
+                                {renderDiagnosisRow('22. Khi vào khoa điều trị', 'inpatientDiagnosis', 'mb-0')}
+                            </div>
 
                             <div className="grid grid-cols-1 gap-5 border-y border-slate-100 py-5 lg:grid-cols-4">
                                 <Form.Item name="hasIncident" valuePropName="checked" className="mb-0">
@@ -487,20 +456,25 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 </Form.Item>
                             </div>
 
-                            {renderDiagnosisRow(
-                                '25. Ra viện - Bệnh chính (tổn thương)',
-                                'dischargePrimaryDiagnosis',
-                            )}
-                            {renderDiagnosisRow('Nguyên nhân', 'dischargeCause')}
-                            {renderDiagnosisRow('Bệnh kèm theo', 'accompanyingDisease')}
-                            {renderDiagnosisRow(
-                                'Chẩn đoán trước phẫu thuật',
-                                'preoperativeDiagnosis',
-                            )}
-                            {renderDiagnosisRow(
-                                'Chẩn đoán sau phẫu thuật',
-                                'postoperativeDiagnosis',
-                            )}
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+                                {renderDiagnosisRow(
+                                    '25. Ra viện - Bệnh chính (tổn thương)',
+                                    'dischargePrimaryDiagnosis',
+                                    'mb-0 md:col-span-2',
+                                )}
+                                {renderDiagnosisRow('Nguyên nhân', 'dischargeCause', 'mb-0')}
+                                {renderDiagnosisRow('Bệnh kèm theo', 'accompanyingDisease', 'mb-0')}
+                                {renderDiagnosisRow(
+                                    'Chẩn đoán trước phẫu thuật',
+                                    'preoperativeDiagnosis',
+                                    'mb-0',
+                                )}
+                                {renderDiagnosisRow(
+                                    'Chẩn đoán sau phẫu thuật',
+                                    'postoperativeDiagnosis',
+                                    'mb-0',
+                                )}
+                            </div>
                         </div>
                     </section>
 
@@ -520,7 +494,18 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 name="treatmentResult"
                                 label={<span className="font-medium text-slate-700">Kết quả điều trị</span>}
                             >
-                                <Input placeholder="Nhập kết quả điều trị" className="h-11 rounded-lg" />
+                                <Select
+                                    allowClear
+                                    placeholder="Nhập kết quả điều trị"
+                                    className="h-11"
+                                    options={[
+                                        { value: 'Khỏi', label: 'Khỏi' },
+                                        { value: 'Đỡ', label: 'Đỡ' },
+                                        { value: 'Không thay đổi', label: 'Không thay đổi' },
+                                        { value: 'Nặng hơn', label: 'Nặng hơn' },
+                                        { value: 'Tử vong', label: 'Tử vong' }
+                                    ]}
+                                />
                             </Form.Item>
                             <Form.Item
                                 name="status"

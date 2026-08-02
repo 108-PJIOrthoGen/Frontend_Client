@@ -15,6 +15,7 @@ import {
   callMarkAllNotificationsRead,
   callMarkNotificationRead,
 } from '@/apis/notifications';
+import { getRuntimeApiBase } from '@/config/runtimeUrls';
 import { openSse, type SseConnection } from '@/utils/sseClient';
 import type { INotification } from '@/types/notification';
 
@@ -131,7 +132,7 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
   // (Re)open the SSE stream. Caller is responsible for clearing any previous connection.
   const openConnection = useCallback(() => {
     if (!isAuthed) return;
-    const apiBase = ((import.meta.env.VITE_BACKEND_URL as string | undefined) ?? '').replace(/\/+$/, '');
+    const apiBase = getRuntimeApiBase();
     const token = window.localStorage.getItem('access_token');
     sseRef.current = openSse({
       url: `${apiBase}/api/v1/notifications/stream`,

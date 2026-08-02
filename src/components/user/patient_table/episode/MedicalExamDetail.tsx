@@ -198,6 +198,31 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             const episodePayload = episodeFormRef.current
                 ? formDataToEpisodeRequest(episodeFormRef.current)
                 : {};
+            const imagingFindings = form.imagingDescription?.trim()
+                ? form.imagingDescription
+                : undefined;
+            const imageItems: NonNullable<IEpisodeFullRequest['images']> = (form.formImages || []).map(img => ({
+                id: numericId(img.id),
+                type: img.type,
+                bucket: img.bucket,
+                objectKey: img.objectKey,
+                // Keep fileMetadata for backward-compat with legacy display paths.
+                fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
+                findings: imagingFindings,
+            }));
+
+            // Findings are valid clinical data even when no image is attached.
+            // Reuse an existing findings-only row when possible; otherwise let the
+            // aggregate endpoint create one without bucket/object metadata.
+            if (imageItems.length === 0 && imagingFindings) {
+                const findingsOnlyResult = imageResults.find(img =>
+                    !img.bucket && !img.objectKey && !img.fileMetadata && !img.url,
+                );
+                imageItems.push({
+                    id: numericId(findingsOnlyResult?.id),
+                    findings: imagingFindings,
+                });
+            }
 
             const payload: IEpisodeFullRequest = {
                 episode: {
@@ -225,15 +250,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                         surgeryType: s.surgeryType,
                         findings: s.findings || undefined,
                     })),
-                images: (form.formImages || []).map(img => ({
-                    id: numericId(img.id),
-                    type: img.type,
-                    bucket: img.bucket,
-                    objectKey: img.objectKey,
-                    // Keep fileMetadata for backward-compat with legacy display paths.
-                    fileMetadata: JSON.stringify({ url: img.url, name: img.name }),
-                    findings: form.imagingDescription || undefined,
-                })),
+                images: imageItems,
                 // Sensitivities nest under their culture — the server resolves
                 // freshly-created culture ids internally (no client-side id remap).
                 cultures: (form.cultureResults || []).map(c => {
@@ -271,7 +288,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 ? await callUpdateEpisodeFull(examData.id, payload)
                 : await callCreateEpisodeFull(payload);
 
-            if (!res?.data) {
+            const responseStatus = Number(res?.status);
+            if (!res || responseStatus < 200 || responseStatus >= 300) {
                 notification.error({ message: 'Có lỗi xảy ra', description: res?.message });
                 return;
             }

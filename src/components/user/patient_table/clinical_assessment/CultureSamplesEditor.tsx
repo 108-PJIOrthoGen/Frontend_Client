@@ -41,7 +41,24 @@ const CultureSamplesEditor: React.FC = () => {
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1  md:grid-cols-2 gap-4">
+
+
+            <div className="flex flex-col col-span-2 gap-1.5">
+              <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
+              <Input
+                value={sample.name || ''}
+                onChange={(e) => {
+                  const newSamples = [...clinicForm.cultureResults];
+                  newSamples[sampleIdx] = {
+                    ...newSamples[sampleIdx],
+                    name: e.target.value,
+                  };
+                  setForm((prev) => ({ ...prev, cultureResults: newSamples }));
+                }}
+                placeholder="Nhập tên..."
+              />
+            </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-700">Kết quả</label>
               <Select
@@ -59,22 +76,6 @@ const CultureSamplesEditor: React.FC = () => {
                   { value: 'CONTAMINATED', label: 'Nhiễm bẩn' },
                   { value: 'PENDING', label: 'Đang chờ kết quả' },
                 ]}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
-              <Input
-                value={sample.name || ''}
-                onChange={(e) => {
-                  const newSamples = [...clinicForm.cultureResults];
-                  newSamples[sampleIdx] = {
-                    ...newSamples[sampleIdx],
-                    name: e.target.value,
-                  };
-                  setForm((prev) => ({ ...prev, cultureResults: newSamples }));
-                }}
-                placeholder="Nhập tên..."
               />
             </div>
 
@@ -102,7 +103,7 @@ const CultureSamplesEditor: React.FC = () => {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-semibold text-slate-700">
-                Số ngày ủ (incubationDays)
+                Số ngày ủ
               </label>
               <InputNumber
                 value={sample.incubationDays}
