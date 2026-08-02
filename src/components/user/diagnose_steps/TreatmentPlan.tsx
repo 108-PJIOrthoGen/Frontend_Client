@@ -118,7 +118,6 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       sseRef.current.close();
       sseRef.current = null;
     }
-    if (!apiBase) return;
 
     const token = typeof window !== 'undefined'
       ? window.localStorage.getItem('access_token')
