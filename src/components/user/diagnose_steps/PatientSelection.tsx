@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Modal } from 'antd';
-import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button, Modal, Popover, Tour } from 'antd';
+import type { TourProps } from 'antd';
+import { CompassOutlined, SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import { PatientExamSelector } from './PatientExamSelector';
 import { IPatient } from '@/types/backend';
 import { useNavigate } from 'react-router-dom';
@@ -13,9 +14,14 @@ interface Step1Props {
     onAutoSearchConsumed?: () => void
 }
 
+const DIAGNOSIS_TOUR_STORAGE_KEY = 'pji_diagnosis_tour_completed';
+
 export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSearch, onAutoSearchConsumed }) => {
 
     const navigate = useNavigate();
+    const [tourOpen, setTourOpen] = useState(false);
+    const [discoveryOpen, setDiscoveryOpen] = useState(false);
+    const tourButtonRef = useRef<HTMLButtonElement>(null);
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
     const [searchValue, setSearchValue] = useState('');
     const [patients, setPatients] = useState<IPatient[]>([]);
@@ -32,6 +38,72 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
             onAutoSearchConsumed?.();
         }
     }, [autoOpenSearch, onAutoSearchConsumed]);
+
+    useEffect(() => {
+        if (window.localStorage.getItem(DIAGNOSIS_TOUR_STORAGE_KEY)) return;
+
+        let hideTimer: number | undefined;
+        const showDiscoveryHint = () => {
+            setDiscoveryOpen(true);
+            hideTimer = window.setTimeout(() => setDiscoveryOpen(false), 8000);
+        };
+        const initialTimer = window.setTimeout(showDiscoveryHint, 1800);
+        const repeatTimer = window.setInterval(showDiscoveryHint, 60000);
+
+        return () => {
+            window.clearTimeout(initialTimer);
+            window.clearInterval(repeatTimer);
+            if (hideTimer) window.clearTimeout(hideTimer);
+        };
+    }, []);
+
+    const startTour = () => {
+        setDiscoveryOpen(false);
+        setTourOpen(true);
+    };
+
+    const closeTour = () => {
+        setTourOpen(false);
+        window.localStorage.setItem(DIAGNOSIS_TOUR_STORAGE_KEY, 'true');
+    };
+
+    const tourSteps: TourProps['steps'] = [
+        {
+            title: 'Hướng dẫn nhanh',
+            description: 'Bạn luôn có thể mở lại phần hướng dẫn từ nút này.',
+            target: () => tourButtonRef.current!,
+        },
+        {
+            title: 'Ca bệnh hiện tại',
+            description: 'Khu vực này cho biết hồ sơ bạn đang làm việc. Khi chưa chọn ca bệnh, hệ thống sẽ nhắc bạn bắt đầu từ bước tra cứu hoặc tạo mới.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="sidebar-current-case"]')!,
+        },
+        {
+            title: 'Các nhóm chức năng',
+            description: 'Sidebar tập hợp quản lý bệnh án, quy trình chẩn đoán AI, thông báo và các xét nghiệm đang chờ bổ sung.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="sidebar-navigation"]')!,
+        },
+        {
+            title: 'Tài khoản của bạn',
+            description: 'Mở khu vực này để vào cài đặt tài khoản hoặc đăng xuất khỏi hệ thống.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="sidebar-account"]')!,
+        },
+        {
+            title: 'Thông tin quy trình',
+            description: 'Theo dõi vị trí hiện tại, bệnh nhân đang chọn và các thao tác đổi hoặc thoát ca bệnh.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="diagnosis-header"]')!,
+        },
+        {
+            title: 'Quy trình chẩn đoán',
+            description: 'Năm bước thể hiện toàn bộ tiến trình. Bạn có thể quay lại những bước đã hoàn thành.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="diagnosis-steps"]')!,
+        },
+        {
+            title: 'Không gian làm việc',
+            description: 'Nội dung và thao tác cần thực hiện ở mỗi bước sẽ hiển thị tại đây.',
+            target: () => document.querySelector<HTMLElement>('[data-tour="diagnosis-content"]')!,
+        },
+    ];
 
 
     const onClose = () => {
@@ -80,6 +152,34 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
             >
                 <PatientExamSelector onNext={onNext} setSearchValue={setSearchValue} searchValue={searchValue} setPatients={setPatients} patients={patients} />
             </Modal>
+
+            <Popover
+                open={discoveryOpen && !tourOpen}
+                onOpenChange={setDiscoveryOpen}
+                trigger="hover"
+                placement="left"
+                content={(
+                    <div className="flex items-center gap-1">
+                        <span>Đây là lần đầu tới sử dụng?</span>
+                        <Button type="link" className="h-auto p-0 font-semibold" onClick={startTour}>
+                            Khám phá nhanh
+                        </Button>
+                    </div>
+                )}
+            >
+                <button
+                    ref={tourButtonRef}
+                    type="button"
+                    aria-label="Bắt đầu hướng dẫn sử dụng"
+                    onClick={startTour}
+                    className="group fixed top-40 left-80 z-50 flex h-12 w-12 items-center justify-center rounded-full border border-blue-300 bg-gradient-to-br from-blue-500 to-indigo-300 text-xl text-white shadow-lg shadow-blue-500/30 transition-transform duration-300 hover:-translate-y-1 hover:scale-105 focus:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+                >
+                    <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-blue-400 opacity-20" aria-hidden="true" />
+                    <CompassOutlined className="transition-transform duration-300 group-hover:rotate-12" />
+                </button>
+            </Popover>
+
+            <Tour open={tourOpen} onClose={closeTour} steps={tourSteps} />
         </div>
     );
 };
