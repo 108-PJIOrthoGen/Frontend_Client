@@ -3,7 +3,7 @@ import { Button, Card, Flex, Form, Input, Typography, message, notification } fr
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { callVerifyDeviceAPI, loginAPI } from '@/apis/auth';
-import { runLoginAction } from '@/redux/slice/accountSlice';
+import { runLoginAction, setRefreshTokenAction } from '@/redux/slice/accountSlice';
 import { useAppDispatch } from '@/redux/hook';
 
 const { Title, Text, Paragraph } = Typography;
@@ -47,6 +47,9 @@ const VerifyDevicePage = () => {
         if (+res?.status === 200 && res.data?.access_token) {
             localStorage.setItem('access_token', res.data.access_token);
             dispatch(runLoginAction(res.data.user));
+            // A failed unauthenticated bootstrap must not survive the successful
+            // device verification and trigger LayoutApp's logout handler.
+            dispatch(setRefreshTokenAction({ status: false, message: '' }));
             message.success('Xác thực thiết bị thành công');
             navigate('/', { replace: true });
             return;

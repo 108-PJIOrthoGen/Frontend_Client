@@ -37,6 +37,13 @@ const normalizeContentType = (file: File) => {
   return '';
 };
 
+const createSelectedFileId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 const formatBytes = (bytes: number) =>
   bytes >= 1024 * 1024
     ? `${(bytes / 1024 / 1024).toFixed(2)} MB`
@@ -161,7 +168,7 @@ const MobileUploadPage: React.FC = () => {
       if (seen.has(fingerprint)) continue;
       seen.add(fingerprint);
       next.push({
-        id: crypto.randomUUID(),
+        id: createSelectedFileId(),
         file,
         contentType,
         previewUrl: URL.createObjectURL(file),
@@ -191,8 +198,10 @@ const MobileUploadPage: React.FC = () => {
     setPageState('uploading');
     setError(null);
     try {
-      await Promise.all(selected.map(async (item) => {
-        if (item.state === 'complete') return;
+      // A session records each file while it issues its presigned URL. Keep that
+      // mutation ordered so multiple photos cannot race on the same session.
+      for (const item of selected) {
+        if (item.state === 'complete') continue;
         updateFile(item.id, { state: 'signing', progress: 0, error: undefined });
         try {
           const existingPresignIsValid = item.presigned
@@ -220,7 +229,7 @@ const MobileUploadPage: React.FC = () => {
           });
           throw uploadError;
         }
-      }));
+      }
       await completePublicUploadSession(sessionId, token);
       setPageState('success');
     } catch (uploadError: any) {
