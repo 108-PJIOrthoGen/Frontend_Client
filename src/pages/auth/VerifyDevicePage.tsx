@@ -3,7 +3,11 @@ import { Button, Card, Flex, Form, Input, Typography, message, notification } fr
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { callVerifyDeviceAPI, loginAPI } from '@/apis/auth';
-import { runLoginAction, setRefreshTokenAction } from '@/redux/slice/accountSlice';
+import {
+    fetchAccount,
+    runLoginAction,
+    setRefreshTokenAction,
+} from '@/redux/slice/accountSlice';
 import { useAppDispatch } from '@/redux/hook';
 
 const { Title, Text, Paragraph } = Typography;
@@ -41,24 +45,48 @@ const VerifyDevicePage = () => {
 
     const handleVerify = async (values: VerifyValues) => {
         setIsVerifying(true);
-        const res = await callVerifyDeviceAPI(email, challengeId, values.otp);
-        setIsVerifying(false);
+        try {
+            const res = await callVerifyDeviceAPI(email, challengeId, values.otp);
 
-        if (+res?.status === 200 && res.data?.access_token) {
-            localStorage.setItem('access_token', res.data.access_token);
-            dispatch(runLoginAction(res.data.user));
-            // A failed unauthenticated bootstrap must not survive the successful
-            // device verification and trigger LayoutApp's logout handler.
-            dispatch(setRefreshTokenAction({ status: false, message: '' }));
-            message.success('Xác thực thiết bị thành công');
-            navigate('/', { replace: true });
-            return;
+            if (+res?.status === 200 && res.data?.access_token) {
+                localStorage.setItem('access_token', res.data.access_token);
+                // A failed unauthenticated bootstrap must not survive the successful
+                // device verification and trigger LayoutApp's logout handler.
+                dispatch(setRefreshTokenAction({ status: false, message: '' }));
+
+                // Hydrate the authoritative role/permission state before entering
+                // protected routes so /admin never observes a partial account.
+                const accountResult = await dispatch(fetchAccount());
+                const hasHydratedRole = fetchAccount.fulfilled.match(accountResult)
+                    && Boolean(accountResult.payload?.user?.role?.name);
+                if (!hasHydratedRole) {
+                    if (!res.data.user?.role?.name) {
+                        notification.error({
+                            message: 'Không thể tải quyền truy cập',
+                            description: 'Thiết bị đã được xác thực. Vui lòng kiểm tra kết nối và đăng nhập lại.',
+                        });
+                        return;
+                    }
+                    dispatch(runLoginAction(res.data.user));
+                }
+
+                message.success('Xác thực thiết bị thành công');
+                navigate('/', { replace: true });
+                return;
+            }
+
+            notification.error({
+                message: 'Xác thực thiết bị thất bại',
+                description: res?.message ?? 'OTP không hợp lệ hoặc đã hết hạn.',
+            });
+        } catch {
+            notification.error({
+                message: 'Xác thực thiết bị thất bại',
+                description: 'Không thể kết nối tới máy chủ. Vui lòng thử lại.',
+            });
+        } finally {
+            setIsVerifying(false);
         }
-
-        notification.error({
-            message: 'Xác thực thiết bị thất bại',
-            description: res?.message ?? 'OTP không hợp lệ hoặc đã hết hạn.',
-        });
     };
 
     const handleResend = async () => {

@@ -13,6 +13,7 @@ const PUBLIC_AUTH_URLS = [
     '/api/v1/auth/refresh',
     '/api/v1/auth/forgot-password',
     '/api/v1/auth/reset-password',
+    '/api/v1/auth/verify-device',
 ];
 
 const instance = axios.create({
@@ -22,6 +23,19 @@ const instance = axios.create({
 
 // Deduplicate concurrent refresh calls — all 401 handlers share one in-flight promise
 let refreshTokenPromise: Promise<string | null> | null = null;
+
+const wasSentWithStaleAccessToken = (config: any): boolean => {
+    if (typeof window === 'undefined') return false;
+
+    const authorization = config?.headers?.Authorization
+        ?? config?.headers?.get?.('Authorization');
+    if (typeof authorization !== 'string' || !authorization.startsWith('Bearer ')) {
+        return false;
+    }
+
+    const requestToken = authorization.slice('Bearer '.length);
+    return requestToken !== window.localStorage.getItem('access_token');
+};
 
 const handleRefreshToken = async (): Promise<string | null> => {
     if (refreshTokenPromise) return refreshTokenPromise;
@@ -72,6 +86,13 @@ instance.interceptors.response.use(
         }
 
         const status = +error.response.status;
+
+        // A login/device-verification flow may already have replaced the token
+        // while an older account request was still in flight. Its late 401 must
+        // not revoke the newly-established session.
+        if (status === 401 && wasSentWithStaleAccessToken(error.config)) {
+            return Promise.reject(error);
+        }
 
         // Backend's ActiveSessionFilter signals that this device's session has been
         // superseded by a newer login. Refreshing won't help — the refresh-token

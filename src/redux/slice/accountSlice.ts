@@ -14,6 +14,7 @@ interface IState {
     isLoading: boolean;
     isRefreshToken: boolean;
     errorRefreshToken: string;
+    activeAccountRequestId?: string;
     user: {
         id: string;
         avatar: string;
@@ -39,6 +40,7 @@ const initialState: IState = {
     isLoading: true,
     isRefreshToken: false,
     errorRefreshToken: "",
+    activeAccountRequestId: undefined,
     user: {
         id: "",
         avatar: "",
@@ -59,6 +61,9 @@ export const accountSlice = createSlice({
     // The `reducers` field lets us define reducers and generate associated actions
     reducers: {
         runLoginAction: (state, action) => {
+            // Invalidate account bootstraps started with an older token. Their
+            // late fulfilled/rejected actions must not overwrite this login.
+            state.activeAccountRequestId = undefined;
             state.isAuthenticated = true;
             state.isLoading = false;
             state.user.id = action?.payload?.id;
@@ -75,7 +80,9 @@ export const accountSlice = createSlice({
             }
         },
         runLogoutAction: (state, action) => {
+            state.activeAccountRequestId = undefined;
             state.isAuthenticated = false;
+            state.isLoading = false;
             localStorage.removeItem('access_token');
             state.user = {
                 id: "",
@@ -102,7 +109,8 @@ export const accountSlice = createSlice({
         }
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchAccount.pending, (state) => {
+        builder.addCase(fetchAccount.pending, (state, action) => {
+            state.activeAccountRequestId = action.meta.requestId;
             // Chỉ bật loading toàn cục ở lần boot đầu (chưa đăng nhập).
             // Refresh nền (vd: mở ProfileSettingsModal) mà bật isLoading sẽ làm
             // App.tsx unmount RouterProvider -> mất state local -> modal không mở được.
@@ -112,7 +120,9 @@ export const accountSlice = createSlice({
         })
 
         builder.addCase(fetchAccount.fulfilled, (state, action) => {
-            if (action.payload) {
+            if (state.activeAccountRequestId !== action.meta.requestId) return;
+            state.activeAccountRequestId = undefined;
+            if (action.payload?.user) {
                 state.isAuthenticated = true;
                 state.user.id = action?.payload?.user?.id;
                 state.user.email = action?.payload?.user?.email;
@@ -136,7 +146,9 @@ export const accountSlice = createSlice({
             state.isLoading = false;
         })
 
-        builder.addCase(fetchAccount.rejected, (state) => {
+        builder.addCase(fetchAccount.rejected, (state, action) => {
+            if (state.activeAccountRequestId !== action.meta.requestId) return;
+            state.activeAccountRequestId = undefined;
             state.isAuthenticated = false;
             state.isLoading = false;
         })

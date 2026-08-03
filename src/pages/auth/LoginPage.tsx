@@ -6,7 +6,12 @@ import {
   LockOutlined, MenuOutlined, UserOutlined,
 } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
-import { fetchAccount, runLoginAction, runLogoutAction } from '../../redux/slice/accountSlice';
+import {
+  fetchAccount,
+  runLoginAction,
+  runLogoutAction,
+  setRefreshTokenAction,
+} from '../../redux/slice/accountSlice';
 import { loginAPI, LogoutAPI } from '@/apis/auth';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import synoeticTeamImage from '@/assets/teams/synoetic.png';
@@ -56,7 +61,25 @@ const LoginPage = () => {
     }
     if (res?.data?.access_token) {
       localStorage.setItem('access_token', res.data.access_token);
-      dispatch(runLoginAction(res.data.user));
+      dispatch(setRefreshTokenAction({ status: false, message: '' }));
+
+      // Use /auth/account as the canonical source for role + permissions before
+      // entering protected routes. Fall back to the login payload only when it
+      // already contains a complete role and the profile refresh is unavailable.
+      const accountResult = await dispatch(fetchAccount());
+      const hasHydratedRole = fetchAccount.fulfilled.match(accountResult)
+        && Boolean(accountResult.payload?.user?.role?.name);
+      if (!hasHydratedRole) {
+        if (!res.data.user?.role?.name) {
+          notification.error({
+            message: 'Không thể tải quyền truy cập',
+            description: 'Vui lòng kiểm tra kết nối và thử đăng nhập lại.',
+          });
+          return;
+        }
+        dispatch(runLoginAction(res.data.user));
+      }
+
       message.success('Đăng nhập thành công');
       navigate(from, { replace: true });
     } else {
