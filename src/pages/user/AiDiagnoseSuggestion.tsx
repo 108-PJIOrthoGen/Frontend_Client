@@ -11,6 +11,7 @@ import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPla
 import DoctorDiagnosisStep from '@/components/user/diagnose_steps/DoctorDiagnosisStep';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
 import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
+import { QuickDiagnosisLauncher } from '@/components/user/quick_diagnosis/QuickDiagnosisLauncher';
 
 const AiDiagnosisSuggestion = () => {
     const {
@@ -30,11 +31,14 @@ const AiDiagnosisSuggestion = () => {
         {
             title: 'Chọn hồ sơ',
             content: (
-                <Step1PatientSelection
-                    onNext={next}
-                    autoOpenSearch={autoOpenSearch}
-                    onAutoSearchConsumed={consumeAutoOpenSearch}
-                />
+                <div className="min-h-full bg-white">
+                    <QuickDiagnosisLauncher />
+                    <Step1PatientSelection
+                        onNext={next}
+                        autoOpenSearch={autoOpenSearch}
+                        onAutoSearchConsumed={consumeAutoOpenSearch}
+                    />
+                </div>
             ),
         },
         {
