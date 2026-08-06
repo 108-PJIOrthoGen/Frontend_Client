@@ -15,13 +15,14 @@ import {
   callGenerateAiRecommendation,
 } from '@/apis/api';
 import { openSse, type SseConnection } from '@/utils/sseClient';
-import { useTreatmentPlanData } from './treatment_plan/hooks/useTreatmentPlanData';
-import { useAiChat } from './treatment_plan/hooks/useAiChat';
-import TreatmentPlanHeader from './treatment_plan/TreatmentPlanHeader';
-import TreatmentDraftPanel from './treatment_plan/TreatmentDraftPanel';
-import CitationsPanel from './treatment_plan/CitationsPanel';
-import AiChatDrawer from './treatment_plan/AiChatDrawer';
-import ThoughtStreamConsole, { type ThoughtLog } from './treatment_plan/ThoughtStreamConsole';
+import ThoughtStreamConsole, { ThoughtLog } from './components/ThoughtStreamConsole';
+import { useTreatmentPlanData } from './hooks/useTreatmentPlanData';
+import { useAiChat } from './hooks/useAiChat';
+import TreatmentPlanHeader from './components/TreatmentPlanHeader';
+import TreatmentDraftPanel from './components/TreatmentDraftPanel';
+import CitationsPanel from './components/CitationsPanel';
+import AiChatDrawer from './components/AiChatDrawer';
+
 
 interface Step5Props {
   onPrev: () => void;

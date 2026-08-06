@@ -39,9 +39,6 @@ interface ProviderProps {
 }
 
 export const NotificationProvider = ({ children }: ProviderProps) => {
-  // Treat any truthy account state as "logged in". The exact shape varies
-  // across slices (accountSlice stores user object once login succeeds), so
-  // we use it only as a gate to know when to connect — not to read identity.
   const isAuthed = useSelector((state: any) => Boolean(state?.account?.user));
 
   const [notifications, setNotifications] = useState<INotification[]>([]);

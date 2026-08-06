@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert } from 'antd';
-import SurgerySection from '../../rag_diagnose/rag_surgery/SurgerySection';
-import LocalAntibioticTreatment from '../../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
-import { SystemicAntibioticTreatment } from '../../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import SurgerySection from '../../../rag_diagnose/rag_surgery/SurgerySection';
+import LocalAntibioticTreatment from '../../../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
+import { SystemicAntibioticTreatment } from '../../../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData } from '@/types/treatmentType';
 
 interface Props {

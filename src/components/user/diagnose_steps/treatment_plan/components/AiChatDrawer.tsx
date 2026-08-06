@@ -3,7 +3,7 @@ import { Button, Drawer, Input, Select, Spin } from 'antd';
 import ReactMarkdown from 'react-markdown';
 import hardenReactMarkdown from 'harden-react-markdown';
 import type { IAiChatSession } from '@/types/backend';
-import type { ChatMessage } from './hooks/useAiChat';
+import type { ChatMessage } from '../hooks/useAiChat';
 
 const HardenedMarkdown = hardenReactMarkdown(ReactMarkdown);
 
@@ -119,11 +119,10 @@ const AiChatDrawer: React.FC<Props> = ({
                   </span>
                 </span>
                 <div
-                  className={`px-4 py-3 max-w-[85%] shadow-sm ${
-                    msg.role === 'user'
+                  className={`px-4 py-3 max-w-[85%] shadow-sm ${msg.role === 'user'
                       ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
                       : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-200/60'
-                  }`}
+                    }`}
                 >
                   {msg.role === 'assistant' ? (
                     <div className="ai-markdown prose prose-sm prose-slate max-w-none">

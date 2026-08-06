@@ -24,14 +24,14 @@ import {
   TREATMENT_REVIEW_WRITE_PERMISSION,
   hasPermission,
   normalizeIdentity,
-} from './treatment_plan/utils/permissions';
-import SurgerySection from '../rag_diagnose/rag_surgery/SurgerySection';
-import type { SurgerySectionHandle } from '../rag_diagnose/rag_surgery/SurgerySection';
-import { SystemicAntibioticTreatment } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
-import type { SystemicAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
-import LocalAntibioticTreatment from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
-import type { LocalAntibioticTreatmentHandle } from '../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
-import SuccessModal from './treatment_plan/SuccessModal';
+} from '../treatment_plan/utils/permissions';
+import SurgerySection from '../../rag_diagnose/rag_surgery/SurgerySection';
+import type { SurgerySectionHandle } from '../../rag_diagnose/rag_surgery/SurgerySection';
+import { SystemicAntibioticTreatment } from '../../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import type { SystemicAntibioticTreatmentHandle } from '../../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
+import LocalAntibioticTreatment from '../../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
+import type { LocalAntibioticTreatmentHandle } from '../../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
+import SuccessModal from '../treatment_plan/components/SuccessModal';
 import {
   PJI_CONCLUSION_LABELS,
   aiConclusionOf,
@@ -43,7 +43,7 @@ import {
   calculateAgreement,
   clearDiagnosisWorkflowStorage,
   loadDoctorDiagnosisModel,
-} from './doctor_diagnosis/doctorDiagnosisModel';
+} from './doctorDiagnosisModel';
 
 const { TextArea } = Input;
 const { Text } = Typography;

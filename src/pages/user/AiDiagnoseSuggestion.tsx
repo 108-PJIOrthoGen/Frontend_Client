@@ -7,10 +7,10 @@ import {
 } from '@ant-design/icons';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/assessment_pji/AssessmentPji';
 import DataCompletenessStep from '@/components/user/diagnose_steps/check_completeness/DataCompletenessStep';
-import { TreatmentPlan } from '../../components/user/diagnose_steps/TreatmentPlan';
-import DoctorDiagnosisStep from '@/components/user/diagnose_steps/DoctorDiagnosisStep';
-import { Step1PatientSelection } from '@/components/user/diagnose_steps/PatientSelection';
+import DoctorDiagnosisStep from '@/components/user/diagnose_steps/doctor_diagnosis/DoctorDiagnosisStep';
 import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
+import { Step1PatientSelection } from '@/components/user/diagnose_steps/select_object/PatientSelection';
+import { TreatmentPlan } from '@/components/user/diagnose_steps/treatment_plan/TreatmentPlan';
 import { QuickDiagnosisLauncher } from '@/components/user/quick_diagnosis/QuickDiagnosisLauncher';
 
 const AiDiagnosisSuggestion = () => {

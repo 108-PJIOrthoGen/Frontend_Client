@@ -97,10 +97,10 @@ const fetchUntilTreatmentReady = async (
 
     if (hasTreatmentItems(detail)) return detail;
     if (status === 'FAILED' || status === 'TIMEOUT') {
-      throw new Error(detail?.run?.errorMessage || 'AI tạo phác đồ thất bại.');
+      throw new Error(detail?.run?.errorMessage || 'Sinh phác đồ thất bại.');
     }
     if (status === 'CANCELLED') {
-      throw new Error('Lần tạo phác đồ AI đã bị huỷ.');
+      throw new Error('Lần sinh phác đồ đã bị huỷ.');
     }
     if (
       (status === 'SUCCESS' || status === 'PARTIAL')
