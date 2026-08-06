@@ -8,7 +8,7 @@ import type { LocalPlanData, SystemicPlanData } from '@/types/treatmentType';
  */
 
 export const PJI_CONCLUSION_LABELS: Record<string, string> = {
-  INFECTED: 'Nhiễm trùng khớp giả (PJI)',
+  INFECTED: 'Nhiễm trùng khớp nhân tạo (PJI)',
   NOT_INFECTED: 'Không nhiễm trùng',
   INCONCLUSIVE: 'Chưa kết luận được',
 };
