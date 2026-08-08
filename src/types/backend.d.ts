@@ -280,6 +280,8 @@ export interface ISurgery {
     surgeryType?: string;
     woundStatus?: string;
     findings?: string;
+    positiveHistology?: boolean | null;
+    intraoperativePurulence?: boolean | null;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -305,6 +307,8 @@ export interface IEpisodeFullSurgeryItem {
     surgeryDate?: string;
     surgeryType?: string;
     findings?: string;
+    positiveHistology?: boolean | null;
+    intraoperativePurulence?: boolean | null;
 }
 
 export interface IEpisodeFullImageItem {

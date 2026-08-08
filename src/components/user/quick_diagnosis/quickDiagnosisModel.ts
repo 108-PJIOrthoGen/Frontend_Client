@@ -49,42 +49,36 @@ export const PJI_MINOR_CRITERIA: DiagnosisCriterion[] = [
   {
     key: 'serumCrpOrDdimer',
     label: 'CRP huyết thanh hoặc D-dimer tăng',
-    detail: 'CRP > 10 mg/L (1 mg/dL) hoặc D-dimer > 860 ng/mL.',
+    detail: 'Cấp: CRP > 100 mg/L, chưa có ngưỡng D-dimer. Mạn: CRP > 10 mg/L hoặc D-dimer > 860 µg/L.',
     points: 2,
   },
   {
     key: 'serumEsr',
     label: 'ESR tăng',
-    detail: 'ESR > 30 mm/giờ.',
+    detail: 'Cấp: không áp dụng. Mạn: ESR > 30 mm/giờ.',
     points: 1,
   },
   {
-    key: 'synovialWbcOrLe',
-    label: 'WBC dịch khớp hoặc Leukocyte Esterase tăng',
-    detail: 'WBC > 3.000 tế bào/µL hoặc Leukocyte Esterase mức ++.',
-    points: 3,
-  },
-  {
-    key: 'alphaDefensin',
-    label: 'Alpha-defensin dịch khớp dương tính',
-    detail: 'Tỷ lệ signal-to-cutoff > 1.',
+    key: 'synovialWbcLeOrAlphaDefensin',
+    label: 'WBC dịch khớp, Leukocyte Esterase hoặc Alpha-defensin',
+    detail: 'Cấp: WBC > 10.000 tế bào/µL. Mạn: WBC > 3.000 tế bào/µL. Hoặc LE ≥++ / Alpha-defensin signal-to-cutoff ≥1,0.',
     points: 3,
   },
   {
     key: 'synovialPmn',
     label: 'Tỷ lệ PMN dịch khớp tăng',
-    detail: 'PMN > 80%.',
+    detail: 'Cấp: PMN > 90%. Mạn: PMN > 70%.',
     points: 2,
-  },
-  {
-    key: 'synovialCrp',
-    label: 'CRP dịch khớp tăng',
-    detail: 'CRP dịch khớp > 6,9 mg/L.',
-    points: 1,
   },
 ];
 
 export const PJI_INTRAOPERATIVE_CRITERIA: DiagnosisCriterion[] = [
+  {
+    key: 'singlePositiveCulture',
+    label: 'Một mẫu cấy dương tính',
+    detail: 'Chỉ một mẫu nuôi cấy trong mổ dương tính.',
+    points: 2,
+  },
   {
     key: 'positiveHistology',
     label: 'Mô bệnh học dương tính',
@@ -96,12 +90,6 @@ export const PJI_INTRAOPERATIVE_CRITERIA: DiagnosisCriterion[] = [
     label: 'Có mủ trong mổ',
     detail: 'Ghi nhận mủ tại vị trí phẫu thuật.',
     points: 3,
-  },
-  {
-    key: 'singlePositiveCulture',
-    label: 'Một mẫu cấy dương tính',
-    detail: 'Chỉ một mẫu nuôi cấy trong mổ dương tính.',
-    points: 2,
   },
 ];
 

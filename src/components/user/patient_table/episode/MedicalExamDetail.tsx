@@ -249,6 +249,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                         surgeryDate: formatSurgeryDate(s.surgeryDate),
                         surgeryType: s.surgeryType,
                         findings: s.findings || undefined,
+                        positiveHistology: s.positiveHistology,
+                        intraoperativePurulence: s.intraoperativePurulence,
                     })),
                 images: imageItems,
                 // Sensitivities nest under their culture — the server resolves

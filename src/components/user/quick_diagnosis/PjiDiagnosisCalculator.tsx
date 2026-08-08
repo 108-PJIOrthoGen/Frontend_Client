@@ -175,7 +175,7 @@ export const PjiDiagnosisCalculator = () => {
 
             <Card
               title="Tiêu chí phụ tiền phẫu"
-              extra={<Tag color="blue">{result.preoperativeScore}/12 điểm</Tag>}
+              extra={<Tag color="blue">{result.preoperativeScore}/8 điểm</Tag>}
               styles={{ body: { padding: 16 } }}
             >
               <div className="space-y-3">
@@ -237,7 +237,7 @@ export const PjiDiagnosisCalculator = () => {
                 <Text strong className="text-2xl text-slate-900">
                   {result.preoperativeScore}
                 </Text>
-                <Text type="secondary"> / 12</Text>
+                <Text type="secondary"> / 8</Text>
               </div>
               <div className="rounded-xl bg-slate-50 p-4">
                 <Text type="secondary" className="block text-xs">Đã nhập</Text>
@@ -252,6 +252,7 @@ export const PjiDiagnosisCalculator = () => {
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
                 <Text type="secondary" className="block text-xs">Tổng điểm phối hợp trong mổ</Text>
                 <Text strong className="text-2xl text-amber-700">{result.combinedScore}</Text>
+                <Text type="secondary"> / 16</Text>
               </div>
             )}
 

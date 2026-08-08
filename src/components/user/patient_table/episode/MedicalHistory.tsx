@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react';
-import { Form, Input, Checkbox, DatePicker, Button } from 'antd';
+import { Form, Input, Checkbox, DatePicker, Button, Select } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IMedicalHistory, ISurgery } from '@/types/backend';
 import { stringToDayjs } from '@/config/utils';
 
 const { TextArea } = Input;
+
+const ICM_EVIDENCE_OPTIONS = [
+  { value: true, label: 'Dương tính / Có' },
+  { value: false, label: 'Âm tính / Không' },
+];
 
 interface MedicalHistoryProps {
   medicalHistoryData?: IMedicalHistory | null;
@@ -53,7 +58,14 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
           id: s.id ?? undefined,
           _tempId: String(s.id ?? Date.now()),
         }))
-        : [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }];
+        : [{
+          _tempId: '1',
+          surgeryDate: '',
+          surgeryType: '',
+          findings: '',
+          positiveHistology: null,
+          intraoperativePurulence: null,
+        }];
 
     // Update Redux store
     setForm((prev) => ({
@@ -161,7 +173,14 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
               isOther: false,
               otherNote: '',
             },
-            surgeries: [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
+            surgeries: [{
+              _tempId: '1',
+              surgeryDate: '',
+              surgeryType: '',
+              findings: '',
+              positiveHistology: null,
+              intraoperativePurulence: null,
+            }],
           }}
         >
           <div className="max-w-5xl mx-auto space-y-6">
@@ -279,13 +298,15 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                 </h2>
               </div>
               <div className="p-6">
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
-                  <table className="w-full text-sm text-left">
+                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                  <table className="w-full min-w-[1120px] text-sm text-left">
                     <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
                       <tr>
                         <th className="px-3 py-2 text-center w-16 border-r border-slate-200">Lần PT</th>
                         <th className="px-3 py-2 w-32 border-r border-slate-200">Thời gian</th>
                         <th className="px-3 py-2 border-r border-slate-200">Phương pháp phẫu thuật</th>
+                        <th className="px-3 py-2 w-40 border-r border-slate-200">Mô học</th>
+                        <th className="px-3 py-2 w-40 border-r border-slate-200">Mủ trong mổ</th>
                         <th className="px-3 py-2 border-r border-slate-200">Ghi chú</th>
                         <th className="px-3 py-2 text-center w-24"></th>
                       </tr>
@@ -319,6 +340,24 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                                   </Form.Item>
                                 </td>
                                 <td className="px-3 py-2 border-r border-slate-200">
+                                  <Form.Item {...restField} name={[name, 'positiveHistology']} className="mb-0">
+                                    <Select
+                                      allowClear
+                                      options={ICM_EVIDENCE_OPTIONS}
+                                      placeholder="Chưa đánh giá"
+                                    />
+                                  </Form.Item>
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200">
+                                  <Form.Item {...restField} name={[name, 'intraoperativePurulence']} className="mb-0">
+                                    <Select
+                                      allowClear
+                                      options={ICM_EVIDENCE_OPTIONS}
+                                      placeholder="Chưa đánh giá"
+                                    />
+                                  </Form.Item>
+                                </td>
+                                <td className="px-3 py-2 border-r border-slate-200">
                                   <Form.Item {...restField} name={[name, 'findings']} className="mb-0">
                                     <Input
                                       className="w-full px-3 py-2"
@@ -331,7 +370,14 @@ export const MedicalHistoryPage: React.FC<MedicalHistoryProps> = ({
                                     type="link"
                                     onClick={() =>
                                       add(
-                                        { _tempId: Date.now().toString(), surgeryDate: '', surgeryType: '', findings: '' },
+                                        {
+                                          _tempId: Date.now().toString(),
+                                          surgeryDate: '',
+                                          surgeryType: '',
+                                          findings: '',
+                                          positiveHistology: null,
+                                          intraoperativePurulence: null,
+                                        },
                                         index + 1
                                       )
                                     }
