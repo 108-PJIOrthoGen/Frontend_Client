@@ -4,7 +4,9 @@ import { SaveOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { MedicalExamination, MedicalExaminationHandle, EpisodeFormData } from './MedicalExamination';
 import { MedicalHistoryPage } from './MedicalHistory';
-import { Antibiogram, AntibioticRow } from './Antibiogram';
+import { AntibioticRow } from './Antibiogram';
+import DoctorConclusionTab from './DoctorConclusionTab';
+import PharmacistDecisionTab from './PharmacistDecisionTab';
 import {
     IEpisode,
     ILabResult,
@@ -16,12 +18,18 @@ import {
     ISurgery,
     IPatient,
     IEpisodeFullRequest,
+    IDoctorRecommendationReview,
+    IPharmacistSensitivitySnapshot,
 } from '@/types/backend';
 import {
     callFetchEpisodeFull,
     callCreateEpisodeFull,
     callUpdateEpisodeFull,
+    callFetchDoctorReviewsByEpisode,
+    callSavePharmacistFinalDecision,
+    callSelectFinalDecisionVersion,
 } from '@/apis/api';
+import type { LocalPlanData, SystemicPlanData } from '@/types/treatmentType';
 import { useClinicForm, useAppDispatch, useAppSelector } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/features/patients/patientSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
@@ -38,7 +46,7 @@ interface MedicalExamDetailProps {
     examData: IEpisode | null;
     patientId?: string;
     patient?: IPatient | null;
-    /** Tab key to pre-select when opened (e.g. '5' for pending-lab follow-up). */
+    /** Tab key to pre-select when opened (e.g. '6' for pending-lab follow-up). */
     initialTab?: string;
 }
 
@@ -58,6 +66,10 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const [sensitivityMap, setSensitivityMap] = useState<Record<string, ISensitivityResult[]>>({});
     const [medicalHistory, setMedicalHistory] = useState<IMedicalHistory | null>(null);
     const [surgeries, setSurgeries] = useState<ISurgery[]>([]);
+    const [reviews, setReviews] = useState<IDoctorRecommendationReview[]>([]);
+    const [selectedReviewId, setSelectedReviewId] = useState<string>();
+    const [selectingFinal, setSelectingFinal] = useState(false);
+    const [savingPharmacist, setSavingPharmacist] = useState(false);
 
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
@@ -118,6 +130,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         setSensitivityMap({});
         setMedicalHistory(null);
         setSurgeries([]);
+        setReviews([]);
+        setSelectedReviewId(undefined);
         dispatch(resetClinicForm());
     };
 
@@ -127,10 +141,15 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         try {
             // One transactional read of the whole aggregate — replaces the former
             // 6 + N (per-culture sensitivity) fan-out.
-            const res = await callFetchEpisodeFull(episodeId);
+            const [episodeResult, reviewsResult] = await Promise.allSettled([
+                callFetchEpisodeFull(episodeId),
+                callFetchDoctorReviewsByEpisode(episodeId),
+            ]);
             if (requestId !== latestFetchRequestRef.current) {
                 return;
             }
+            if (episodeResult.status === 'rejected') throw episodeResult.reason;
+            const res = episodeResult.value;
             const data = res?.data;
             if (!data) {
                 message.error('Không thể tải dữ liệu bệnh án');
@@ -143,6 +162,12 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             setSensitivityMap(data.sensitivityMap ?? {});
             setMedicalHistory(data.medicalHistory ?? null);
             setSurgeries(data.surgeries ?? []);
+            if (reviewsResult.status === 'fulfilled') {
+                const reviewItems = reviewsResult.value?.data ?? [];
+                setReviews(reviewItems);
+                const selected = reviewItems.find((review) => review.finalDecision) ?? reviewItems[0];
+                setSelectedReviewId(selected?.id != null ? String(selected.id) : undefined);
+            }
         } catch {
             if (requestId !== latestFetchRequestRef.current) {
                 return;
@@ -152,6 +177,84 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             if (requestId === latestFetchRequestRef.current) {
                 setLoading(false);
             }
+        }
+    };
+
+    const handleSelectFinalDecision = async (reviewId: string) => {
+        if (!examData?.id) return;
+        setSelectingFinal(true);
+        try {
+            const response = await callSelectFinalDecisionVersion(String(examData.id), reviewId);
+            const selected = response?.data;
+            setReviews((current) => current.map((review) => (
+                String(review.id) === reviewId
+                    ? { ...review, ...selected, finalDecision: true }
+                    : { ...review, finalDecision: false }
+            )));
+            setSelectedReviewId(reviewId);
+            message.success('Đã chọn final decision cho bệnh án.');
+        } catch {
+            message.error('Không thể chọn version final decision.');
+        } finally {
+            setSelectingFinal(false);
+        }
+    };
+
+    const buildSensitivitySnapshot = (): IPharmacistSensitivitySnapshot[] => {
+        const selectedSnapshot = reviews.find((review) => String(review.id) === selectedReviewId)
+            ?.pharmacistFinalDecision?.sensitivityResultsJson;
+        const cultures = selectedSnapshot?.length
+            ? selectedSnapshot.map((snapshot, index) => ({
+                id: snapshot.cultureId || `decision-culture-${index + 1}`,
+                name: snapshot.cultureName,
+            }))
+            : (form.cultureResults?.length ? form.cultureResults : cultureResults);
+        return cultures.map((culture) => {
+            const key = String(culture.id || (culture as any)._tempId || '');
+            const rows = antibioticsRef.current[key] ?? [];
+            return {
+                cultureId: culture.id != null ? String(culture.id) : key,
+                cultureName: culture.name,
+                sensitivities: rows
+                    .filter((row) => row.name.trim())
+                    .map((row) => ({
+                        id: row.id,
+                        antibioticName: row.name,
+                        micValue: row.mic || undefined,
+                        sensitivityCode: row.interpretation || undefined,
+                        notes: row.notes || undefined,
+                    })),
+            };
+        });
+    };
+
+    const handleSavePharmacistDecision = async (
+        systemic: SystemicPlanData,
+        local: LocalPlanData,
+        notes: string,
+    ) => {
+        if (!selectedReviewId) {
+            message.warning('Chọn một version recommendation trước khi lưu.');
+            return;
+        }
+        setSavingPharmacist(true);
+        try {
+            const response = await callSavePharmacistFinalDecision(selectedReviewId, {
+                systemicAntibioticPlanJson: systemic as unknown as Record<string, any>,
+                localAntibioticPlanJson: local as unknown as Record<string, any>,
+                sensitivityResultsJson: buildSensitivitySnapshot(),
+                notes: notes || undefined,
+            });
+            if (response?.data) {
+                setReviews((current) => current.map((review) => (
+                    String(review.id) === selectedReviewId ? { ...review, ...response.data } : review
+                )));
+            }
+            message.success('Đã lưu phác đồ và kháng sinh đồ của dược sĩ.');
+        } catch {
+            message.error('Không thể lưu quyết định của dược sĩ.');
+        } finally {
+            setSavingPharmacist(false);
         }
     };
 
@@ -359,20 +462,38 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         },
         {
             key: '4',
-            label: 'Kháng sinh đồ',
+            label: 'Kết luận bác sĩ',
             forceRender: true,
             children: (
-                <Antibiogram
-
-                    cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults.map(c => ({ ...c, _tempId: String(c.id) }))}
+                <DoctorConclusionTab
+                    reviews={reviews}
+                    selectedReviewId={selectedReviewId}
+                    selecting={selectingFinal}
+                    onReviewChange={setSelectedReviewId}
+                    onSelectFinal={handleSelectFinalDecision}
+                />
+            ),
+        },
+        {
+            key: '5',
+            label: 'Phác đồ dược sĩ',
+            forceRender: true,
+            children: (
+                <PharmacistDecisionTab
+                    reviews={reviews}
+                    selectedReviewId={selectedReviewId}
+                    cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults}
                     sensitivityMap={sensitivityMap}
+                    saving={savingPharmacist}
+                    onReviewChange={setSelectedReviewId}
                     onAntibioticsChange={(data) => { antibioticsRef.current = data; }}
+                    onSave={handleSavePharmacistDecision}
                 />
             ),
         },
         ...(examData?.id
             ? [{
-                key: '5',
+                key: '6',
                 label: (
                     <span className="flex items-center gap-2">
                         Xét nghiệm chờ bổ sung

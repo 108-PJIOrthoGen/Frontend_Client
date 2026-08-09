@@ -467,6 +467,8 @@ export interface IAiRecommendationRunDetail {
 
 export interface IDoctorRecommendationReview {
     id?: string;
+    episode?: IEpisode;
+    run?: IAiRecommendationRun;
     episodeId?: number;
     runId?: number;
     reviewStatus?: string;
@@ -477,10 +479,44 @@ export interface IDoctorRecommendationReview {
     doctorDiagnosisJson?: IDoctorDiagnosis;
     /** Per-criterion AI-vs-doctor agreement + overall agreement_rate (0-100). */
     agreementJson?: IAgreementJson;
+    /** True when this run/review is the episode's selected final version. */
+    finalDecision?: boolean;
+    doctorFinalDecision?: IDoctorFinalDecision;
+    pharmacistFinalDecision?: IPharmacistFinalDecision;
     createdBy?: string;
     updatedBy?: string;
     createdAt?: string;
     updatedAt?: string;
+}
+
+export interface IDoctorFinalDecision {
+    id?: string;
+    diagnosisJson?: IDoctorDiagnosis;
+    surgeryPlanJson?: import('./treatmentType').SurgeryPlanData;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IPharmacistFinalDecision {
+    id?: string;
+    systemicAntibioticPlanJson?: import('./treatmentType').SystemicPlanData;
+    localAntibioticPlanJson?: import('./treatmentType').LocalPlanData;
+    sensitivityResultsJson?: IPharmacistSensitivitySnapshot[];
+    notes?: string;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IPharmacistSensitivitySnapshot {
+    cultureId?: string;
+    cultureName?: string;
+    sensitivities?: Array<{
+        id?: string;
+        antibioticName?: string;
+        micValue?: string;
+        sensitivityCode?: string;
+        notes?: string;
+    }>;
 }
 
 export interface IDoctorDiagnosis {

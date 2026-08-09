@@ -4,7 +4,8 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview, IDoctorReviewStats,
+IDoctorRecommendationReview, IDoctorReviewStats,
+IPharmacistSensitivitySnapshot,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -405,6 +406,11 @@ export const callCreateDoctorReview = (episodeId: string, data: {
     rejectionReason?: string;
     doctorDiagnosisJson?: Record<string, any>;
     agreementJson?: Record<string, any>;
+    doctorFinalDecision?: {
+        diagnosisJson: Record<string, any>;
+        surgeryPlanJson?: Record<string, any>;
+    };
+    selectAsFinalDecision?: boolean;
 }): Promise<IBackendRes<IDoctorRecommendationReview>> => {
     return instance.post(`/api/v1/episodes/${episodeId}/doctor-reviews`, data);
 }
@@ -419,6 +425,26 @@ export const callFetchDoctorReviewByRunId = (runId: string): Promise<IBackendRes
 
 export const callFetchDoctorReviewsByEpisode = (episodeId: string): Promise<IBackendRes<IDoctorRecommendationReview[]>> => {
     return instance.get(`/api/v1/episodes/${episodeId}/doctor-reviews`);
+}
+
+export const callFetchFinalDecisionByEpisode = (episodeId: string): Promise<IBackendRes<IDoctorRecommendationReview>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/doctor-reviews/final-decision`);
+}
+
+export const callSelectFinalDecisionVersion = (
+    episodeId: string,
+    reviewId: string,
+): Promise<IBackendRes<IDoctorRecommendationReview>> => {
+    return instance.put(`/api/v1/episodes/${episodeId}/doctor-reviews/${reviewId}/final-decision`);
+}
+
+export const callSavePharmacistFinalDecision = (reviewId: string, data: {
+    systemicAntibioticPlanJson?: Record<string, any>;
+    localAntibioticPlanJson?: Record<string, any>;
+    sensitivityResultsJson?: IPharmacistSensitivitySnapshot[];
+    notes?: string;
+}): Promise<IBackendRes<IDoctorRecommendationReview>> => {
+    return instance.put(`/api/v1/doctor-reviews/${reviewId}/pharmacist-final-decision`, data);
 }
 
 /**

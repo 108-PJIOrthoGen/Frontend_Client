@@ -437,7 +437,7 @@ const PatientTable = () => {
                     }}
                     patient={dataInit}
                     initialEpisodeId={deepLink?.episodeId}
-                    initialTab={deepLink?.tab === 'pending' ? '5' : undefined}
+                    initialTab={deepLink?.tab === 'pending' ? '6' : undefined}
                 />
             </Card>
         </div>
