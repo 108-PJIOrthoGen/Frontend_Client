@@ -4,8 +4,7 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-IDoctorRecommendationReview, IDoctorReviewStats,
-IPharmacistSensitivitySnapshot,
+    IDoctorRecommendationReview, IDoctorReviewStats,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -436,15 +435,6 @@ export const callSelectFinalDecisionVersion = (
     reviewId: string,
 ): Promise<IBackendRes<IDoctorRecommendationReview>> => {
     return instance.put(`/api/v1/episodes/${episodeId}/doctor-reviews/${reviewId}/final-decision`);
-}
-
-export const callSavePharmacistFinalDecision = (reviewId: string, data: {
-    systemicAntibioticPlanJson?: Record<string, any>;
-    localAntibioticPlanJson?: Record<string, any>;
-    sensitivityResultsJson?: IPharmacistSensitivitySnapshot[];
-    notes?: string;
-}): Promise<IBackendRes<IDoctorRecommendationReview>> => {
-    return instance.put(`/api/v1/doctor-reviews/${reviewId}/pharmacist-final-decision`, data);
 }
 
 /**

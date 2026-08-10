@@ -482,7 +482,6 @@ export interface IDoctorRecommendationReview {
     /** True when this run/review is the episode's selected final version. */
     finalDecision?: boolean;
     doctorFinalDecision?: IDoctorFinalDecision;
-    pharmacistFinalDecision?: IPharmacistFinalDecision;
     createdBy?: string;
     updatedBy?: string;
     createdAt?: string;
@@ -495,28 +494,6 @@ export interface IDoctorFinalDecision {
     surgeryPlanJson?: import('./treatmentType').SurgeryPlanData;
     createdAt?: string;
     updatedAt?: string;
-}
-
-export interface IPharmacistFinalDecision {
-    id?: string;
-    systemicAntibioticPlanJson?: import('./treatmentType').SystemicPlanData;
-    localAntibioticPlanJson?: import('./treatmentType').LocalPlanData;
-    sensitivityResultsJson?: IPharmacistSensitivitySnapshot[];
-    notes?: string;
-    createdAt?: string;
-    updatedAt?: string;
-}
-
-export interface IPharmacistSensitivitySnapshot {
-    cultureId?: string;
-    cultureName?: string;
-    sensitivities?: Array<{
-        id?: string;
-        antibioticName?: string;
-        micValue?: string;
-        sensitivityCode?: string;
-        notes?: string;
-    }>;
 }
 
 export interface IDoctorDiagnosis {

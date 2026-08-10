@@ -6,7 +6,7 @@ import { MedicalExamination, MedicalExaminationHandle, EpisodeFormData } from '.
 import { MedicalHistoryPage } from './MedicalHistory';
 import { AntibioticRow } from './Antibiogram';
 import DoctorConclusionTab from './DoctorConclusionTab';
-import PharmacistDecisionTab from './PharmacistDecisionTab';
+import AntibiogramAiVersionTab from './AntibiogramAiVersionTab';
 import {
     IEpisode,
     ILabResult,
@@ -19,17 +19,14 @@ import {
     IPatient,
     IEpisodeFullRequest,
     IDoctorRecommendationReview,
-    IPharmacistSensitivitySnapshot,
 } from '@/types/backend';
 import {
     callFetchEpisodeFull,
     callCreateEpisodeFull,
     callUpdateEpisodeFull,
     callFetchDoctorReviewsByEpisode,
-    callSavePharmacistFinalDecision,
     callSelectFinalDecisionVersion,
 } from '@/apis/api';
-import type { LocalPlanData, SystemicPlanData } from '@/types/treatmentType';
 import { useClinicForm, useAppDispatch, useAppSelector } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/features/patients/patientSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
@@ -69,7 +66,6 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const [reviews, setReviews] = useState<IDoctorRecommendationReview[]>([]);
     const [selectedReviewId, setSelectedReviewId] = useState<string>();
     const [selectingFinal, setSelectingFinal] = useState(false);
-    const [savingPharmacist, setSavingPharmacist] = useState(false);
 
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
@@ -197,64 +193,6 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             message.error('Không thể chọn version final decision.');
         } finally {
             setSelectingFinal(false);
-        }
-    };
-
-    const buildSensitivitySnapshot = (): IPharmacistSensitivitySnapshot[] => {
-        const selectedSnapshot = reviews.find((review) => String(review.id) === selectedReviewId)
-            ?.pharmacistFinalDecision?.sensitivityResultsJson;
-        const cultures = selectedSnapshot?.length
-            ? selectedSnapshot.map((snapshot, index) => ({
-                id: snapshot.cultureId || `decision-culture-${index + 1}`,
-                name: snapshot.cultureName,
-            }))
-            : (form.cultureResults?.length ? form.cultureResults : cultureResults);
-        return cultures.map((culture) => {
-            const key = String(culture.id || (culture as any)._tempId || '');
-            const rows = antibioticsRef.current[key] ?? [];
-            return {
-                cultureId: culture.id != null ? String(culture.id) : key,
-                cultureName: culture.name,
-                sensitivities: rows
-                    .filter((row) => row.name.trim())
-                    .map((row) => ({
-                        id: row.id,
-                        antibioticName: row.name,
-                        micValue: row.mic || undefined,
-                        sensitivityCode: row.interpretation || undefined,
-                        notes: row.notes || undefined,
-                    })),
-            };
-        });
-    };
-
-    const handleSavePharmacistDecision = async (
-        systemic: SystemicPlanData,
-        local: LocalPlanData,
-        notes: string,
-    ) => {
-        if (!selectedReviewId) {
-            message.warning('Chọn một version recommendation trước khi lưu.');
-            return;
-        }
-        setSavingPharmacist(true);
-        try {
-            const response = await callSavePharmacistFinalDecision(selectedReviewId, {
-                systemicAntibioticPlanJson: systemic as unknown as Record<string, any>,
-                localAntibioticPlanJson: local as unknown as Record<string, any>,
-                sensitivityResultsJson: buildSensitivitySnapshot(),
-                notes: notes || undefined,
-            });
-            if (response?.data) {
-                setReviews((current) => current.map((review) => (
-                    String(review.id) === selectedReviewId ? { ...review, ...response.data } : review
-                )));
-            }
-            message.success('Đã lưu phác đồ và kháng sinh đồ của dược sĩ.');
-        } catch {
-            message.error('Không thể lưu quyết định của dược sĩ.');
-        } finally {
-            setSavingPharmacist(false);
         }
     };
 
@@ -418,6 +356,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         }
     };
 
+    const finalReview = reviews.find((review) => review.finalDecision);
+    const selectedFinalRunId = finalReview?.run?.id ?? finalReview?.runId;
+
     const tabItems = [
         {
             key: '1',
@@ -476,18 +417,16 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         },
         {
             key: '5',
-            label: 'Phác đồ dược sĩ',
+            label: 'Kháng sinh đồ',
             forceRender: true,
             children: (
-                <PharmacistDecisionTab
-                    reviews={reviews}
-                    selectedReviewId={selectedReviewId}
+                <AntibiogramAiVersionTab
+                    episodeId={examData?.id}
+                    loadAi={activeTab === '5'}
+                    preferredRunId={selectedFinalRunId}
                     cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults}
                     sensitivityMap={sensitivityMap}
-                    saving={savingPharmacist}
-                    onReviewChange={setSelectedReviewId}
                     onAntibioticsChange={(data) => { antibioticsRef.current = data; }}
-                    onSave={handleSavePharmacistDecision}
                 />
             ),
         },
