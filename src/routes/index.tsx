@@ -17,7 +17,6 @@ const MobileUploadPage = lazy(() => import("@/pages/mobile/MobileUploadPage"));
 const AiDiagnosisSuggestion = lazy(() => import("@/pages/user/AiDiagnoseSuggestion"));
 const PatientTable = lazy(() => import("@/pages/user/PatientTable"));
 const ChartTesting = lazy(() => import("@/pages/user/ChartTesting"));
-const CompareResult = lazy(() => import("@/pages/user/CompareResult"));
 const ScenarioSimulator = lazy(() => import("@/pages/user/ScenarioSimulator"));
 const AntibioticCarePlanner = lazy(() => import("@/pages/user/AntibioticCarePlanner"));
 
@@ -49,10 +48,6 @@ const router = createBrowserRouter([
             {
                 path: "chart-testing",
                 element: <ProtectedRoute><ChartTesting /></ProtectedRoute>
-            },
-            {
-                path: "compare-result",
-                element: <ProtectedRoute><CompareResult /></ProtectedRoute>
             },
             {
                 path: "scenario-simulator",

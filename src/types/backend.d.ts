@@ -477,8 +477,6 @@ export interface IDoctorRecommendationReview {
     rejectionReason?: string;
     /** Doctor's own final diagnosis (Chẩn đoán bác sĩ step) — snake_case keys. */
     doctorDiagnosisJson?: IDoctorDiagnosis;
-    /** Per-criterion AI-vs-doctor agreement + overall agreement_rate (0-100). */
-    agreementJson?: IAgreementJson;
     /** True when this run/review is the episode's selected final version. */
     finalDecision?: boolean;
     doctorFinalDecision?: IDoctorFinalDecision;
@@ -502,33 +500,4 @@ export interface IDoctorDiagnosis {
     primary_diagnosis?: string;
     clinical_reasoning?: string;
     identified_organism?: string;
-}
-
-export interface IAgreementJson {
-    diagnosis_conclusion?: boolean;
-    infection_classification?: boolean;
-    surgery_strategy?: boolean;
-    systemic_antibiotics?: boolean;
-    local_antibiotics?: boolean;
-    agreement_rate?: number; // 0-100
-}
-
-export interface IDoctorReviewStats {
-    totalReviews?: number;
-    accepted?: number;
-    modified?: number;
-    rejected?: number;
-    savedDraft?: number;
-    consensusRate?: number | null;
-    avgAgreementRate?: number | null;
-    overriddenCases?: {
-        reviewId?: number;
-        episodeId?: number;
-        runId?: number;
-        patientName?: string;
-        reviewStatus?: string;
-        agreementRate?: number | null;
-        reviewNote?: string;
-        updatedAt?: string;
-    }[];
 }

@@ -6,7 +6,7 @@ import { ALL_PERMISSIONS } from '@/constants/permission';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { fetchPatient, setCurrentCase } from '@/redux/features/patients/patientSlice';
 import { IModelPaginate, IPatient } from '@/types/backend';
-import { DeleteOutlined, DiffOutlined, EditOutlined, FolderOpenOutlined, LineChartOutlined, MoreOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
+import { DeleteOutlined, EditOutlined, FolderOpenOutlined, LineChartOutlined, MoreOutlined, PlusOutlined, UserOutlined } from "@ant-design/icons";
 import { ActionType, ProColumns } from "@ant-design/pro-components";
 import { Button, Card, Dropdown, message, Modal, notification, type MenuProps } from "antd";
 import dayjs from "dayjs";
@@ -46,7 +46,7 @@ const PatientTable = () => {
         ))
     );
 
-    // Open an AI feature (chart-testing / compare-result) scoped to a patient:
+    // Open an AI feature scoped to a patient:
     // resolve their most recent episode, load it as the current case, then
     // navigate — the target page reads currentCase and shows the right data.
     const openAiFeatureForPatient = async (patient: IPatient, path: string) => {
@@ -109,20 +109,12 @@ const PatientTable = () => {
             });
         }
 
-        items.push(
-            {
-                key: 'inflammation-chart',
-                icon: <LineChartOutlined className="text-sky-600" />,
-                label: 'Chỉ số viêm',
-                onClick: () => openAiFeatureForPatient(patient, '/chart-testing'),
-            },
-            {
-                key: 'compare-ai',
-                icon: <DiffOutlined className="text-violet-600" />,
-                label: 'So sánh AI',
-                onClick: () => openAiFeatureForPatient(patient, '/compare-result'),
-            },
-        );
+        items.push({
+            key: 'inflammation-chart',
+            icon: <LineChartOutlined className="text-sky-600" />,
+            label: 'Chỉ số viêm',
+            onClick: () => openAiFeatureForPatient(patient, '/chart-testing'),
+        });
 
         if (hasPermission(ALL_PERMISSIONS.PATIENTS.DELETE)) {
             items.push(

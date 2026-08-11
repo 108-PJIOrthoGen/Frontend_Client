@@ -7,7 +7,6 @@ import type {
   IDoctorDiagnosis,
 } from '@/types/backend';
 import type { SurgeryPlanData } from '@/types/treatmentType';
-import { aiConclusionOf, norm } from '@/utils/aiDoctorCompare';
 import { parseItemJson } from '../treatment_plan/utils/itemJson';
 import {
   clearDiagnosisWorkflowSession,
@@ -24,6 +23,24 @@ const TREATMENT_CATEGORIES = new Set([
   'SYSTEMIC_ANTIBIOTIC',
   'LOCAL_ANTIBIOTIC',
 ]);
+
+export const PJI_CONCLUSION_LABELS: Record<string, string> = {
+  INFECTED: 'Nhiễm trùng khớp nhân tạo (PJI)',
+  NOT_INFECTED: 'Không nhiễm trùng',
+  INCONCLUSIVE: 'Chưa kết luận được',
+};
+
+/** Map the AI pji_probability vocabulary onto the doctor conclusion vocabulary. */
+export const aiConclusionOf = (pjiProbability?: string): string => {
+  switch ((pjiProbability ?? '').toUpperCase()) {
+    case 'DEFINITE':
+      return 'INFECTED';
+    case 'UNLIKELY':
+      return 'NOT_INFECTED';
+    default:
+      return 'INCONCLUSIVE';
+  }
+};
 
 export type DoctorReviewDecision = 'ACCEPTED' | 'MODIFIED' | 'REJECTED';
 
@@ -44,14 +61,6 @@ export interface DoctorDiagnosisModel {
   reviewDecision?: DoctorReviewDecision;
   reviewNote: string;
   runId: string;
-}
-
-interface AgreementInput {
-  aiConclusion: string;
-  aiDiagnosis: AiDiagnosisSummary;
-  aiSurgery: SurgeryPlanData | null;
-  diagnosis: IDoctorDiagnosis;
-  doctorSurgery: SurgeryPlanData | null;
 }
 
 const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
@@ -169,37 +178,6 @@ export const loadDoctorDiagnosisModel = async (
     reviewDecision,
     reviewNote,
     runId: String(detail.run?.id),
-  };
-};
-
-export const calculateAgreement = ({
-  aiConclusion,
-  aiDiagnosis,
-  aiSurgery,
-  diagnosis,
-  doctorSurgery,
-}: AgreementInput) => {
-  const checks: Record<string, boolean> = {
-    diagnosis_conclusion: norm(diagnosis.pji_conclusion) === norm(aiConclusion),
-  };
-  if (aiDiagnosis.infectionClassification || diagnosis.infection_classification) {
-    checks.infection_classification = (
-      norm(diagnosis.infection_classification)
-      === norm(aiDiagnosis.infectionClassification)
-    );
-  }
-  if (aiSurgery || doctorSurgery) {
-    checks.surgery_strategy = (
-      norm(doctorSurgery?.surgeryStrategyType)
-      === norm(aiSurgery?.surgeryStrategyType)
-    );
-  }
-  const values = Object.values(checks);
-  return {
-    ...checks,
-    agreement_rate: values.length
-      ? Math.round((values.filter(Boolean).length / values.length) * 100)
-      : 100,
   };
 };
 

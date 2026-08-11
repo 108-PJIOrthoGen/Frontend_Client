@@ -15,7 +15,7 @@ import {
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import type { IDoctorDiagnosis } from '@/types/backend';
 import type { SurgeryPlanData, SurgeryStageData } from '@/types/treatmentType';
-import { PJI_CONCLUSION_LABELS } from '@/utils/aiDoctorCompare';
+import { PJI_CONCLUSION_LABELS } from './doctorDiagnosisModel';
 
 const { TextArea } = Input;
 const { Text } = Typography;

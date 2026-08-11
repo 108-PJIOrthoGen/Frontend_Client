@@ -36,10 +36,9 @@ import {
   normalizeIdentity,
 } from '../treatment_plan/utils/permissions';
 import SuccessModal from '../treatment_plan/components/SuccessModal';
-import { aiConclusionOf } from '@/utils/aiDoctorCompare';
 import {
+  aiConclusionOf,
   buildDoctorModificationJson,
-  calculateAgreement,
   clearDiagnosisWorkflowStorage,
   loadDoctorDiagnosisModel,
 } from './doctorDiagnosisModel';
@@ -160,13 +159,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         rejectionReason: decision === 'REJECTED' ? rejectionReason : undefined,
         doctorDiagnosisJson: diagnosis as Record<string, any>,
         modificationJson: buildDoctorModificationJson(surgery),
-        agreementJson: calculateAgreement({
-          aiConclusion,
-          aiDiagnosis,
-          aiSurgery,
-          diagnosis,
-          doctorSurgery: surgery,
-        }),
         doctorFinalDecision: {
           diagnosisJson: diagnosis as Record<string, any>,
           surgeryPlanJson: surgery as Record<string, any> | undefined,

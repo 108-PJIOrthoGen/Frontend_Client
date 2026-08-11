@@ -219,7 +219,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
         rejectionReason: reviewStatus === 'REJECTED' ? rejectionReason : undefined,
         doctorDiagnosisJson: diagnosis as Record<string, any>,
         modificationJson: buildDoctorModificationJson(surgery),
-        agreementJson: review.agreementJson,
         doctorFinalDecision: {
           diagnosisJson: diagnosis as Record<string, any>,
           surgeryPlanJson: surgery as Record<string, any> | undefined,
