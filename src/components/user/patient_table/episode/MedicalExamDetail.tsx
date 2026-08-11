@@ -196,6 +196,14 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         }
     };
 
+    const handleReviewSaved = (savedReview: IDoctorRecommendationReview) => {
+        const savedId = String(savedReview.id);
+        setReviews((current) => current.map((review) => (
+            String(review.id) === savedId ? savedReview : review
+        )));
+        setSelectedReviewId(savedId);
+    };
+
     const handleSave = async () => {
         if (saving) return;
         if (isLockBlocking) {
@@ -407,10 +415,13 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             forceRender: true,
             children: (
                 <DoctorConclusionTab
+                    active={activeTab === '4'}
+                    episodeId={examData?.id}
                     reviews={reviews}
                     selectedReviewId={selectedReviewId}
                     selecting={selectingFinal}
                     onReviewChange={setSelectedReviewId}
+                    onReviewSaved={handleReviewSaved}
                     onSelectFinal={handleSelectFinalDecision}
                 />
             ),

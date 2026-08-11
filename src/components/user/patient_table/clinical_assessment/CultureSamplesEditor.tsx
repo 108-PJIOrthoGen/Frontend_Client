@@ -1,6 +1,7 @@
 import React from 'react';
-import { Checkbox, Input, InputNumber, Select } from 'antd';
+import { AutoComplete, Checkbox, Input, InputNumber, Select } from 'antd';
 import { useClinicForm } from '@/redux/hook';
+import { bacteriaNameOptions } from './bacteriaNameOptions';
 
 /**
  * Editable list of culture (vi khuẩn) samples bound to
@@ -46,17 +47,19 @@ const CultureSamplesEditor: React.FC = () => {
 
             <div className="flex flex-col col-span-2 gap-1.5">
               <label className="text-xs font-semibold text-slate-700">Tên vi khuẩn</label>
-              <Input
+              <AutoComplete
                 value={sample.name || ''}
-                onChange={(e) => {
+                onChange={(value) => {
                   const newSamples = [...clinicForm.cultureResults];
                   newSamples[sampleIdx] = {
                     ...newSamples[sampleIdx],
-                    name: e.target.value,
+                    name: value,
                   };
                   setForm((prev) => ({ ...prev, cultureResults: newSamples }));
                 }}
-                placeholder="Nhập tên..."
+                options={bacteriaNameOptions}
+                placeholder="Nhập hoặc chọn tên vi khuẩn..."
+                className="w-full"
               />
             </div>
             <div className="flex flex-col gap-1.5">
