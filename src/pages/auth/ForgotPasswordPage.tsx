@@ -3,6 +3,8 @@ import { Button, Card, Flex, Form, Input, Result, Space, Typography, message, no
 import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { forgotPasswordAPI, resetPasswordAPI } from '@/apis/auth';
+import { clearAccessToken } from '@/security/accessToken';
+import { clearLegacySensitiveBrowserStorage } from '@/security/browserSession';
 import TurnstileCaptcha from '@/components/common/TurnstileCaptcha';
 
 const { Title, Text, Paragraph } = Typography;
@@ -71,7 +73,8 @@ const ForgotPasswordPage = () => {
     setIsResetting(false);
 
     if (+res?.status === 200) {
-      localStorage.removeItem('access_token');
+      clearAccessToken();
+      clearLegacySensitiveBrowserStorage();
       setStep('done');
       return;
     }

@@ -18,6 +18,7 @@ import {
 import { getRuntimeApiBase } from '@/config/runtimeUrls';
 import { openSse, type SseConnection } from '@/utils/sseClient';
 import type { INotification } from '@/types/notification';
+import { getAccessToken } from '@/security/accessToken';
 
 interface NotificationContextValue {
   notifications: INotification[];
@@ -39,7 +40,7 @@ interface ProviderProps {
 }
 
 export const NotificationProvider = ({ children }: ProviderProps) => {
-  const isAuthed = useSelector((state: any) => Boolean(state?.account?.user));
+  const isAuthed = useSelector((state: any) => Boolean(state?.account?.isAuthenticated));
 
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -130,7 +131,7 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
   const openConnection = useCallback(() => {
     if (!isAuthed) return;
     const apiBase = getRuntimeApiBase();
-    const token = window.localStorage.getItem('access_token');
+    const token = getAccessToken();
     sseRef.current = openSse({
       url: `${apiBase}/api/v1/notifications/stream`,
       token,

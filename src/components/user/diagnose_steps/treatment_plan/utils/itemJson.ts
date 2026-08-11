@@ -16,8 +16,8 @@ export const snakeToCamel = (obj: any): any => {
 
 // Camel-case keys whose values must render as arrays. If the LLM drifts and
 // emits a string (e.g. "monitoring": "Theo dõi CRP mỗi tuần"), coerce it so
-// downstream `.map(...)` calls don't blow up the page. Stale items already
-// persisted in localStorage / DB pass through this same path on read.
+// downstream `.map(...)` calls don't blow up the page. Persisted DB items pass
+// through this same path on read.
 const ARRAY_FIELDS = new Set([
   'monitoring',
   'contraindications',

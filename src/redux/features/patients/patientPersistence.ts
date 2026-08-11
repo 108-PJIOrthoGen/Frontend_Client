@@ -11,6 +11,12 @@ import {
     saveClinicForm,
     saveCurrentCase,
 } from './patientStorage';
+import { runLogoutAction } from '@/redux/slice/accountSlice';
+import {
+    activateDiagnosisWorkflow,
+    clearDiagnosisWorkflowSession,
+    createDiagnosisWorkflowScope,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 export const patientPersistenceMiddleware = createListenerMiddleware();
 
@@ -18,6 +24,11 @@ patientPersistenceMiddleware.startListening({
     actionCreator: setCurrentCase,
     effect: (action) => {
         saveCurrentCase(action.payload);
+        const scope = createDiagnosisWorkflowScope(
+            action.payload.patient?.id,
+            action.payload.episode?.id,
+        );
+        if (scope) activateDiagnosisWorkflow(scope);
     },
 });
 
@@ -25,6 +36,18 @@ patientPersistenceMiddleware.startListening({
     actionCreator: clearCurrentCase,
     effect: () => {
         clearStoredCurrentCase();
+        clearDiagnosisWorkflowSession();
+    },
+});
+
+patientPersistenceMiddleware.startListening({
+    actionCreator: runLogoutAction,
+    effect: (_, listenerApi) => {
+        clearStoredCurrentCase();
+        clearStoredClinicForm();
+        clearDiagnosisWorkflowSession();
+        listenerApi.dispatch(clearCurrentCase());
+        listenerApi.dispatch(resetClinicForm());
     },
 });
 

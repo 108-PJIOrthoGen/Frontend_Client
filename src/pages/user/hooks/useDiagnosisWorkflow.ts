@@ -7,15 +7,13 @@ import { clearCurrentCase, setCurrentCase } from '@/redux/features/patients/pati
 
 const FIRST_STEP = 0;
 const TREATMENT_PLAN_STEP = 2;
-const CURRENT_STEP_STORAGE_KEY = 'pji_currentStep';
 
 const initialStepFromLocation = (search: string): number => {
   if (new URLSearchParams(search).get('runId')) {
     return TREATMENT_PLAN_STEP;
   }
 
-  const savedStep = localStorage.getItem(CURRENT_STEP_STORAGE_KEY);
-  return savedStep ? parseInt(savedStep, 10) : FIRST_STEP;
+  return FIRST_STEP;
 };
 
 export const useDiagnosisWorkflow = () => {
@@ -78,10 +76,6 @@ export const useDiagnosisWorkflow = () => {
       cancelled = true;
     };
   }, [currentCase?.episode?.id, dispatch, searchParams]);
-
-  useEffect(() => {
-    localStorage.setItem(CURRENT_STEP_STORAGE_KEY, currentStep.toString());
-  }, [currentStep]);
 
   const next = useCallback(() => {
     setCurrentStep(previousStep => previousStep + 1);

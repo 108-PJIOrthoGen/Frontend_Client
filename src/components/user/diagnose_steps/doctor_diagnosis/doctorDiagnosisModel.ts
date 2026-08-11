@@ -9,6 +9,13 @@ import type {
 import type { SurgeryPlanData } from '@/types/treatmentType';
 import { aiConclusionOf, norm } from '@/utils/aiDoctorCompare';
 import { parseItemJson } from '../treatment_plan/utils/itemJson';
+import {
+  clearDiagnosisWorkflowSession,
+  clearPendingRecommendationRun,
+  getDiagnosisWorkflowSnapshot,
+  storeRecommendationRun,
+  type DiagnosisWorkflowScope,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 300;
@@ -17,16 +24,6 @@ const TREATMENT_CATEGORIES = new Set([
   'SYSTEMIC_ANTIBIOTIC',
   'LOCAL_ANTIBIOTIC',
 ]);
-
-const WORKFLOW_STORAGE_KEYS = {
-  aiRunDetail: 'pji_aiRunDetail',
-  aiRunId: 'pji_aiRunId',
-  diagnosticResult: 'pji_diagnosticResult',
-  pendingRunId: 'pending_pji_aiRunId',
-  pendingThoughtLogs: 'pending_pji_thoughtLogs',
-  selectedExamId: 'pji_selectedExamId',
-  selectedPatientId: 'pji_selectedPatientId',
-} as const;
 
 export type DoctorReviewDecision = 'ACCEPTED' | 'MODIFIED' | 'REJECTED';
 
@@ -41,7 +38,6 @@ export interface AiDiagnosisSummary {
 export interface DoctorDiagnosisModel {
   aiDiagnosis: AiDiagnosisSummary;
   aiSurgery: SurgeryPlanData | null;
-  finalDecision: boolean;
   previousDiagnosis?: IDoctorDiagnosis;
   previousSurgery?: SurgeryPlanData;
   rejectionReason: string;
@@ -86,22 +82,27 @@ const fetchUntilTreatmentReady = async (runId: string): Promise<IAiRecommendatio
   throw new Error('AI tạo phác đồ quá lâu. Vui lòng quay lại sau.');
 };
 
-const loadRecommendationDetail = async (): Promise<IAiRecommendationRunDetail> => {
-  const cachedDetail = localStorage.getItem(WORKFLOW_STORAGE_KEYS.aiRunDetail);
-  const runId = localStorage.getItem(WORKFLOW_STORAGE_KEYS.aiRunId);
-  let detail: IAiRecommendationRunDetail | null = cachedDetail
-    ? JSON.parse(cachedDetail)
-    : null;
+const loadRecommendationDetail = async (
+  workflowScope: DiagnosisWorkflowScope,
+): Promise<IAiRecommendationRunDetail> => {
+  const snapshot = getDiagnosisWorkflowSnapshot(workflowScope);
+  const runId = snapshot?.runId ?? null;
+  let detail = snapshot?.recommendationDetail ?? null;
 
   if ((!detail || !hasTreatmentItems(detail)) && runId) {
     detail = await fetchUntilTreatmentReady(runId);
-    localStorage.setItem(WORKFLOW_STORAGE_KEYS.aiRunDetail, JSON.stringify(detail));
-    localStorage.removeItem(WORKFLOW_STORAGE_KEYS.pendingRunId);
-    localStorage.removeItem(WORKFLOW_STORAGE_KEYS.pendingThoughtLogs);
+    if (String(detail.run?.episodeId ?? '') !== workflowScope.episodeId) {
+      throw new Error('Kết quả AI không thuộc bệnh án đang mở.');
+    }
+    storeRecommendationRun(workflowScope, runId, detail);
+    clearPendingRecommendationRun(workflowScope);
   }
 
   if (!detail?.items?.length || !detail.run?.id) {
     throw new Error('Không tìm thấy dữ liệu gợi ý AI. Vui lòng quay lại bước trước.');
+  }
+  if (String(detail.run.episodeId ?? '') !== workflowScope.episodeId) {
+    throw new Error('Kết quả AI không thuộc bệnh án đang mở.');
   }
   return detail;
 };
@@ -120,8 +121,10 @@ const isReviewDecision = (value: unknown): value is DoctorReviewDecision => (
   value === 'ACCEPTED' || value === 'MODIFIED' || value === 'REJECTED'
 );
 
-export const loadDoctorDiagnosisModel = async (): Promise<DoctorDiagnosisModel> => {
-  const detail = await loadRecommendationDetail();
+export const loadDoctorDiagnosisModel = async (
+  workflowScope: DiagnosisWorkflowScope,
+): Promise<DoctorDiagnosisModel> => {
+  const detail = await loadRecommendationDetail(workflowScope);
   const assessment = parseAssessment(detail.run?.assessmentJson);
   const diagnosticItem = detail.items?.find((item) => item.category === 'DIAGNOSTIC_TEST');
   const diagnosticJson: any = diagnosticItem ? parseItemJson(diagnosticItem) : null;
@@ -141,7 +144,6 @@ export const loadDoctorDiagnosisModel = async (): Promise<DoctorDiagnosisModel> 
   let reviewDecision: DoctorReviewDecision | undefined;
   let reviewNote = '';
   let rejectionReason = '';
-  let finalDecision = true;
 
   try {
     const response = await callFetchDoctorReviewByRunId(String(detail.run?.id));
@@ -153,7 +155,6 @@ export const loadDoctorDiagnosisModel = async (): Promise<DoctorDiagnosisModel> 
       reviewDecision = isReviewDecision(review.reviewStatus) ? review.reviewStatus : undefined;
       reviewNote = review.reviewNote ?? '';
       rejectionReason = review.rejectionReason ?? '';
-      finalDecision = review.finalDecision ?? false;
     }
   } catch {
     // A missing review is the normal first-review state.
@@ -162,7 +163,6 @@ export const loadDoctorDiagnosisModel = async (): Promise<DoctorDiagnosisModel> 
   return {
     aiDiagnosis,
     aiSurgery,
-    finalDecision,
     previousDiagnosis,
     previousSurgery,
     rejectionReason,
@@ -208,9 +208,5 @@ export const buildDoctorModificationJson = (surgery: SurgeryPlanData | null) => 
 );
 
 export const clearDiagnosisWorkflowStorage = () => {
-  localStorage.removeItem(WORKFLOW_STORAGE_KEYS.aiRunId);
-  localStorage.removeItem(WORKFLOW_STORAGE_KEYS.aiRunDetail);
-  localStorage.removeItem(WORKFLOW_STORAGE_KEYS.diagnosticResult);
-  localStorage.removeItem(WORKFLOW_STORAGE_KEYS.selectedPatientId);
-  localStorage.removeItem(WORKFLOW_STORAGE_KEYS.selectedExamId);
+  clearDiagnosisWorkflowSession();
 };

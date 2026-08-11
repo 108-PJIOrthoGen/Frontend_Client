@@ -22,6 +22,7 @@ import {
   normalizeUpstreamExtracted,
 } from '@/utils/extractImagesMapper';
 import { getRuntimeApiBase } from '@/config/runtimeUrls';
+import { getAccessToken } from '@/security/accessToken';
 import { openSse, SseConnection } from '@/utils/sseClient';
 
 export type QuickImportStatus = ExtractImageJobStatus | 'idle' | 'uploading';
@@ -154,7 +155,7 @@ export function useQuickImportFlow(
   const openQrStream = useCallback((session: UploadSessionCreateResponse) => {
     closeQrStream();
     const base = getRuntimeApiBase();
-    const token = window.localStorage.getItem('access_token');
+    const token = getAccessToken();
     sseRef.current = openSse({
       url: `${base}/api/v1/upload-sessions/${session.sessionId}/events`,
       token,

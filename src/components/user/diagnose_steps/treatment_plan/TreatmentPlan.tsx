@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Flex, Result, Spin, message } from 'antd';
 import {
   CloseCircleOutlined,
@@ -22,6 +22,17 @@ import TreatmentPlanHeader from './components/TreatmentPlanHeader';
 import TreatmentDraftPanel from './components/TreatmentDraftPanel';
 import CitationsPanel from './components/CitationsPanel';
 import AiChatDrawer from './components/AiChatDrawer';
+import { getAccessToken } from '@/security/accessToken';
+import {
+  clearPendingRecommendationRun,
+  clearRecommendationRun,
+  createDiagnosisWorkflowScope,
+  getDiagnosisWorkflowSnapshot,
+  isDiagnosisWorkflowScopeActive,
+  storeDiagnosisThoughtLogs,
+  storePendingRecommendationRun,
+  storeRecommendationRun,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 
 interface Step5Props {
@@ -29,22 +40,7 @@ interface Step5Props {
   onNext: () => void;
 }
 
-const PENDING_RUN_ID_KEY = 'pending_pji_aiRunId';
-const PENDING_THOUGHT_LOGS_KEY = 'pending_pji_thoughtLogs';
 const MAX_THOUGHT_LOGS = 200;
-
-const safeParseLogs = (raw: string | null): ThoughtLog[] => {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((it) => it && typeof it.message === 'string')
-      .slice(-MAX_THOUGHT_LOGS);
-  } catch {
-    return [];
-  }
-};
 
 /**
  * Read-only view of the AI treatment plan + citations + AI chat.
@@ -68,6 +64,11 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
 
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
+  const patientId = currentCase?.patient?.id;
+  const workflowScope = useMemo(
+    () => createDiagnosisWorkflowScope(patientId, episodeId),
+    [episodeId, patientId],
+  );
   const apiBase = getRuntimeApiBase();
   const location = useLocation();
   const navigate = useNavigate();
@@ -85,7 +86,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     resetPlan,
     setLoadError,
     hasTreatmentPlan,
-  } = useTreatmentPlanData();
+  } = useTreatmentPlanData(workflowScope);
 
   const setCurrentRunId = useCallback((id: string | null) => {
     currentRunIdRef.current = id;
@@ -96,23 +97,18 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     setThoughtLogs((prev) => {
       const next = [...prev, entry].slice(-MAX_THOUGHT_LOGS);
       thoughtLogsRef.current = next;
-      try {
-        localStorage.setItem(PENDING_THOUGHT_LOGS_KEY, JSON.stringify(next));
-      } catch {
-        // localStorage quota - ignore.
-      }
+      if (workflowScope) storeDiagnosisThoughtLogs(workflowScope, next);
       return next;
     });
-  }, []);
+  }, [workflowScope]);
 
   const clearPending = useCallback(() => {
-    localStorage.removeItem(PENDING_RUN_ID_KEY);
-    localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
+    if (workflowScope) clearPendingRecommendationRun(workflowScope);
     if (sseRef.current) {
       sseRef.current.close();
       sseRef.current = null;
     }
-  }, []);
+  }, [workflowScope]);
 
   const connectStream = useCallback((runId: string) => {
     if (sseRef.current) {
@@ -120,9 +116,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       sseRef.current = null;
     }
 
-    const token = typeof window !== 'undefined'
-      ? window.localStorage.getItem('access_token')
-      : null;
+    const token = getAccessToken();
 
     sseRef.current = openSse({
       url: `${apiBase}/api/v1/ai-recommendations/runs/${runId}/stream`,
@@ -141,12 +135,19 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     });
   }, [apiBase, appendLog]);
 
-  const finishWithDetail = useCallback((runId: string, detail: any) => {
-    localStorage.setItem('pji_aiRunId', String(runId));
-    localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
+  const finishWithDetail = useCallback((runId: string, detail: any): boolean => {
+    if (!workflowScope) {
+      throw new Error('Không xác định được bệnh án đang mở.');
+    }
+    if (!isDiagnosisWorkflowScopeActive(workflowScope)) return false;
+    if (String(detail?.run?.episodeId ?? '') !== workflowScope.episodeId) {
+      throw new Error('Kết quả AI không thuộc bệnh án đang mở.');
+    }
+    storeRecommendationRun(workflowScope, String(runId), detail);
     applyDetail(detail);
     setLoadError(null);
-  }, [applyDetail, setLoadError]);
+    return true;
+  }, [applyDetail, setLoadError, workflowScope]);
 
   const resumeRun = useCallback(async (runId: string) => {
     setIsGenerating(true);
@@ -158,7 +159,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     try {
       const detail = await fetchUntilTreatmentReady(runId);
       if (cancelledRef.current || !detail) return;
-      finishWithDetail(runId, detail);
+      if (!finishWithDetail(runId, detail)) return;
       message.success('Phác đồ AI đã sẵn sàng.');
     } catch (err: any) {
       if (!cancelledRef.current) {
@@ -173,24 +174,26 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   }, [clearPending, connectStream, fetchUntilTreatmentReady, finishWithDetail, setCurrentRunId, setLoadError]);
 
   useEffect(() => {
+    if (!workflowScope) return;
+    const snapshot = getDiagnosisWorkflowSnapshot(workflowScope);
     const urlRunId = new URLSearchParams(location.search).get('runId');
     if (urlRunId) {
       navigate(location.pathname, { replace: true });
-      const cachedLogs = safeParseLogs(localStorage.getItem(PENDING_THOUGHT_LOGS_KEY));
-      thoughtLogsRef.current = cachedLogs;
-      setThoughtLogs(cachedLogs);
+      const logs = snapshot?.thoughtLogs ?? [];
+      thoughtLogsRef.current = logs;
+      setThoughtLogs(logs);
       void resumeRun(urlRunId);
       return;
     }
 
-    const pendingRunId = localStorage.getItem(PENDING_RUN_ID_KEY);
+    const pendingRunId = snapshot?.pendingRunId;
     if (pendingRunId) {
-      const cachedLogs = safeParseLogs(localStorage.getItem(PENDING_THOUGHT_LOGS_KEY));
-      thoughtLogsRef.current = cachedLogs;
-      setThoughtLogs(cachedLogs);
+      const logs = snapshot?.thoughtLogs ?? [];
+      thoughtLogsRef.current = logs;
+      setThoughtLogs(logs);
       void resumeRun(pendingRunId);
     }
-  }, [location.pathname, location.search, navigate, resumeRun]);
+  }, [location.pathname, location.search, navigate, resumeRun, workflowScope]);
 
   useEffect(() => {
     return () => {
@@ -202,7 +205,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   }, []);
 
   const handleAIPredict = async () => {
-    if (!episodeId) {
+    if (!episodeId || !workflowScope) {
       message.error('Không tìm thấy bệnh án. Vui lòng quay lại chọn bệnh nhân.');
       return;
     }
@@ -213,7 +216,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     thoughtLogsRef.current = [];
     cancelledRef.current = false;
     resetPlan();
-    localStorage.removeItem(PENDING_THOUGHT_LOGS_KEY);
+    storeDiagnosisThoughtLogs(workflowScope, []);
 
     try {
       const generateRes = await callGenerateAiRecommendation(String(episodeId));
@@ -222,14 +225,13 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
 
       const runIdText = String(runId);
       setCurrentRunId(runIdText);
-      localStorage.setItem(PENDING_RUN_ID_KEY, runIdText);
-      localStorage.setItem('pji_aiRunId', runIdText);
+      storePendingRecommendationRun(workflowScope, runIdText);
       connectStream(runIdText);
 
       const detail = await fetchUntilTreatmentReady(runIdText);
       if (cancelledRef.current || !detail) return;
 
-      finishWithDetail(runIdText, detail);
+      if (!finishWithDetail(runIdText, detail)) return;
       message.success('Phác đồ AI đã sẵn sàng.');
     } catch (err: any) {
       if (cancelledRef.current) return;
@@ -252,8 +254,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       await callCancelAiRun(runId);
       cancelledRef.current = true;
       clearPending();
-      localStorage.removeItem('pji_aiRunId');
-      localStorage.removeItem('pji_aiRunDetail');
+      if (workflowScope) clearRecommendationRun(workflowScope);
       setCurrentRunId(null);
       setThoughtLogs([]);
       thoughtLogsRef.current = [];
@@ -265,7 +266,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     } finally {
       setIsCancelling(false);
     }
-  }, [clearPending, isCancelling, resetPlan, setCurrentRunId]);
+  }, [clearPending, isCancelling, resetPlan, setCurrentRunId, workflowScope]);
 
   const {
     sessions,
@@ -297,7 +298,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           onPrev={onPrev}
           onNext={onNext}
           canContinue={false}
-          nextLabel="Tiếp tục: Kiểm tra dữ liệu"
+          nextLabel="Tiếp tục"
         />
         <div style={{ flex: 1, overflowY: 'auto', width: '100%', paddingBottom: 64 }}>
           <Flex vertical align="center" style={{ width: '100%' }}>
@@ -392,7 +393,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
         onPrev={onPrev}
         onNext={onNext}
         canContinue={hasTreatmentPlan}
-        nextLabel="Tiếp tục: Kiểm tra dữ liệu"
+        nextLabel="Tiếp tục"
       />
 
       {/* Hybrid Container */}

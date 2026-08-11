@@ -10,6 +10,12 @@ import type {
   SystemicPlanData,
 } from '@/types/treatmentType';
 import { mapCitations, parseItemJson } from '../utils/itemJson';
+import {
+  getDiagnosisWorkflowSnapshot,
+  isDiagnosisWorkflowScopeActive,
+  storeRecommendationRun,
+  type DiagnosisWorkflowScope,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 300;
@@ -26,7 +32,7 @@ export const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): bo
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function useTreatmentPlanData() {
+export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | null) {
   const [surgeryPlan, setSurgeryPlan] = useState<SurgeryPlanData | null>(null);
   const [systemicPlan, setSystemicPlan] = useState<SystemicPlanData | null>(null);
   const [localPlan, setLocalPlan] = useState<LocalPlanData | null>(null);
@@ -75,6 +81,14 @@ export function useTreatmentPlanData() {
       const detail = res?.data ?? null;
       const status = detail?.run?.status;
 
+      if (
+        workflowScope
+        && detail?.run?.episodeId != null
+        && String(detail.run.episodeId) !== workflowScope.episodeId
+      ) {
+        throw new Error('Kết quả AI không thuộc bệnh án đang mở.');
+      }
+
       if (hasTreatmentItems(detail)) return detail;
       if (status === 'FAILED' || status === 'TIMEOUT') {
         throw new Error(detail?.run?.errorMessage || 'AI tạo phác đồ thất bại.');
@@ -89,21 +103,23 @@ export function useTreatmentPlanData() {
       await wait(POLL_INTERVAL_MS);
     }
     throw new Error('AI tạo phác đồ quá lâu. Vui lòng quay lại sau.');
-  }, []);
+  }, [workflowScope]);
 
   useEffect(() => {
+    let cancelled = false;
     const loadRunDetail = async () => {
       setIsLoading(true);
       try {
-        // Try localStorage cache first, then fetch fresh
-        let detail: IAiRecommendationRunDetail | null = null;
-        const cachedDetail = localStorage.getItem('pji_aiRunDetail');
-        const runId = localStorage.getItem('pji_aiRunId');
-        const pendingRunId = localStorage.getItem('pending_pji_aiRunId');
-
-        if (cachedDetail) {
-          detail = JSON.parse(cachedDetail);
+        if (!workflowScope) {
+          setLoadError(null);
+          return;
         }
+        if (cancelled || !isDiagnosisWorkflowScopeActive(workflowScope)) return;
+
+        const snapshot = getDiagnosisWorkflowSnapshot(workflowScope);
+        let detail: IAiRecommendationRunDetail | null = snapshot?.recommendationDetail ?? null;
+        const runId = snapshot?.runId ?? null;
+        const pendingRunId = snapshot?.pendingRunId ?? null;
 
         if (pendingRunId && pendingRunId === runId && (!detail || !hasTreatmentItems(detail))) {
           setLoadError(null);
@@ -117,10 +133,9 @@ export function useTreatmentPlanData() {
 
         if ((!detail || !hasTreatmentItems(detail)) && runId) {
           detail = await fetchUntilTreatmentReady(runId);
+          if (cancelled || !isDiagnosisWorkflowScopeActive(workflowScope)) return;
           if (detail) {
-            localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
-            localStorage.removeItem('pending_pji_aiRunId');
-            localStorage.removeItem('pending_pji_thoughtLogs');
+            storeRecommendationRun(workflowScope, runId, detail);
           }
         }
 
@@ -129,16 +144,21 @@ export function useTreatmentPlanData() {
           return;
         }
 
-        applyDetail(detail);
+        if (!cancelled && isDiagnosisWorkflowScopeActive(workflowScope)) {
+          applyDetail(detail);
+        }
       } catch (err: any) {
-        setLoadError(err?.message || 'Lỗi khi tải dữ liệu phác đồ');
+        if (!cancelled) setLoadError(err?.message || 'Lỗi khi tải dữ liệu phác đồ');
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
-    loadRunDetail();
-  }, [applyDetail, fetchUntilTreatmentReady]);
+    void loadRunDetail();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyDetail, fetchUntilTreatmentReady, workflowScope]);
 
   return {
     surgeryPlan,

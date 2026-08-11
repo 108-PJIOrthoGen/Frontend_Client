@@ -1,15 +1,24 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import { callEvaluatePjiDiagnostic } from '@/apis/api';
 import { useAppSelector } from '@/redux/hook';
-
-const DIAGNOSTIC_RESULT_KEY = 'pji_diagnosticResult';
+import {
+  createDiagnosisWorkflowScope,
+  getDiagnosisWorkflowSnapshot,
+  isDiagnosisWorkflowScopeActive,
+  storeDiagnosticResult,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 type DiagnosticData = Record<string, any>;
 
 export const usePjiAssessment = () => {
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
+  const patientId = currentCase?.patient?.id;
+  const workflowScope = useMemo(
+    () => createDiagnosisWorkflowScope(patientId, episodeId),
+    [episodeId, patientId],
+  );
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [diagnosticData, setDiagnosticData] = useState<DiagnosticData | null>(null);
@@ -24,21 +33,18 @@ export const usePjiAssessment = () => {
   }, []);
 
   useEffect(() => {
-    const cachedDiagnostic = localStorage.getItem(DIAGNOSTIC_RESULT_KEY);
-    if (!cachedDiagnostic) return;
+    setDiagnosticData(null);
+    setShowResults(false);
+    if (!workflowScope) return;
 
-    try {
-      const diagnostic = JSON.parse(cachedDiagnostic);
-      if (applyDiagnosticResult(diagnostic)) {
-        setShowResults(true);
-      }
-    } catch {
-      localStorage.removeItem(DIAGNOSTIC_RESULT_KEY);
+    const diagnostic = getDiagnosisWorkflowSnapshot(workflowScope)?.diagnosticResult;
+    if (diagnostic && applyDiagnosticResult(diagnostic)) {
+      setShowResults(true);
     }
-  }, [applyDiagnosticResult]);
+  }, [applyDiagnosticResult, workflowScope]);
 
   const evaluateDiagnostic = useCallback(async () => {
-    if (!episodeId) {
+    if (!episodeId || !workflowScope) {
       message.error('Không tìm thấy bệnh án. Vui lòng quay lại chọn bệnh nhân.');
       return;
     }
@@ -48,10 +54,11 @@ export const usePjiAssessment = () => {
     try {
       const response = await callEvaluatePjiDiagnostic(String(episodeId));
       const diagnostic = response?.data;
+      if (!isDiagnosisWorkflowScopeActive(workflowScope)) return;
       if (!applyDiagnosticResult(diagnostic)) {
         throw new Error('Không tìm thấy dữ liệu chẩn đoán hệ thống.');
       }
-      localStorage.setItem(DIAGNOSTIC_RESULT_KEY, JSON.stringify(diagnostic));
+      storeDiagnosticResult(workflowScope, diagnostic);
       setShowResults(true);
       message.success('Đã tính chẩn đoán theo luật hệ thống.');
     } catch (error: any) {
@@ -61,7 +68,7 @@ export const usePjiAssessment = () => {
     } finally {
       setIsDiagnosticLoading(false);
     }
-  }, [applyDiagnosticResult, episodeId]);
+  }, [applyDiagnosticResult, episodeId, workflowScope]);
 
   return {
     diagnosticData,

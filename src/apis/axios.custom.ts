@@ -3,6 +3,7 @@ import { IBackendRes } from "@/types/backend";
 import { getRuntimeApiBase } from "@/config/runtimeUrls";
 import { notification } from "antd";
 import axios from "axios";
+import { clearAccessToken, getAccessToken, setAccessToken } from '@/security/accessToken';
 
 interface AccessTokenResponse {
     access_token: string;
@@ -34,7 +35,7 @@ const wasSentWithStaleAccessToken = (config: any): boolean => {
     }
 
     const requestToken = authorization.slice('Bearer '.length);
-    return requestToken !== window.localStorage.getItem('access_token');
+    return requestToken !== getAccessToken();
 };
 
 const handleRefreshToken = async (): Promise<string | null> => {
@@ -43,9 +44,14 @@ const handleRefreshToken = async (): Promise<string | null> => {
     refreshTokenPromise = (async () => {
         try {
             const res = await instance.get('/api/v1/auth/refresh') as unknown as IBackendRes<AccessTokenResponse>;
-            if (res && res.data) return res.data.access_token;
+            if (res && res.data) {
+                setAccessToken(res.data.access_token);
+                return res.data.access_token;
+            }
+            clearAccessToken();
             return null;
         } catch (error) {
+            clearAccessToken();
             return null;
         } finally {
             refreshTokenPromise = null;
@@ -63,11 +69,9 @@ instance.interceptors.request.use(function (config) {
     const isPublicAuthUrl = config.url ? PUBLIC_AUTH_URLS.includes(config.url) : false;
     if (
         !isPublicAuthUrl
-        && typeof window !== "undefined"
-        && window && window.localStorage
-        && window.localStorage.getItem('access_token')
+        && getAccessToken()
     ) {
-        config.headers.Authorization = 'Bearer ' + window.localStorage.getItem('access_token');
+        config.headers.Authorization = `Bearer ${getAccessToken()}`;
     }
     if (!config.headers.Accept && config.headers["Content-Type"]) {
         config.headers.Accept = "application/json";
@@ -115,7 +119,7 @@ instance.interceptors.response.use(
             error.config.headers[NO_RETRY_HEADER] = 'true';
             if (access_token) {
                 error.config.headers['Authorization'] = `Bearer ${access_token}`;
-                localStorage.setItem('access_token', access_token);
+                setAccessToken(access_token);
                 return instance.request(error.config);
             }
             // Refresh returned null — token could not be refreshed

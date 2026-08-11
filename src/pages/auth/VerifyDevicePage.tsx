@@ -9,6 +9,7 @@ import {
     setRefreshTokenAction,
 } from '@/redux/slice/accountSlice';
 import { useAppDispatch } from '@/redux/hook';
+import { setAccessToken } from '@/security/accessToken';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -49,7 +50,7 @@ const VerifyDevicePage = () => {
             const res = await callVerifyDeviceAPI(email, challengeId, values.otp);
 
             if (+res?.status === 200 && res.data?.access_token) {
-                localStorage.setItem('access_token', res.data.access_token);
+                setAccessToken(res.data.access_token);
                 // A failed unauthenticated bootstrap must not survive the successful
                 // device verification and trigger LayoutApp's logout handler.
                 dispatch(setRefreshTokenAction({ status: false, message: '' }));

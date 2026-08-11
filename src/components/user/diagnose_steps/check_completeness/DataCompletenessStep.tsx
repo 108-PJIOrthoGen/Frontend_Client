@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Tag, message, Empty, Alert } from 'antd';
 import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
@@ -6,6 +6,10 @@ import { callCreatePendingLabTasksFromCompleteness } from '@/apis/pendingLabTask
 import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
 import type { IDataCompleteness, IMissingItem, IPermission } from '@/types/backend';
 import { categoryIcon, categoryLabel, importanceColor, importanceLabel } from './utils/Style';
+import {
+  createDiagnosisWorkflowScope,
+  getDiagnosisWorkflowSnapshot,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 interface Props {
   onNext: () => void;
@@ -49,22 +53,23 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
     hasPermission(permissions, permission),
   );
   const canSaveReminders = hasPatientRecordWritePermission && (ownsPatientRecord || isAdmin);
+  const workflowScope = useMemo(
+    () => createDiagnosisWorkflowScope(currentCase?.patient?.id, currentCase?.episode?.id),
+    [currentCase?.episode?.id, currentCase?.patient?.id],
+  );
 
   useEffect(() => {
     setCompleteness(null);
     setSaved(false);
 
-    const cachedDetail = localStorage.getItem('pji_aiRunDetail');
-    if (cachedDetail) {
-      try {
-        const detail = JSON.parse(cachedDetail);
-        const dc = detail.run?.dataCompletenessJson;
-        if (dc) setCompleteness(dc);
-        // "Already saved" now comes from the persisted run flag
-        if (detail.run?.pendingTasksSaved === true) setSaved(true);
-      } catch { /* ignore */ }
-    }
-  }, [currentCase?.episode?.id]);
+    if (!workflowScope) return;
+    const detail = getDiagnosisWorkflowSnapshot(workflowScope)?.recommendationDetail;
+    if (String(detail?.run?.episodeId ?? '') !== workflowScope.episodeId) return;
+
+    const dataCompleteness = detail?.run?.dataCompletenessJson;
+    if (dataCompleteness) setCompleteness(dataCompleteness);
+    if (detail?.run?.pendingTasksSaved === true) setSaved(true);
+  }, [workflowScope]);
 
   const missingItems = completeness?.missing_items ?? [];
   const isComplete = completeness?.is_complete ?? missingItems.length === 0;
@@ -77,7 +82,9 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
 
     setSaving(true);
     try {
-      const runId = localStorage.getItem('pji_aiRunId');
+      const runId = workflowScope
+        ? getDiagnosisWorkflowSnapshot(workflowScope)?.runId
+        : null;
       const runIdNumber = toNumberId(runId);
       await callCreatePendingLabTasksFromCompleteness(
         episodeId,
@@ -114,7 +121,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-slate-800 tracking-tight">
-              Kiểm tra dữ liệu đầu vào
+              Đề xuất bổ sung xét nghiệm
             </h2>
             <p className="text-xs text-slate-500 font-medium tracking-wide">
               {completeness?.completeness_score ?? ''}
@@ -130,9 +137,9 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
           </button>
           <button onClick={onNext}
             className="flex items-center gap-2 px-6 py-2.5 font-bold text-sm rounded-xl shadow-md
-              bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700
+              bg-gradient-to-r from-blue-300 to-indigo-600 hover:from-blue-700
               hover:to-indigo-700 text-white shadow-blue-500/40 hover:-translate-y-0.5 transition-all">
-            Tiếp tục: Chẩn đoán bác sĩ
+            Tiếp tục
             <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
           </button>
         </div>
@@ -161,7 +168,7 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
               image={<CheckCircleOutlined style={{ fontSize: 64, color: '#10b981' }} />}
               description={
                 <span className="text-emerald-700 font-medium">
-                  Tất cả dữ liệu cần thiết đã có. Kết quả AI có độ tin cậy cao.
+                  Tất cả dữ liệu cần thiết đã có.
                 </span>
               }
             />

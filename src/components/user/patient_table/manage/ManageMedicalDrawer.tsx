@@ -72,7 +72,6 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
 
     const handleCloseDetail = () => {
         setDetailOpen(false);
-        localStorage.removeItem('pji_clinicForm');
         setSelectedEpisode(null);
         fetchEpisodes();
     };

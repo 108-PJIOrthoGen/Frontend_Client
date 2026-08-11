@@ -1,12 +1,24 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Input, Table, message, Tag, Empty, Spin } from 'antd';
 import { SearchOutlined, CheckCircleOutlined, HistoryOutlined, PlusCircleOutlined, EyeOutlined } from '@ant-design/icons';
-import { callFetchPatient, callFetchEpisodesByPatient, callFetchAiRecommendationRuns, callFetchAiRecommendationRunDetail } from '@/apis/api';
+import {
+    callEvaluatePjiDiagnostic,
+    callFetchPatient,
+    callFetchEpisodesByPatient,
+    callFetchAiRecommendationRuns,
+    callFetchAiRecommendationRunDetail,
+} from '@/apis/api';
 import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
 import dayjs from 'dayjs';
 import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
 import { setCurrentCase } from '@/redux/features/patients/patientSlice';
+import {
+    activateDiagnosisWorkflow,
+    createDiagnosisWorkflowScope,
+    storeDiagnosticResult,
+    storeRecommendationRun,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
 
 const getStatusTag = (status?: string) => {
     switch (status) {
@@ -51,6 +63,12 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     const [aiRunsTotal, setAiRunsTotal] = useState(0);
     const [aiRunsLoading, setAiRunsLoading] = useState(false);
     const [loadingRunId, setLoadingRunId] = useState<string | null>(null);
+    const [preparingDiagnostic, setPreparingDiagnostic] = useState(false);
+    const selectedScopeRef = useRef('');
+
+    useEffect(() => {
+        selectedScopeRef.current = `${selectedPatient?.id ?? ''}:${selectedExam?.id ?? ''}`;
+    }, [selectedExam?.id, selectedPatient?.id]);
 
     useEffect(() => {
         const fetchFilms = async () => {
@@ -140,18 +158,20 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
 
         setLoadingRunId(String(run.id));
         try {
+            const scope = await prepareDiagnosticWorkflow(selectedPatient, selectedExam);
+            if (!scope) return;
             const res = await callFetchAiRecommendationRunDetail(String(run.id));
             const detail = res?.data;
             if (!detail?.items?.length) {
                 message.warning('Không tìm thấy dữ liệu gợi ý cho lần chạy này.');
                 return;
             }
+            if (String(detail.run?.episodeId ?? '') !== String(selectedExam.id)) {
+                message.error('Kết quả AI không thuộc bệnh án đang chọn.');
+                return;
+            }
 
-            localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
-            localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
-            localStorage.setItem('pji_aiRunId', String(run.id));
-            localStorage.setItem('pji_aiRunDetail', JSON.stringify(detail));
-            dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
+            storeRecommendationRun(scope, String(run.id), detail);
             onNext();
         } catch {
             message.error('Lỗi khi tải kết quả AI.');
@@ -160,7 +180,33 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         }
     };
 
-    const handleContinue = () => {
+    const prepareDiagnosticWorkflow = async (patient: IPatient, exam: IEpisode) => {
+        const scope = createDiagnosisWorkflowScope(patient.id, exam.id);
+        if (!scope) {
+            message.error('Không xác định được phạm vi bệnh án.');
+            return null;
+        }
+        const expectedSelection = `${patient.id ?? ''}:${exam.id ?? ''}`;
+        dispatch(setCurrentCase({ patient, episode: exam }));
+        activateDiagnosisWorkflow(scope, { reset: true });
+        setPreparingDiagnostic(true);
+        try {
+            const response = await callEvaluatePjiDiagnostic(String(exam.id));
+            if (selectedScopeRef.current !== expectedSelection) return null;
+            if (!response?.data?.itemJson) {
+                throw new Error('Không nhận được dữ liệu chẩn đoán theo luật hệ thống.');
+            }
+            storeDiagnosticResult(scope, response.data);
+            return scope;
+        } catch (error: any) {
+            message.error(error?.message || 'Không thể tính chẩn đoán theo luật hệ thống.');
+            return null;
+        } finally {
+            setPreparingDiagnostic(false);
+        }
+    };
+
+    const handleContinue = async () => {
         if (!selectedPatient) {
             message.warning('Vui lòng chọn bệnh nhân');
             return;
@@ -169,13 +215,8 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
             message.warning('Vui lòng chọn bệnh án');
             return;
         }
-        // Clear stale AI run data — user is starting a new diagnosis
-        localStorage.removeItem('pji_aiRunId');
-        localStorage.removeItem('pji_aiRunDetail');
-        localStorage.removeItem('pji_diagnosticResult');
-        localStorage.setItem('pji_selectedPatientId', selectedPatient.id || '');
-        localStorage.setItem('pji_selectedExamId', selectedExam.id || '');
-        dispatch(setCurrentCase({ patient: selectedPatient, episode: selectedExam }));
+        const scope = await prepareDiagnosticWorkflow(selectedPatient, selectedExam);
+        if (!scope) return;
         onNext();
     };
 
@@ -369,7 +410,8 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                                 type="primary"
                                 onClick={handleContinue}
                                 icon={<PlusCircleOutlined />}
-                                disabled={!selectedExam}
+                                loading={preparingDiagnostic}
+                                disabled={!selectedExam || preparingDiagnostic}
                             >
                                 Chẩn đoán mới
                             </Button>

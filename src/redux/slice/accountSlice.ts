@@ -1,5 +1,6 @@
 import { callFetchAccountAPI } from '@/apis/auth';
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { clearAccessToken } from '@/security/accessToken';
 
 // First, create the thunk
 export const fetchAccount = createAsyncThunk(
@@ -83,7 +84,7 @@ export const accountSlice = createSlice({
             state.activeAccountRequestId = undefined;
             state.isAuthenticated = false;
             state.isLoading = false;
-            localStorage.removeItem('access_token');
+            clearAccessToken();
             state.user = {
                 id: "",
                 email: "",

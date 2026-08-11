@@ -4,6 +4,7 @@ import router from './routes';
 import { useAppDispatch, useAppSelector } from './redux/hook';
 import { fetchAccount } from './redux/slice/accountSlice';
 import Loading from './components/common/ux/Loading';
+import { clearLegacySensitiveBrowserStorage } from './security/browserSession';
 
 const PUBLIC_AUTH_PATHS = new Set([
   '/register',
@@ -18,6 +19,10 @@ const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const isLoading = useAppSelector(state => state.account.isLoading);
   const pathname = window.location.pathname;
+
+  useEffect(() => {
+    clearLegacySensitiveBrowserStorage();
+  }, []);
 
   useEffect(() => {
     if (PUBLIC_AUTH_PATHS.has(pathname) || isMobileUploadPath(pathname)) return;

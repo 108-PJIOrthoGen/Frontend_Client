@@ -16,6 +16,7 @@ import { loginAPI, LogoutAPI } from '@/apis/auth';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import synoeticTeamImage from '@/assets/teams/synoetic.png';
 import ibmeTeamImage from '@/assets/teams/no-slg.png';
+import { setAccessToken } from '@/security/accessToken';
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -26,12 +27,6 @@ const LoginPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const from = location.state?.from?.pathname || '/';
-
-  useEffect(() => {
-    if (!isAuthenticated && localStorage.getItem('access_token')) {
-      dispatch(fetchAccount());
-    }
-  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -60,7 +55,7 @@ const LoginPage = () => {
       return;
     }
     if (res?.data?.access_token) {
-      localStorage.setItem('access_token', res.data.access_token);
+      setAccessToken(res.data.access_token);
       dispatch(setRefreshTokenAction({ status: false, message: '' }));
 
       // Use /auth/account as the canonical source for role + permissions before
