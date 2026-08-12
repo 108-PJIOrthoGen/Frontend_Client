@@ -6,8 +6,6 @@ import {
   Col,
   Descriptions,
   Form,
-  Input,
-  Radio,
   Row,
   Space,
   Spin,
@@ -17,9 +15,6 @@ import {
 } from 'antd';
 import {
   ArrowLeftOutlined,
-  CheckCircleOutlined,
-  CloseCircleOutlined,
-  EditOutlined,
   RobotOutlined,
   SaveOutlined,
   UserOutlined,
@@ -51,7 +46,6 @@ import {
   type DoctorDecisionForm,
 } from './DoctorDecisionFormFields';
 
-const { TextArea } = Input;
 const { Text } = Typography;
 
 interface Props {
@@ -79,9 +73,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     && (ownsPatientRecord || isAdmin);
 
   const [form] = Form.useForm<DoctorDecisionForm>();
-  const [decision, setDecision] = useState<'ACCEPTED' | 'MODIFIED' | 'REJECTED'>('ACCEPTED');
-  const [reviewNote, setReviewNote] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
@@ -103,9 +94,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         runIdRef.current = model.runId;
         setAiDiagnosis(model.aiDiagnosis);
         setAiSurgery(model.aiSurgery);
-        setReviewNote(model.reviewNote);
-        setRejectionReason(model.rejectionReason);
-        if (model.reviewDecision) setDecision(model.reviewDecision);
         form.setFieldsValue(toDoctorDecisionFormValues(model.previousDiagnosis, model.previousSurgery));
       } catch (error: any) {
         if (!cancelled) setLoadError(error?.message || 'Lỗi khi tải dữ liệu.');
@@ -137,11 +125,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     } catch {
       return;
     }
-    if (decision === 'REJECTED' && !rejectionReason.trim()) {
-      message.warning('Vui lòng nhập lý do từ chối gợi ý AI.');
-      return;
-    }
-
     const diagnosis: IDoctorDiagnosis = {
       pji_conclusion: values.pji_conclusion,
       infection_classification: values.infection_classification,
@@ -154,9 +137,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     try {
       await callCreateDoctorReview(String(episodeId), {
         runId: Number(runIdRef.current),
-        reviewStatus: decision,
-        reviewNote: reviewNote || undefined,
-        rejectionReason: decision === 'REJECTED' ? rejectionReason : undefined,
+        reviewStatus: 'SAVED_DRAFT',
         doctorDiagnosisJson: diagnosis as Record<string, any>,
         modificationJson: buildDoctorModificationJson(surgery),
         doctorFinalDecision: {
@@ -226,21 +207,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
                 <Descriptions.Item label="Vi khuẩn">{aiDiagnosis.identifiedOrganism ?? '—'}</Descriptions.Item>
                 <Descriptions.Item label="Chiến lược mổ">{aiSurgery?.surgeryStrategyType ?? '—'}</Descriptions.Item>
               </Descriptions>
-            </Card>
-            <Card title="Đánh giá phiên bản AI" size="small" style={{ marginTop: 16 }}>
-              <Radio.Group value={decision} onChange={(event) => setDecision(event.target.value)} disabled={!canWriteReview}>
-                <Space direction="vertical">
-                  <Radio value="ACCEPTED"><CheckCircleOutlined /> Đồng thuận</Radio>
-                  <Radio value="MODIFIED"><EditOutlined /> Điều chỉnh</Radio>
-                  <Radio value="REJECTED"><CloseCircleOutlined /> Từ chối</Radio>
-                </Space>
-              </Radio.Group>
-              <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
-                <TextArea rows={2} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="Ghi chú đánh giá" disabled={!canWriteReview} />
-                {decision === 'REJECTED' ? (
-                  <TextArea rows={2} value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Lý do từ chối *" disabled={!canWriteReview} />
-                ) : null}
-              </Space>
             </Card>
           </Col>
 

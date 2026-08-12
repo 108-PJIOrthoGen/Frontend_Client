@@ -42,8 +42,6 @@ export const aiConclusionOf = (pjiProbability?: string): string => {
   }
 };
 
-export type DoctorReviewDecision = 'ACCEPTED' | 'MODIFIED' | 'REJECTED';
-
 export interface AiDiagnosisSummary {
   pjiProbability?: string;
   overallAssessment?: string;
@@ -57,9 +55,6 @@ export interface DoctorDiagnosisModel {
   aiSurgery: SurgeryPlanData | null;
   previousDiagnosis?: IDoctorDiagnosis;
   previousSurgery?: SurgeryPlanData;
-  rejectionReason: string;
-  reviewDecision?: DoctorReviewDecision;
-  reviewNote: string;
   runId: string;
 }
 
@@ -126,10 +121,6 @@ const parseAssessment = (rawAssessment: unknown): Record<string, any> => {
   }
 };
 
-const isReviewDecision = (value: unknown): value is DoctorReviewDecision => (
-  value === 'ACCEPTED' || value === 'MODIFIED' || value === 'REJECTED'
-);
-
 export const loadDoctorDiagnosisModel = async (
   workflowScope: DiagnosisWorkflowScope,
 ): Promise<DoctorDiagnosisModel> => {
@@ -150,9 +141,6 @@ export const loadDoctorDiagnosisModel = async (
 
   let previousDiagnosis: IDoctorDiagnosis | undefined;
   let previousSurgery: SurgeryPlanData | undefined;
-  let reviewDecision: DoctorReviewDecision | undefined;
-  let reviewNote = '';
-  let rejectionReason = '';
 
   try {
     const response = await callFetchDoctorReviewByRunId(String(detail.run?.id));
@@ -161,9 +149,6 @@ export const loadDoctorDiagnosisModel = async (
       previousDiagnosis = review.doctorFinalDecision?.diagnosisJson ?? review.doctorDiagnosisJson;
       previousSurgery = review.doctorFinalDecision?.surgeryPlanJson
         ?? (review.modificationJson?.surgery as SurgeryPlanData | undefined);
-      reviewDecision = isReviewDecision(review.reviewStatus) ? review.reviewStatus : undefined;
-      reviewNote = review.reviewNote ?? '';
-      rejectionReason = review.rejectionReason ?? '';
     }
   } catch {
     // A missing review is the normal first-review state.
@@ -174,9 +159,6 @@ export const loadDoctorDiagnosisModel = async (
     aiSurgery,
     previousDiagnosis,
     previousSurgery,
-    rejectionReason,
-    reviewDecision,
-    reviewNote,
     runId: String(detail.run?.id),
   };
 };

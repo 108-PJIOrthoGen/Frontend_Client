@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Empty, Form, Input, Radio, Select, Space, Spin, Table, Tag, message } from 'antd';
-import { CheckCircleOutlined, CloseCircleOutlined, EditOutlined, SaveOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Empty, Form, Select, Space, Spin, Table, Tag, message } from 'antd';
+import { CheckCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { callCreateDoctorReview, callFetchAiRecommendationRunDetail } from '@/apis/api';
 import type { IAiRecommendationRunDetail, IDoctorDiagnosis, IDoctorRecommendationReview } from '@/types/backend';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
@@ -12,10 +12,6 @@ import {
 } from '@/components/user/diagnose_steps/doctor_diagnosis/DoctorDecisionFormFields';
 import { buildDoctorModificationJson } from '@/components/user/diagnose_steps/doctor_diagnosis/doctorDiagnosisModel';
 import { parseItemJson } from '@/components/user/diagnose_steps/treatment_plan/utils/itemJson';
-
-const { TextArea } = Input;
-
-type ReviewStatus = 'ACCEPTED' | 'MODIFIED' | 'REJECTED';
 
 interface AiPlanRow {
   key: string;
@@ -114,10 +110,6 @@ const reviewVersionLabel = (review: IDoctorRecommendationReview): string => {
   return `Phiên bản AI #${version}${review.finalDecision ? ' — Kết luận cuối cùng' : ''}`;
 };
 
-const isReviewStatus = (value?: string): value is ReviewStatus => (
-  value === 'ACCEPTED' || value === 'MODIFIED' || value === 'REJECTED'
-);
-
 const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
   active,
   episodeId,
@@ -129,9 +121,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
   onSelectFinal,
 }) => {
   const [form] = Form.useForm<DoctorDecisionForm>();
-  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>('ACCEPTED');
-  const [reviewNote, setReviewNote] = useState('');
-  const [rejectionReason, setRejectionReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [runDetails, setRunDetails] = useState<Record<string, IAiRecommendationRunDetail>>({});
   const [isPlanLoading, setIsPlanLoading] = useState(false);
@@ -154,9 +143,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
       ?? (review.modificationJson?.surgery as any);
     form.resetFields();
     form.setFieldsValue(toDoctorDecisionFormValues(diagnosis, surgery));
-    setReviewStatus(isReviewStatus(review.reviewStatus) ? review.reviewStatus : 'ACCEPTED');
-    setReviewNote(review.reviewNote ?? '');
-    setRejectionReason(review.rejectionReason ?? '');
   }, [form, review]);
 
   useEffect(() => {
@@ -196,11 +182,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
     } catch {
       return;
     }
-    if (reviewStatus === 'REJECTED' && !rejectionReason.trim()) {
-      message.warning('Vui lòng nhập lý do từ chối gợi ý AI.');
-      return;
-    }
-
     const diagnosis: IDoctorDiagnosis = {
       pji_conclusion: values.pji_conclusion,
       infection_classification: values.infection_classification,
@@ -214,9 +195,9 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
     try {
       const response = await callCreateDoctorReview(episodeId, {
         runId: Number(runId),
-        reviewStatus,
-        reviewNote: reviewNote || undefined,
-        rejectionReason: reviewStatus === 'REJECTED' ? rejectionReason : undefined,
+        reviewStatus: review.reviewStatus ?? 'SAVED_DRAFT',
+        reviewNote: review.reviewNote,
+        rejectionReason: review.rejectionReason,
         doctorDiagnosisJson: diagnosis as Record<string, any>,
         modificationJson: buildDoctorModificationJson(surgery),
         doctorFinalDecision: {
@@ -296,22 +277,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
         ) : (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Phiên bản này chưa có dữ liệu phác đồ AI." />
         )}
-      </Card>
-
-      <Card title="Đánh giá phiên bản AI" size="small">
-        <Radio.Group value={reviewStatus} onChange={(event) => setReviewStatus(event.target.value)}>
-          <Space direction="vertical">
-            <Radio value="ACCEPTED"><CheckCircleOutlined /> Đồng thuận</Radio>
-            <Radio value="MODIFIED"><EditOutlined /> Điều chỉnh</Radio>
-            <Radio value="REJECTED"><CloseCircleOutlined /> Từ chối</Radio>
-          </Space>
-        </Radio.Group>
-        <Space direction="vertical" style={{ width: '100%', marginTop: 16 }}>
-          <TextArea rows={2} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} placeholder="Ghi chú đánh giá" />
-          {reviewStatus === 'REJECTED' ? (
-            <TextArea rows={2} value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="Lý do từ chối *" />
-          ) : null}
-        </Space>
       </Card>
 
       <Form form={form} layout="vertical">
