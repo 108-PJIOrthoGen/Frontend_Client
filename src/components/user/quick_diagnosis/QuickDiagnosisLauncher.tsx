@@ -39,13 +39,14 @@ export const QuickDiagnosisLauncher = () => {
 
   return (
     <>
-      <section
-        data-testid="quick-diagnosis-launcher"
-        className="border-b border-blue-100 bg-gradient-to-r from-blue-50 via-white to-cyan-50 px-5 py-4 md:px-8"
-      >
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 md:pl-16 lg:flex-row lg:items-center lg:justify-between">
+      <main className="flex h-full min-h-0 flex-col overflow-y-auto bg-slate-50">
+        <section
+          data-testid="quick-diagnosis-launcher"
+          className="border-b border-emerald-100 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 px-5 py-6 md:px-8"
+        >
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl text-white shadow-sm">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xl text-white shadow-sm">
               <ThunderboltOutlined />
             </div>
             <div>
@@ -53,7 +54,7 @@ export const QuickDiagnosisLauncher = () => {
                 <Title level={4} className="!mb-0 !mt-0">
                   Chẩn đoán nhanh theo ICM
                 </Title>
-                <Tag color="blue">Không cần tạo bệnh án</Tag>
+                <Tag color="green">Không cần tạo bệnh án</Tag>
               </div>
               <Paragraph type="secondary" className="!mb-0 !mt-1 max-w-2xl">
                 Nhập trực tiếp tiêu chí lâm sàng để chẩn đoán PJI hoặc ước tính nguy cơ trước mổ.
@@ -80,8 +81,18 @@ export const QuickDiagnosisLauncher = () => {
               <ArrowRightOutlined />
             </Button>
           </div>
-        </div>
-      </section>
+          </div>
+        </section>
+
+        <section className="mx-auto w-full max-w-6xl px-5 py-8 md:px-8">
+          <div className="max-w-2xl">
+            <Title level={3} className="!mb-2 !mt-0 !text-slate-900">Bộ công cụ lâm sàng tức thời</Title>
+            <Paragraph className="!mb-0 text-slate-600">
+              Chọn một công cụ phía trên để đánh giá nhanh mà không thay đổi hồ sơ hay tiến trình điều trị đang làm việc.
+            </Paragraph>
+          </div>
+        </section>
+      </main>
 
       <Modal
         centered

@@ -124,7 +124,7 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
                     <h3 className="text-lg font-bold text-slate-800 mb-3">Hồ sơ bệnh nhân đã được lưu trong lần thăm khám trước?</h3>
                     <p className="text-slate-500 text-sm mb-8 flex-1">Tra cứu nhanh hồ sơ bệnh án qua CCCD, SĐT hoặc Mã bệnh nhân (MRN).</p>
                     <Button type="primary" size="large" className="w-full h-12 bg-blue-500" onClick={handleSearchClick}>
-                        Tra cứu hồ sơ nhanh
+                        Tra cứu hồ sơ
                     </Button>
                 </div>
 

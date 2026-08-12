@@ -1,8 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, Menu, MenuProps, Avatar, Image, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
-import { UserOutlined, SettingOutlined, LogoutOutlined, AlertOutlined, WechatOutlined, ExperimentOutlined, ForkOutlined } from '@ant-design/icons';
+import { Dropdown, Menu, MenuProps, Avatar, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
+import {
+  AlertOutlined,
+  AppstoreOutlined,
+  ExperimentOutlined,
+  ForkOutlined,
+  ThunderboltOutlined,
+  LogoutOutlined,
+  MenuOutlined,
+  CloseOutlined,
+  SettingOutlined,
+  UserOutlined,
+  WechatOutlined,
+} from '@ant-design/icons';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
 import { fetchMyPendingTasks, fetchMyPendingCount } from '@/redux/slice/pendingLabTaskSlice';
@@ -10,6 +22,7 @@ import { RootState } from '@/redux/store';
 import type { IPendingLabTask } from '@/types/backend';
 import ProfileSettingsModal from '@/components/user/profile/ProfileSettingsModal';
 import NotificationBell from '@/components/common/NotificationBell';
+import pogLogoUrl from '@/assets/pog-logo.png';
 
 export const LayoutClient = () => {
   const location = useLocation();
@@ -22,6 +35,7 @@ export const LayoutClient = () => {
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [pendingPopoverOpen, setPendingPopoverOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     dispatch(fetchMyPendingCount() as any);
@@ -138,7 +152,16 @@ export const LayoutClient = () => {
     { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: <ForkOutlined />, step: 'Quản lý bệnh học dài kỳ', comingSoon: true },
   ];
 
-  const selectedNavigationKey = [...recordMenuItems, ...aiPredictionMenuItems]
+  const applicationMenuItems = [
+    {
+      path: '/quick-diagnosis',
+      label: 'Chẩn đoán nhanh',
+      icon: <ThunderboltOutlined />,
+      step: 'ICM 2018 · PJIDx & Risk',
+    },
+  ];
+
+  const selectedNavigationKey = [...recordMenuItems, ...aiPredictionMenuItems, ...applicationMenuItems]
     .find((item) => (
       item.path === '/'
         ? location.pathname === '/'
@@ -165,13 +188,13 @@ export const LayoutClient = () => {
     },
     {
       key: 'ai-recommendations',
-      label: <span className="text-[15px] font-bold">Sinh Khuyến Nghị</span>,
+      label: <span className="text-[15px] font-bold">Tính Năng</span>,
       children: aiPredictionMenuItems.map((item) => ({
         key: item.path,
         disabled: item.comingSoon,
         icon: <span className="flex items-center text-[21px]">{item.icon}</span>,
         label: item.comingSoon ? (
-          <Tooltip title="Tính năng sắp ra mắt" placement="right">
+          <Tooltip title="Sắp ra mắt" placement="right">
             <div className="flex min-w-0 flex-col py-1 leading-tight">
               <span className="truncate text-[15px] font-semibold">{item.label}</span>
               <span className="mt-1 truncate text-[12px] text-green-500">
@@ -184,47 +207,14 @@ export const LayoutClient = () => {
       })),
     },
     {
-      key: 'utilities',
-      label: <span className="text-[15px] font-bold">Chức năng</span>,
-      children: [
-        {
-          key: 'notifications',
-          label: (
-            <div className="-mx-3 [&_button]:text-[15px] [&_svg]:text-[22px]">
-              <NotificationBell />
-            </div>
-          ),
-          style: { height: 'auto', lineHeight: 'normal', paddingBlock: 0 },
-        },
-        {
-          key: 'pending-lab-tasks',
-          label: (
-            <Popover
-              open={pendingPopoverOpen}
-              onOpenChange={setPendingPopoverOpen}
-              trigger="click"
-              placement="rightTop"
-              title="Tiến độ xét nghiệm chờ bổ sung"
-              content={pendingPopoverContent}
-            >
-              <Tooltip title="Xét nghiệm chờ bổ sung" placement="right">
-                <button
-                  type="button"
-                  className="-mx-3 flex w-[calc(100%+24px)] items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-amber-200 hover:bg-amber-50"
-                >
-                  <Badge count={pendingCount} size="small" offset={[-1, 3]}>
-                    <AlertOutlined className="text-[21px]" />
-                  </Badge>
-                  <span className="truncate text-[15px] font-semibold text-slate-600">
-                    Xét nghiệm chờ bổ sung
-                  </span>
-                </button>
-              </Tooltip>
-            </Popover>
-          ),
-          style: { height: 'auto', lineHeight: 'normal', paddingBlock: 0 },
-        },
-      ],
+      key: 'applications',
+      label: <span className="text-[15px] font-bold">Ứng dụng</span>,
+      children: applicationMenuItems.map((item) => ({
+        key: item.path,
+        icon: <span className="flex items-center text-[21px] text-emerald-600">{item.icon}</span>,
+        label: renderNavigationLabel(item.label, item.step),
+        style: { height: 'auto', lineHeight: 'normal', paddingBlock: 6 },
+      })),
     },
   ];
 
@@ -232,101 +222,164 @@ export const LayoutClient = () => {
     if (key.startsWith('/') && key !== location.pathname) {
       navigate(key);
     }
+    setSidebarOpen(false);
   };
 
   return (
     <div
-      className="flex h-screen min-h-0 w-full overflow-hidden bg-slate-50"
+      className="app-shell flex h-screen min-h-0 w-full flex-col overflow-hidden"
       style={{ height: '100dvh' }}
     >
-      {/* Sidebar */}
-      <aside className="z-20 flex h-full min-h-0 w-[19rem] max-w-[85vw] flex-shrink-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          {/* Header */}
-          <div className="flex shrink-0 flex-col items-center gap-1 px-6 pt-3">
-            <Image src={"/108POG-logo.png"} alt="Logo" preview={false} />
+      <header className="app-header">
+        <div className="flex min-w-0 items-center gap-2">
+          <button
+            type="button"
+            className="app-header-icon-button"
+            aria-label={sidebarOpen ? 'Đóng thanh điều hướng' : 'Mở thanh điều hướng'}
+            aria-expanded={sidebarOpen}
+            onClick={() => setSidebarOpen((isOpen) => !isOpen)}
+          >
+            {sidebarOpen ? <CloseOutlined /> : <MenuOutlined />}
+          </button>
+          <div className="hidden h-8 w-8 items-center justify-center rounded-md text-slate-500 sm:flex">
+            <AppstoreOutlined className="text-[18px]" />
+          </div>
+          <span className="hidden h-6 w-px bg-slate-200 sm:block" />
+          <a href="/" className="flex min-w-0 items-center gap-3" aria-label="PJI OrthGen - Trang chủ">
+            <span className="app-brand-mark" aria-hidden="true">
+              <img src={pogLogoUrl} alt="" />
+            </span>
+            <span className="sr-only">PJI OrthGen</span>
+            <span className="app-brand-name">
+              <span>PJI</span>
+              <span>OrthGen</span>
+            </span>
+          </a>
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <NotificationBell compact />
+          <Popover
+            open={pendingPopoverOpen}
+            onOpenChange={setPendingPopoverOpen}
+            trigger="click"
+            placement="bottomRight"
+            title="Tiến độ xét nghiệm chờ bổ sung"
+            content={pendingPopoverContent}
+          >
+            <Tooltip title="Xét nghiệm chờ bổ sung" placement="bottom">
+              <button type="button" className="app-header-icon-button" aria-label="Xét nghiệm chờ bổ sung">
+                <Badge count={pendingCount} size="small" offset={[-2, 2]}>
+                  <AlertOutlined className="text-[18px]" />
+                </Badge>
+              </button>
+            </Tooltip>
+          </Popover>
+          <Tooltip title="Cài đặt tài khoản" placement="bottom">
+            <button
+              type="button"
+              className="app-header-icon-button"
+              aria-label="Cài đặt tài khoản"
+              onClick={() => setProfileModalOpen(true)}
+            >
+              <SettingOutlined className="text-[18px]" />
+            </button>
+          </Tooltip>
+          <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
+            <button type="button" className="ml-1 flex items-center gap-2 rounded-lg p-1 pr-2 text-left transition-colors hover:bg-slate-100">
+              <Avatar size={30} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
+              <span className="hidden max-w-36 truncate text-sm font-semibold text-slate-700 md:block">
+                {user?.name || 'Bác sĩ'}
+              </span>
+            </button>
+          </Dropdown>
+        </div>
+      </header>
+
+      <div className={`app-shell-body relative flex min-h-0 flex-1 overflow-hidden ${sidebarOpen ? 'app-sidebar-is-open' : 'app-sidebar-is-closed'}`}>
+        {sidebarOpen ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-20 bg-slate-950/25 backdrop-blur-[1px] lg:hidden"
+            aria-label="Đóng thanh điều hướng"
+            onClick={() => setSidebarOpen(false)}
+          />
+        ) : null}
+
+        {/* Sidebar */}
+        <aside className="app-sidebar">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            {/* Current Case */}
+            <div data-tour="sidebar-current-case" className={`mx-3 mb-3 mt-4 shrink-0 rounded-lg border p-3 ${currentCase
+              ? 'border-emerald-200 bg-emerald-50'
+              : 'border-slate-200 bg-slate-50'
+              }`}>
+              <div className="flex items-start gap-2">
+                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-bold ${currentCase
+                  ? 'bg-emerald-200 text-emerald-800'
+                  : 'bg-slate-200 text-slate-500'
+                  }`}>
+                  {currentCase
+                    ? currentCase.patient.fullName?.split(' ').map((n: string) => n[0]).join('') || '?'
+                    : <span className="material-symbols-outlined text-lg">person_off</span>
+                  }
+                </div>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <span className={`text-[11px] font-bold uppercase tracking-[0.08em] ${currentCase ? 'text-emerald-700' : 'text-slate-500'
+                    }`}>Ca bệnh hiện tại</span>
+                  {currentCase ? (
+                    <>
+                      <h2 className="truncate text-sm font-bold text-emerald-950">{currentCase.patient.fullName}</h2>
+                      <p className="mt-0.5 truncate text-xs font-medium text-emerald-700">
+                        Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="text-sm font-bold text-slate-800">Chưa chọn ca bệnh</h2>
+                      <p className="mt-0.5 text-xs font-medium text-slate-500">Vui lòng chọn bệnh nhân</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <nav
+              data-tour="sidebar-navigation"
+              aria-label="Điều hướng chính"
+              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-3 pb-4"
+            >
+              <Menu
+                mode="inline"
+                items={navigationItems}
+                selectedKeys={selectedNavigationKey ? [selectedNavigationKey] : []}
+              openKeys={['medical-records', 'ai-recommendations', 'applications']}
+                onClick={handleNavigationClick}
+                className="client-sidebar-menu border-0 bg-transparent"
+                inlineIndent={16}
+              />
+            </nav>
           </div>
 
-          {/* Current Case */}
-          <div data-tour="sidebar-current-case" className={`mx-4 mb-6 mt-0 shrink-0 rounded-xl p-4 ${currentCase
-            ? 'bg-green-50 border border-green-200'
-            : 'bg-slate-50 border border-slate-100'
-            }`}>
-            <div className="flex items-start gap-2">
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold ${currentCase
-                ? 'bg-green-200 text-green-700'
-                : 'bg-slate-200 text-slate-500'
-                }`}>
-                {currentCase
-                  ? currentCase.patient.fullName?.split(' ').map((n: string) => n[0]).join('') || '?'
-                  : <span className="material-symbols-outlined text-lg">person_off</span>
-                }
-              </div>
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className={`text-[13px] uppercase tracking-wider font-semibold ${currentCase ? 'text-green-600' : 'text-slate-500'
-                  }`}>Ca bệnh hiện tại</span>
-                {currentCase ? (
-                  <>
-                    <h2 className="truncate text-base font-bold text-green-900">{currentCase.patient.fullName}</h2>
-                    <p className="mt-1 truncate text-sm font-medium text-green-600">
-                      Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2 className="text-base font-bold text-slate-900">Chưa chọn ca bệnh</h2>
-                    <p className="mt-1 text-[13px] font-medium text-slate-400">Vui lòng chọn bệnh nhân</p>
-                  </>
-                )}
+          <div data-tour="sidebar-account" className="shrink-0 border-t border-slate-200 bg-white p-3 lg:hidden">
+            <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+              <Avatar size={34} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-bold text-slate-800">{user?.name || 'Bác sĩ'}</div>
+                <div className="truncate text-xs text-slate-500">Bác sĩ chuyên khoa</div>
               </div>
             </div>
           </div>
+        </aside>
 
-          {/* Navigation */}
-          <nav
-            data-tour="sidebar-navigation"
-            aria-label="Điều hướng chính"
-            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-4"
-          >
-            <Menu
-              mode="inline"
-              items={navigationItems}
-              selectedKeys={selectedNavigationKey ? [selectedNavigationKey] : []}
-              openKeys={['medical-records', 'ai-recommendations', 'utilities']}
-              onClick={handleNavigationClick}
-              className="client-sidebar-menu border-0 bg-transparent"
-              inlineIndent={16}
-            />
-          </nav>
-        </div>
-
-        {/* Footer: Pending tasks + User profile */}
-        <div className="shrink-0 border-t border-slate-200 bg-white">
-
-          {/* User Profile */}
-          <div data-tour="sidebar-account" className="p-4 pt-1">
-            <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="topLeft">
-              <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-200">
-                <Avatar size="large" icon={<UserOutlined />} className="bg-primary/10 text-primary flex-shrink-0 border border-primary/20 aspect-square" />
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="text-lg font-bold text-slate-900 truncate">
-                    {user?.name}
-                  </span>
-                  <span className="text-xs font-medium text-slate-500 truncate">
-                    {'Bác sĩ chuyên khoa'}
-                  </span>
-                </div>
-                <span className="material-symbols-outlined text-slate-400 text-[20px]">expand_more</span>
-              </div>
-            </Dropdown>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="relative flex h-full min-w-0 flex-1 flex-col overflow-hidden">
-        <Outlet />
-      </main>
+        {/* Main Content */}
+        <main className="app-workspace relative flex min-w-0 flex-1 overflow-hidden">
+          <section className="app-content-surface">
+            <Outlet />
+          </section>
+        </main>
+      </div>
 
       {/* Profile / Account Settings Modal */}
       <ProfileSettingsModal

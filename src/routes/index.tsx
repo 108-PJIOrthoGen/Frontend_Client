@@ -19,6 +19,11 @@ const PatientTable = lazy(() => import("@/pages/user/PatientTable"));
 const ChartTesting = lazy(() => import("@/pages/user/ChartTesting"));
 const ScenarioSimulator = lazy(() => import("@/pages/user/ScenarioSimulator"));
 const AntibioticCarePlanner = lazy(() => import("@/pages/user/AntibioticCarePlanner"));
+const QuickDiagnosisLauncher = lazy(() => (
+    import("@/components/user/quick_diagnosis/QuickDiagnosisLauncher").then(module => ({
+        default: module.QuickDiagnosisLauncher,
+    }))
+));
 
 const AdminHome = lazy(() => import("@/pages/admin/AdminHome"));
 const UserPage = lazy(() => import("@/pages/admin/UserTable"));
@@ -56,6 +61,10 @@ const router = createBrowserRouter([
             {
                 path: "antibiotic-planner",
                 element: <ProtectedRoute><AntibioticCarePlanner /></ProtectedRoute>
+            },
+            {
+                path: "quick-diagnosis",
+                element: <ProtectedRoute><QuickDiagnosisLauncher /></ProtectedRoute>
             },
 
         ]

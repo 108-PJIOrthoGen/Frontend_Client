@@ -14,6 +14,8 @@ dayjs.locale('vi');
 interface Props {
   /** When true, render without dropdown so it can be embedded e.g. in a drawer. */
   inline?: boolean;
+  /** Compact icon-only trigger for application headers. */
+  compact?: boolean;
 }
 
 const severityDot = (n: INotification) => {
@@ -27,7 +29,7 @@ const severityDot = (n: INotification) => {
   );
 };
 
-const NotificationBell = ({ inline = false }: Props) => {
+const NotificationBell = ({ inline = false, compact = false }: Props) => {
   const { notifications, unreadCount, loading, markRead, markAllRead, refresh } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -137,21 +139,27 @@ const NotificationBell = ({ inline = false }: Props) => {
         if (o) void refresh();
       }}
       trigger={['click']}
-      placement="topRight"
+      placement={compact ? "bottomRight" : "topRight"}
       dropdownRender={() => panel}
     >
-      <Tooltip title="Thông báo" placement="right">
+      <Tooltip title="Thông báo" placement={compact ? "bottom" : "right"}>
         <button
           type="button"
-          className="flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-sky-200 hover:bg-sky-50"
+          aria-label="Thông báo"
+          className={compact
+            ? "app-header-icon-button"
+            : "flex w-full items-center gap-3 rounded-lg border border-transparent px-3 py-2.5 text-left transition-colors hover:border-sky-200 hover:bg-sky-50"
+          }
           onClick={() => setOpen((v) => !v)}
         >
           <Badge count={unreadCount} size="small" offset={[-2, 2]}>
-            <BellOutlined className="text-xl text-sky-600 group-hover:text-sky-700" />
+            <BellOutlined className={compact ? "text-[18px]" : "text-xl text-sky-600 group-hover:text-sky-700"} />
           </Badge>
-          <span className="font-medium text-slate-600 group-hover:text-sky-700">
-            Thông báo
-          </span>
+          {compact ? null : (
+            <span className="font-medium text-slate-600 group-hover:text-sky-700">
+              Thông báo
+            </span>
+          )}
         </button>
       </Tooltip>
     </Dropdown>

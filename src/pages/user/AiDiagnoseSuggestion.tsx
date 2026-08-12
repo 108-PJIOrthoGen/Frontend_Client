@@ -11,7 +11,6 @@ import DoctorDiagnosisStep from '@/components/user/diagnose_steps/doctor_diagnos
 import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/select_object/PatientSelection';
 import { TreatmentPlan } from '@/components/user/diagnose_steps/treatment_plan/TreatmentPlan';
-import { QuickDiagnosisLauncher } from '@/components/user/quick_diagnosis/QuickDiagnosisLauncher';
 
 const AiDiagnosisSuggestion = () => {
     const {
@@ -32,7 +31,6 @@ const AiDiagnosisSuggestion = () => {
             title: 'Chọn hồ sơ',
             content: (
                 <div className="min-h-full bg-white">
-                    <QuickDiagnosisLauncher />
                     <Step1PatientSelection
                         onNext={next}
                         autoOpenSearch={autoOpenSearch}
@@ -54,7 +52,7 @@ const AiDiagnosisSuggestion = () => {
             content: <DataCompletenessStep onNext={next} onPrev={prev} />,
         },
         {
-            title: 'Chẩn đoán bác sĩ',
+            title: 'Quyết định bác sĩ',
             content: <DoctorDiagnosisStep onPrev={prev} onBackToFirstStep={backToFirstStep} />,
         },
     ];

@@ -17,6 +17,7 @@ import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import synoeticTeamImage from '@/assets/teams/synoetic.png';
 import ibmeTeamImage from '@/assets/teams/no-slg.png';
 import { setAccessToken } from '@/security/accessToken';
+import pogLogoUrl from '@/assets/pog-logo.png';
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -96,9 +97,9 @@ const LoginPage = () => {
       >
         <div id="login-panel" className="relative flex flex-col bg-white px-7 py-5 sm:px-12 sm:py-10">
           <img
-            src="/108POG-logo.png"
-            alt="POG 108"
-            className="h-auto w-full max-w-[220px] object-contain"
+            src={pogLogoUrl}
+            alt="POG"
+            className="h-40 w-40 rounded-2xl object-contain"
           />
 
           <div className="my-auto py-10">
