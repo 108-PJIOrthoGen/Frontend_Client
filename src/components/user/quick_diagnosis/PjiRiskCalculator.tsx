@@ -70,7 +70,14 @@ export const PjiRiskCalculator = () => {
   ) => setInput(previous => ({ ...previous, [key]: value }));
 
   return (
-    <div className="space-y-4">
+    <main className="h-full overflow-y-auto bg-slate-50 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+      <div className="mx-auto max-w-7xl space-y-4">
+      <div>
+        <Title level={2} className="!mb-1 !mt-0 !text-slate-950">PJI Risk Calculator</Title>
+        <Paragraph type="secondary" className="!mb-0">
+          Ước tính nguy cơ PJI trọn đời trước phẫu thuật thay khớp từ mô hình quần thể.
+        </Paragraph>
+      </div>
       <Alert
         showIcon
         type="info"
@@ -289,6 +296,7 @@ export const PjiRiskCalculator = () => {
           </Card>
         </Col>
       </Row>
-    </div>
+      </div>
+    </main>
   );
 };

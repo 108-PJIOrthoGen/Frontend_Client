@@ -5,11 +5,12 @@ import { Dropdown, Menu, MenuProps, Avatar, message, Badge, Tooltip, Popover, Pr
 import {
   AlertOutlined,
   AppstoreOutlined,
+  CalculatorOutlined,
   ExperimentOutlined,
   ForkOutlined,
-  ThunderboltOutlined,
   LogoutOutlined,
   MenuOutlined,
+  SafetyCertificateOutlined,
   CloseOutlined,
   SettingOutlined,
   UserOutlined,
@@ -154,10 +155,25 @@ export const LayoutClient = () => {
 
   const applicationMenuItems = [
     {
-      path: '/quick-diagnosis',
-      label: 'Chẩn đoán nhanh',
-      icon: <ThunderboltOutlined />,
-      step: 'ICM 2018 · PJIDx & Risk',
+      path: '/pji-diagnosis-calculator',
+      label: 'PJI Diagnosis Calculator',
+      icon: <ExperimentOutlined />,
+      step: 'PJIDx · ICM 2018',
+      comingSoon: false,
+    },
+    {
+      path: '/pji-risk-calculator',
+      label: 'PJI Risk Calculator',
+      icon: <CalculatorOutlined />,
+      step: 'Nguy cơ trước thay khớp',
+      comingSoon: false,
+    },
+    {
+      path: '/dair-success',
+      label: 'DAIR SUCCESS',
+      icon: <SafetyCertificateOutlined />,
+      step: 'Ước tính khả năng thành công',
+      comingSoon: true,
     },
   ];
 
@@ -211,8 +227,18 @@ export const LayoutClient = () => {
       label: <span className="text-[15px] font-bold">Ứng dụng</span>,
       children: applicationMenuItems.map((item) => ({
         key: item.path,
+        disabled: item.comingSoon,
         icon: <span className="flex items-center text-[21px] text-emerald-600">{item.icon}</span>,
-        label: renderNavigationLabel(item.label, item.step),
+        label: item.comingSoon ? (
+          <Tooltip title="Sắp ra mắt" placement="right">
+            <div className="flex min-w-0 flex-col py-1 leading-tight">
+              <span className="truncate text-[15px] font-semibold">{item.label}</span>
+              <span className="mt-1 truncate text-[12px] text-green-500">
+                Sắp ra mắt · {item.step}
+              </span>
+            </div>
+          </Tooltip>
+        ) : renderNavigationLabel(item.label, item.step),
         style: { height: 'auto', lineHeight: 'normal', paddingBlock: 6 },
       })),
     },

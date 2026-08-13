@@ -1,7 +1,6 @@
-export type CriterionStatus = 'unknown' | 'negative' | 'positive';
-
 export type PjiDiagnosisConclusion =
   | 'INCOMPLETE'
+  | 'NOT_APPLICABLE'
   | 'INFECTED'
   | 'POSSIBLY_INFECTED'
   | 'NOT_INFECTED'
@@ -14,20 +13,51 @@ export interface DiagnosisCriterion {
   points: number;
 }
 
+export type PjiCultureResult =
+  | 'negative'
+  | 'singlePositive'
+  | 'multipleSameOrganism'
+  | 'multipleDifferentOrganisms';
+
+export type PjiLeukocyteEsterase =
+  | 'notDone'
+  | 'negative'
+  | 'trace'
+  | 'onePlus'
+  | 'twoPlus';
+
+export type PjiTernaryResult = 'notDone' | 'negative' | 'positive';
+
 export interface PjiDiagnosisInput {
-  major: Record<string, CriterionStatus>;
-  minor: Record<string, CriterionStatus>;
-  intraoperative: Record<string, CriterionStatus>;
+  previousArthroplasty?: boolean;
+  sinusTract?: boolean;
+  culturesPerformed?: boolean;
+  cultureResult?: PjiCultureResult;
+  daysSinceArthroplasty?: number;
+  serumTests?: {
+    esr?: number;
+    crp?: number;
+    dDimer?: number;
+  };
+  synovialTests?: {
+    wbc?: number;
+    pmn?: number;
+  };
+  leukocyteEsterase?: PjiLeukocyteEsterase;
+  alphaDefensin?: PjiTernaryResult;
+  histology?: PjiTernaryResult;
+  purulence?: PjiTernaryResult;
 }
 
 export interface PjiDiagnosisResult {
   conclusion: PjiDiagnosisConclusion;
-  phase: 'major' | 'preoperative' | 'combined';
+  phase: 'eligibility' | 'major' | 'preoperative' | 'combined';
   preoperativeScore: number;
   combinedScore?: number;
-  completedPreoperativeCriteria: number;
-  totalPreoperativeCriteria: number;
   positiveCriteria: DiagnosisCriterion[];
+  isComplete: boolean;
+  timing?: 'acute' | 'chronic';
+  cautions: string[];
 }
 
 export const PJI_MAJOR_CRITERIA: DiagnosisCriterion[] = [
@@ -49,25 +79,25 @@ export const PJI_MINOR_CRITERIA: DiagnosisCriterion[] = [
   {
     key: 'serumCrpOrDdimer',
     label: 'CRP huyết thanh hoặc D-dimer tăng',
-    detail: 'Cấp: CRP > 100 mg/L, chưa có ngưỡng D-dimer. Mạn: CRP > 10 mg/L hoặc D-dimer > 860 µg/L.',
+    detail: 'Cấp (<90 ngày): CRP > 100 mg/L. Mạn (≥90 ngày): CRP > 10 mg/L hoặc D-dimer > 860 ng/mL FEU.',
     points: 2,
   },
   {
     key: 'serumEsr',
     label: 'ESR tăng',
-    detail: 'Cấp: không áp dụng. Mạn: ESR > 30 mm/giờ.',
+    detail: 'Không chấm ESR ở giai đoạn cấp. Giai đoạn mạn: ESR > 30 mm/giờ.',
     points: 1,
   },
   {
     key: 'synovialWbcLeOrAlphaDefensin',
     label: 'WBC dịch khớp, Leukocyte Esterase hoặc Alpha-defensin',
-    detail: 'Cấp: WBC > 10.000 tế bào/µL. Mạn: WBC > 3.000 tế bào/µL. Hoặc LE ≥++ / Alpha-defensin signal-to-cutoff ≥1,0.',
+    detail: 'WBC > 10.000 tế bào/µL khi cấp hoặc > 3.000 tế bào/µL khi mạn; hoặc LE ++ / Alpha-defensin dương tính.',
     points: 3,
   },
   {
     key: 'synovialPmn',
     label: 'Tỷ lệ PMN dịch khớp tăng',
-    detail: 'Cấp: PMN > 90%. Mạn: PMN > 70%.',
+    detail: 'Giai đoạn cấp: PMN > 90%. Giai đoạn mạn: PMN > 80% theo tiêu chí đã thẩm định năm 2018.',
     points: 2,
   },
 ];
@@ -93,69 +123,145 @@ export const PJI_INTRAOPERATIVE_CRITERIA: DiagnosisCriterion[] = [
   },
 ];
 
-const countCompleted = (
-  criteria: DiagnosisCriterion[],
-  values: Record<string, CriterionStatus>,
-) => criteria.filter(criterion => values[criterion.key] !== 'unknown').length;
-
-const positiveItems = (
-  criteria: DiagnosisCriterion[],
-  values: Record<string, CriterionStatus>,
-) => criteria.filter(criterion => values[criterion.key] === 'positive');
-
 const scoreItems = (criteria: DiagnosisCriterion[]) => (
   criteria.reduce((total, criterion) => total + criterion.points, 0)
 );
 
-export const createCriterionState = (
-  criteria: DiagnosisCriterion[],
-): Record<string, CriterionStatus> => Object.fromEntries(
-  criteria.map(criterion => [criterion.key, 'unknown' as const]),
+const criterionByKey = (criteria: DiagnosisCriterion[], key: string) => {
+  const criterion = criteria.find(item => item.key === key);
+  if (!criterion) throw new Error(`Unknown PJI criterion: ${key}`);
+  return criterion;
+};
+
+const isFiniteNonNegative = (value: number | undefined): value is number => (
+  typeof value === 'number' && Number.isFinite(value) && value >= 0
 );
+
+export const hasCompletePjiDiagnosisInput = (input: PjiDiagnosisInput): boolean => {
+  if (input.previousArthroplasty === false) return true;
+  if (input.previousArthroplasty !== true) return false;
+  if (input.sinusTract == null) return false;
+  if (input.culturesPerformed == null) return false;
+  if (input.culturesPerformed && input.cultureResult == null) return false;
+  if (!isFiniteNonNegative(input.daysSinceArthroplasty)) return false;
+  if (input.serumTests == null || input.synovialTests == null) return false;
+  return input.leukocyteEsterase != null
+    && input.alphaDefensin != null
+    && input.histology != null
+    && input.purulence != null;
+};
 
 export const calculatePjiDiagnosis = (
   input: PjiDiagnosisInput,
 ): PjiDiagnosisResult => {
-  const positiveMajor = positiveItems(PJI_MAJOR_CRITERIA, input.major);
-  const positiveMinor = positiveItems(PJI_MINOR_CRITERIA, input.minor);
-  const preoperativeScore = scoreItems(positiveMinor);
-  const completedMajor = countCompleted(PJI_MAJOR_CRITERIA, input.major);
-  const completedMinor = countCompleted(PJI_MINOR_CRITERIA, input.minor);
-  const completedPreoperativeCriteria = completedMajor + completedMinor;
-  const totalPreoperativeCriteria = PJI_MAJOR_CRITERIA.length + PJI_MINOR_CRITERIA.length;
+  if (input.previousArthroplasty == null) {
+    return {
+      conclusion: 'INCOMPLETE',
+      phase: 'eligibility',
+      preoperativeScore: 0,
+      positiveCriteria: [],
+      isComplete: false,
+      cautions: [],
+    };
+  }
+
+  if (input.previousArthroplasty === false) {
+    return {
+      conclusion: 'NOT_APPLICABLE',
+      phase: 'eligibility',
+      preoperativeScore: 0,
+      positiveCriteria: [],
+      isComplete: true,
+      cautions: ['Tiêu chí này chỉ áp dụng cho khớp háng hoặc gối đã được thay khớp.'],
+    };
+  }
+
+  const timing = isFiniteNonNegative(input.daysSinceArthroplasty)
+    ? input.daysSinceArthroplasty < 90 ? 'acute' : 'chronic'
+    : undefined;
+  const positiveMajor: DiagnosisCriterion[] = [];
+  if (input.sinusTract) {
+    positiveMajor.push(criterionByKey(PJI_MAJOR_CRITERIA, 'sinusTract'));
+  }
+  if (input.culturesPerformed && input.cultureResult === 'multipleSameOrganism') {
+    positiveMajor.push(criterionByKey(PJI_MAJOR_CRITERIA, 'twoPositiveCultures'));
+  }
 
   if (positiveMajor.length > 0) {
     return {
       conclusion: 'INFECTED',
       phase: 'major',
-      preoperativeScore,
-      completedPreoperativeCriteria,
-      totalPreoperativeCriteria,
-      positiveCriteria: [...positiveMajor, ...positiveMinor],
+      preoperativeScore: 0,
+      positiveCriteria: positiveMajor,
+      isComplete: true,
+      timing,
+      cautions: [],
     };
   }
 
-  // A known score of six or more is sufficient even if some lower-weight
-  // criteria have not yet been entered.
+  const cultureCautions = input.cultureResult === 'multipleDifferentOrganisms'
+    ? ['Nhiều tác nhân khác nhau không thỏa tiêu chí chính “hai mẫu cùng một tác nhân” và cũng không được tự quy thành “một mẫu dương tính”; cần bác sĩ vi sinh đánh giá khả năng đa vi khuẩn hoặc nhiễm bẩn.']
+    : [];
+
+  const positiveMinor: DiagnosisCriterion[] = [];
+  if (timing) {
+    const crpPositive = isFiniteNonNegative(input.serumTests?.crp)
+      && input.serumTests.crp > (timing === 'acute' ? 100 : 10);
+    const dDimerPositive = timing === 'chronic'
+      && isFiniteNonNegative(input.serumTests?.dDimer)
+      && input.serumTests.dDimer > 860;
+    if (crpPositive || dDimerPositive) {
+      positiveMinor.push(criterionByKey(PJI_MINOR_CRITERIA, 'serumCrpOrDdimer'));
+    }
+    if (
+      timing === 'chronic'
+      && isFiniteNonNegative(input.serumTests?.esr)
+      && input.serumTests.esr > 30
+    ) {
+      positiveMinor.push(criterionByKey(PJI_MINOR_CRITERIA, 'serumEsr'));
+    }
+    const wbcPositive = isFiniteNonNegative(input.synovialTests?.wbc)
+      && input.synovialTests.wbc > (timing === 'acute' ? 10_000 : 3_000);
+    if (
+      wbcPositive
+      || input.leukocyteEsterase === 'twoPlus'
+      || input.alphaDefensin === 'positive'
+    ) {
+      // WBC, LE and alpha-defensin are alternative measurements of the same
+      // three-point criterion and must never be added together.
+      positiveMinor.push(criterionByKey(PJI_MINOR_CRITERIA, 'synovialWbcLeOrAlphaDefensin'));
+    }
+    if (
+      isFiniteNonNegative(input.synovialTests?.pmn)
+      && input.synovialTests.pmn > (timing === 'acute' ? 90 : 80)
+    ) {
+      positiveMinor.push(criterionByKey(PJI_MINOR_CRITERIA, 'synovialPmn'));
+    }
+  }
+
+  const preoperativeScore = scoreItems(positiveMinor);
+  const complete = hasCompletePjiDiagnosisInput(input);
+  if (!complete) {
+    return {
+      conclusion: 'INCOMPLETE',
+      phase: 'preoperative',
+      preoperativeScore,
+      positiveCriteria: positiveMinor,
+      isComplete: false,
+      timing,
+      cautions: cultureCautions,
+    };
+  }
+
   if (preoperativeScore >= 6) {
     return {
       conclusion: 'INFECTED',
       phase: 'preoperative',
       preoperativeScore,
-      completedPreoperativeCriteria,
-      totalPreoperativeCriteria,
       positiveCriteria: positiveMinor,
-    };
-  }
-
-  if (completedPreoperativeCriteria < totalPreoperativeCriteria) {
-    return {
-      conclusion: 'INCOMPLETE',
-      phase: 'preoperative',
-      preoperativeScore,
-      completedPreoperativeCriteria,
-      totalPreoperativeCriteria,
-      positiveCriteria: positiveMinor,
+      isComplete: true,
+      timing,
+      cautions: cultureCautions,
     };
   }
 
@@ -164,32 +270,28 @@ export const calculatePjiDiagnosis = (
       conclusion: 'NOT_INFECTED',
       phase: 'preoperative',
       preoperativeScore,
-      completedPreoperativeCriteria,
-      totalPreoperativeCriteria,
       positiveCriteria: positiveMinor,
+      isComplete: true,
+      timing,
+      cautions: cultureCautions,
     };
   }
 
-  const completedIntraoperative = countCompleted(
-    PJI_INTRAOPERATIVE_CRITERIA,
-    input.intraoperative,
-  );
-
-  if (completedIntraoperative < PJI_INTRAOPERATIVE_CRITERIA.length) {
-    return {
-      conclusion: 'POSSIBLY_INFECTED',
-      phase: 'preoperative',
-      preoperativeScore,
-      completedPreoperativeCriteria,
-      totalPreoperativeCriteria,
-      positiveCriteria: positiveMinor,
-    };
+  const positiveIntraoperative: DiagnosisCriterion[] = [];
+  if (
+    input.culturesPerformed
+    && input.cultureResult === 'singlePositive'
+  ) {
+    positiveIntraoperative.push(
+      criterionByKey(PJI_INTRAOPERATIVE_CRITERIA, 'singlePositiveCulture'),
+    );
   }
-
-  const positiveIntraoperative = positiveItems(
-    PJI_INTRAOPERATIVE_CRITERIA,
-    input.intraoperative,
-  );
+  if (input.histology === 'positive') {
+    positiveIntraoperative.push(criterionByKey(PJI_INTRAOPERATIVE_CRITERIA, 'positiveHistology'));
+  }
+  if (input.purulence === 'positive') {
+    positiveIntraoperative.push(criterionByKey(PJI_INTRAOPERATIVE_CRITERIA, 'purulence'));
+  }
   const combinedScore = preoperativeScore + scoreItems(positiveIntraoperative);
   const conclusion = combinedScore >= 6
     ? 'INFECTED'
@@ -202,9 +304,10 @@ export const calculatePjiDiagnosis = (
     phase: 'combined',
     preoperativeScore,
     combinedScore,
-    completedPreoperativeCriteria,
-    totalPreoperativeCriteria,
     positiveCriteria: [...positiveMinor, ...positiveIntraoperative],
+    isComplete: true,
+    timing,
+    cautions: cultureCautions,
   };
 };
 

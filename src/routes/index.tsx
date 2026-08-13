@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import Error404 from "@/pages/errors/NotFoundPage";
 import ProtectedRoute from "@/components/common/protected/RouteProtected";
 
@@ -19,9 +19,14 @@ const PatientTable = lazy(() => import("@/pages/user/PatientTable"));
 const ChartTesting = lazy(() => import("@/pages/user/ChartTesting"));
 const ScenarioSimulator = lazy(() => import("@/pages/user/ScenarioSimulator"));
 const AntibioticCarePlanner = lazy(() => import("@/pages/user/AntibioticCarePlanner"));
-const QuickDiagnosisLauncher = lazy(() => (
-    import("@/components/user/quick_diagnosis/QuickDiagnosisLauncher").then(module => ({
-        default: module.QuickDiagnosisLauncher,
+const PjiDiagnosisCalculator = lazy(() => (
+    import("@/components/user/quick_diagnosis/PjiDiagnosisCalculator").then(module => ({
+        default: module.PjiDiagnosisCalculator,
+    }))
+));
+const PjiRiskCalculator = lazy(() => (
+    import("@/components/user/quick_diagnosis/PjiRiskCalculator").then(module => ({
+        default: module.PjiRiskCalculator,
     }))
 ));
 
@@ -64,7 +69,15 @@ const router = createBrowserRouter([
             },
             {
                 path: "quick-diagnosis",
-                element: <ProtectedRoute><QuickDiagnosisLauncher /></ProtectedRoute>
+                element: <Navigate to="/pji-diagnosis-calculator" replace />
+            },
+            {
+                path: "pji-diagnosis-calculator",
+                element: <ProtectedRoute><PjiDiagnosisCalculator /></ProtectedRoute>
+            },
+            {
+                path: "pji-risk-calculator",
+                element: <ProtectedRoute><PjiRiskCalculator /></ProtectedRoute>
             },
 
         ]
