@@ -51,6 +51,62 @@ select {
   outline: none;
 }
 
+.app-tour-button {
+  position: relative;
+  display: inline-flex;
+  height: 38px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(12, 102, 228, 0.24);
+  border-radius: 4px;
+  background: linear-gradient(120deg, #f0f7ff 0%, #baffe8 52%, #b9ecef 100%);
+  padding: 0 13px;
+  color: #2a549d;
+  font-size: 13px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(66, 99, 235, 0.1);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.app-tour-button::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 25%, rgba(255, 255, 255, 0.82) 48%, transparent 70%);
+  content: '';
+  transform: translateX(-125%);
+  animation: tour-button-shimmer 4.8s ease-in-out infinite;
+}
+
+.app-tour-button:hover,
+.app-tour-button:focus-visible {
+  border-color: rgba(58, 237, 213, 0.42);
+  outline: none;
+  box-shadow: 0 5px 16px rgba(66, 99, 235, 0.18);
+  transform: translateY(-1px);
+}
+
+.app-tour-button-icon {
+  position: relative;
+  z-index: 1;
+  color: #0d938a;
+  font-size: 17px;
+}
+
+.app-tour-button>span:last-child {
+  position: relative;
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.app-product-tour.ant-tour {
+  width: min(400px, calc(100vw - 32px));
+}
+
 .app-brand-mark {
   display: flex;
   height: 54px;
@@ -110,7 +166,7 @@ select {
 .app-workspace {
   background:
     radial-gradient(circle at 92% 110%, rgba(24, 84, 72, 0.22), transparent 29%),
-    linear-gradient(118deg, #84ccbc 0%, #78afe2 48%, #edc2a7 100%);
+    linear-gradient(118deg, #84ccbc 0%, #78afe2 48%, #ccf15d 100%);
   padding: 24px 20px 0;
 }
 
@@ -161,24 +217,141 @@ select {
   color: #0c66e4;
 }
 
+.feature-group-label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(90deg, #0c66e4 0%, #109d42 28%, #27db48 52%, #b6ea0c 72%, #0c66e4 100%);
+  background-size: 260% 100%;
+  background-clip: text;
+  color: transparent;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: feature-label-gradient 5s ease-in-out infinite;
+}
+
+.feature-group-label::before {
+  color: #3ab1ed;
+  content: '✦';
+  font-size: 13px;
+  line-height: 1;
+  -webkit-text-fill-color: #7c3aed;
+  filter: drop-shadow(0 0 5px rgba(124, 58, 237, 0.42));
+  animation: feature-sparkle 2.4s ease-in-out infinite;
+}
+
+@property --feature-beam-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.client-sidebar-menu .feature-border-beam {
+  --feature-beam-angle: 0deg;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#ffffff, #ffffff) padding-box,
+    conic-gradient(from var(--feature-beam-angle),
+      transparent 0deg,
+      transparent 258deg,
+      rgba(12, 102, 228, 0.18) 282deg,
+      rgba(124, 58, 237, 0.9) 310deg,
+      rgba(39, 219, 186, 0.72) 332deg,
+      transparent 360deg) border-box;
+  box-shadow: 0 1px 5px rgba(72, 89, 145, 0.04);
+  animation: feature-border-beam 5.4s linear infinite;
+}
+
+.client-sidebar-menu .feature-border-beam:hover:not(.ant-menu-item-disabled) {
+  background:
+    linear-gradient(#f8fbff, #f8fbff) padding-box,
+    conic-gradient(from var(--feature-beam-angle), transparent 0deg, rgba(12, 102, 228, 0.24) 260deg, #7c3aed 306deg, #db2777 336deg, transparent 360deg) border-box;
+  box-shadow: 0 4px 12px rgba(66, 99, 235, 0.1);
+}
+
+.client-sidebar-menu .feature-border-beam.ant-menu-item-selected {
+  background:
+    linear-gradient(#eef5ff, #eef5ff) padding-box,
+    conic-gradient(from var(--feature-beam-angle), transparent 0deg, rgba(12, 102, 228, 0.34) 250deg, #0c66e4 302deg, #7c3aed 334deg, transparent 360deg) border-box;
+}
+
+@keyframes tour-button-shimmer {
+
+  0%,
+  62%,
+  100% {
+    transform: translateX(-125%);
+  }
+
+  78% {
+    transform: translateX(125%);
+  }
+}
+
+@keyframes feature-label-gradient {
+
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes feature-sparkle {
+
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: rotate(0deg) scale(0.82);
+  }
+
+  48% {
+    opacity: 1;
+    transform: rotate(20deg) scale(1.18);
+  }
+}
+
+@keyframes feature-border-beam {
+  to {
+    --feature-beam-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .app-tour-button::before,
+  .feature-group-label,
+  .feature-group-label::before,
+  .client-sidebar-menu .feature-border-beam {
+    animation: none;
+  }
+}
+
 @media (max-width: 639px) {
   .app-header {
     padding-inline: 10px;
   }
 
   .app-brand-mark {
-    height: 48px;
-    width: 48px;
-    flex-basis: 48px;
+    height: 42px;
+    width: 42px;
+    flex-basis: 42px;
   }
 
   .app-brand-mark img {
-    height: 68px;
-    width: 68px;
+    height: 44px;
+    width: 44px;
   }
 
   .app-brand-name {
-    font-size: 17px;
+    display: none;
   }
 
   .app-sidebar {
@@ -206,6 +379,17 @@ select {
     border: 0;
     border-radius: 0;
     box-shadow: none;
+  }
+}
+
+@media (max-width: 399px) {
+  .app-tour-button {
+    width: 36px;
+    padding: 0;
+  }
+
+  .app-tour-button>span:last-child {
+    display: none;
   }
 }
 

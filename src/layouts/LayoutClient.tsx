@@ -1,13 +1,16 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation, Outlet, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { Dropdown, Menu, MenuProps, Avatar, message, Badge, Tooltip, Popover, Progress, Empty } from 'antd';
+import { Dropdown, Menu, MenuProps, Avatar, message, Badge, Tooltip, Popover, Progress, Empty, Tour } from 'antd';
+import type { TourProps } from 'antd';
 import {
   AlertOutlined,
   AppstoreOutlined,
   CalculatorOutlined,
+  CompassOutlined,
   ExperimentOutlined,
   ForkOutlined,
+  InfoCircleOutlined,
   LogoutOutlined,
   MenuOutlined,
   SafetyCertificateOutlined,
@@ -23,7 +26,84 @@ import { RootState } from '@/redux/store';
 import type { IPendingLabTask } from '@/types/backend';
 import ProfileSettingsModal from '@/components/user/profile/ProfileSettingsModal';
 import NotificationBell from '@/components/common/NotificationBell';
+import MedicalDisclaimerModal from '@/components/common/MedicalDisclaimerModal';
 import pogLogoUrl from '@/assets/pog-logo.png';
+
+const DIAGNOSIS_TOUR_STORAGE_KEY = 'pji_diagnosis_tour_completed';
+
+const getTourTarget = (selector: string) => (): HTMLElement => (
+  document.querySelector<HTMLElement>(selector) ?? document.body
+);
+
+const buildTourSteps = (isDiagnosisPage: boolean): TourProps['steps'] => {
+  const steps: NonNullable<TourProps['steps']> = [
+    {
+      title: 'Khám phá nhanh',
+      description: 'Bạn có thể mở lại hướng dẫn sử dụng bất cứ lúc nào từ nút này trên thanh tiêu đề.',
+      target: getTourTarget('[data-tour="quick-discovery"]'),
+      placement: 'bottomRight',
+    },
+    {
+      title: 'Ca bệnh hiện tại',
+      description: 'Theo dõi nhanh bệnh nhân và bệnh án đang xử lý. Khi chưa chọn ca bệnh, hệ thống sẽ hướng dẫn bạn bắt đầu từ hồ sơ bệnh nhân.',
+      target: getTourTarget('[data-tour="sidebar-current-case"]'),
+      placement: 'right',
+    },
+    {
+      title: 'Nhóm Tính năng',
+      description: 'Các công cụ chẩn đoán và đề xuất điều trị tích hợp AI được tập hợp tại đây. Những mục đang phát triển sẽ có nhãn “Sắp ra mắt”.',
+      target: getTourTarget('.feature-group-menu'),
+      placement: 'right',
+    },
+    {
+      title: 'Ứng dụng lâm sàng',
+      description: 'Truy cập các bộ tính toán chẩn đoán và nguy cơ PJI. Mỗi ứng dụng thể hiện rõ trạng thái sẵn sàng hoặc sắp ra mắt.',
+      target: getTourTarget('.clinical-apps-menu'),
+      placement: 'right',
+    },
+    {
+      title: 'Thông báo và công việc đang chờ',
+      description: 'Kiểm tra thông báo hệ thống và tiến độ các xét nghiệm cần bổ sung mà không rời khỏi màn hình hiện tại.',
+      target: getTourTarget('[data-tour="header-status-actions"]'),
+      placement: 'bottomRight',
+    },
+    {
+      title: 'Tuyên bố miễn trừ',
+      description: 'Đọc phạm vi, giới hạn và trách nhiệm chuyên môn khi sử dụng công cụ hỗ trợ quyết định lâm sàng.',
+      target: getTourTarget('[data-tour="medical-disclaimer"]'),
+      placement: 'bottomRight',
+    },
+  ];
+
+  if (isDiagnosisPage) {
+    steps.push(
+      {
+        title: 'Thông tin quy trình',
+        description: 'Theo dõi bệnh nhân đang chọn, giai đoạn hiện tại và các thao tác đổi hoặc thoát ca bệnh.',
+        target: getTourTarget('[data-tour="diagnosis-header"]'),
+      },
+      {
+        title: 'Tiến trình chẩn đoán',
+        description: 'Các bước thể hiện toàn bộ quy trình. Bạn có thể quay lại những bước đã hoàn thành để kiểm tra thông tin.',
+        target: getTourTarget('[data-tour="diagnosis-steps"]'),
+      },
+    );
+  }
+
+  steps.push({
+    title: 'Không gian làm việc',
+    description: 'Nội dung chính và các thao tác theo từng chức năng sẽ hiển thị trong khu vực này.',
+    target: getTourTarget('[data-tour="app-workspace"]'),
+  });
+
+  return steps.map((step, index) => ({
+    ...step,
+    prevButtonProps: index > 0 ? { children: 'Quay lại' } : undefined,
+    nextButtonProps: {
+      children: index === steps.length - 1 ? 'Hoàn tất' : 'Tiếp theo',
+    },
+  }));
+};
 
 export const LayoutClient = () => {
   const location = useLocation();
@@ -35,6 +115,10 @@ export const LayoutClient = () => {
   const pendingTasks = useSelector((state: RootState) => state.pendingLabTask.tasks);
 
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [disclaimerModalOpen, setDisclaimerModalOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [tourCurrent, setTourCurrent] = useState(0);
+  const [tourDiscoveryOpen, setTourDiscoveryOpen] = useState(false);
   const [pendingPopoverOpen, setPendingPopoverOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
@@ -42,6 +126,31 @@ export const LayoutClient = () => {
     dispatch(fetchMyPendingCount() as any);
     dispatch(fetchMyPendingTasks() as any);
   }, [dispatch]);
+
+  useEffect(() => {
+    if (window.localStorage.getItem(DIAGNOSIS_TOUR_STORAGE_KEY)) return;
+
+    const discoveryTimer = window.setTimeout(() => setTourDiscoveryOpen(true), 1800);
+    const hideTimer = window.setTimeout(() => setTourDiscoveryOpen(false), 9800);
+
+    return () => {
+      window.clearTimeout(discoveryTimer);
+      window.clearTimeout(hideTimer);
+    };
+  }, []);
+
+  const startTour = () => {
+    setSidebarOpen(true);
+    setTourDiscoveryOpen(false);
+    setTourCurrent(0);
+    setTourOpen(true);
+  };
+
+  const closeTour = () => {
+    setTourOpen(false);
+    setTourCurrent(0);
+    window.localStorage.setItem(DIAGNOSIS_TOUR_STORAGE_KEY, 'true');
+  };
 
   // Group this user's tasks by episode and keep only those still carrying
   // outstanding (pending) work — the notification shows per-episode progress.
@@ -204,9 +313,11 @@ export const LayoutClient = () => {
     },
     {
       key: 'ai-recommendations',
-      label: <span className="text-[15px] font-bold">Tính Năng</span>,
+      className: 'feature-group-menu',
+      label: <span className="feature-group-label">Tính năng</span>,
       children: aiPredictionMenuItems.map((item) => ({
         key: item.path,
+        className: 'feature-border-beam',
         disabled: item.comingSoon,
         icon: <span className="flex items-center text-[21px]">{item.icon}</span>,
         label: item.comingSoon ? (
@@ -224,6 +335,7 @@ export const LayoutClient = () => {
     },
     {
       key: 'applications',
+      className: 'clinical-apps-menu',
       label: <span className="text-[15px] font-bold">Ứng dụng</span>,
       children: applicationMenuItems.map((item) => ({
         key: item.path,
@@ -284,23 +396,59 @@ export const LayoutClient = () => {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <NotificationBell compact />
           <Popover
-            open={pendingPopoverOpen}
-            onOpenChange={setPendingPopoverOpen}
-            trigger="click"
+            open={tourDiscoveryOpen && !tourOpen}
+            onOpenChange={setTourDiscoveryOpen}
+            trigger="hover"
             placement="bottomRight"
-            title="Tiến độ xét nghiệm chờ bổ sung"
-            content={pendingPopoverContent}
+            content={(
+              <div className="max-w-64">
+                <div className="font-semibold text-slate-800">Bạn mới sử dụng PJI OrthGen?</div>
+                <div className="mt-1 text-xs leading-5 text-slate-500">Xem nhanh các khu vực và thao tác quan trọng trên giao diện.</div>
+              </div>
+            )}
           >
-            <Tooltip title="Xét nghiệm chờ bổ sung" placement="bottom">
-              <button type="button" className="app-header-icon-button" aria-label="Xét nghiệm chờ bổ sung">
-                <Badge count={pendingCount} size="small" offset={[-2, 2]}>
-                  <AlertOutlined className="text-[18px]" />
-                </Badge>
-              </button>
-            </Tooltip>
+            <button
+              data-tour="quick-discovery"
+              type="button"
+              onClick={startTour}
+              className="app-tour-button"
+              aria-label="Khám phá nhanh giao diện"
+            >
+              <CompassOutlined className="app-tour-button-icon" />
+              <span>Khám phá nhanh</span>
+            </button>
           </Popover>
+          <div data-tour="header-status-actions" className="flex items-center gap-1.5">
+            <NotificationBell compact />
+            <Popover
+              open={pendingPopoverOpen}
+              onOpenChange={setPendingPopoverOpen}
+              trigger="click"
+              placement="bottomRight"
+              title="Tiến độ xét nghiệm chờ bổ sung"
+              content={pendingPopoverContent}
+            >
+              <Tooltip title="Xét nghiệm chờ bổ sung" placement="bottom">
+                <button type="button" className="app-header-icon-button" aria-label="Xét nghiệm chờ bổ sung">
+                  <Badge count={pendingCount} size="small" offset={[-2, 2]}>
+                    <AlertOutlined className="text-[18px]" />
+                  </Badge>
+                </button>
+              </Tooltip>
+            </Popover>
+          </div>
+          <Tooltip title="Tuyên bố miễn trừ trách nhiệm y khoa" placement="bottom">
+            <button
+              data-tour="medical-disclaimer"
+              type="button"
+              className="app-header-icon-button"
+              aria-label="Mở tuyên bố miễn trừ trách nhiệm y khoa"
+              onClick={() => setDisclaimerModalOpen(true)}
+            >
+              <InfoCircleOutlined className="text-[18px]" />
+            </button>
+          </Tooltip>
           <Tooltip title="Cài đặt tài khoản" placement="bottom">
             <button
               type="button"
@@ -400,7 +548,7 @@ export const LayoutClient = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="app-workspace relative flex min-w-0 flex-1 overflow-hidden">
+        <main data-tour="app-workspace" className="app-workspace relative flex min-w-0 flex-1 overflow-hidden">
           <section className="app-content-surface">
             <Outlet />
           </section>
@@ -411,6 +559,19 @@ export const LayoutClient = () => {
       <ProfileSettingsModal
         open={profileModalOpen}
         setOpen={setProfileModalOpen}
+      />
+      <MedicalDisclaimerModal
+        open={disclaimerModalOpen}
+        onClose={() => setDisclaimerModalOpen(false)}
+      />
+      <Tour
+        rootClassName="app-product-tour"
+        open={tourOpen}
+        current={tourCurrent}
+        onChange={setTourCurrent}
+        onClose={closeTour}
+        onFinish={closeTour}
+        steps={buildTourSteps(location.pathname === '/')}
       />
     </div>
   );
