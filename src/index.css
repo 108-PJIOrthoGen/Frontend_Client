@@ -60,9 +60,9 @@ select {
   justify-content: center;
   gap: 8px;
   overflow: hidden;
-  border: 1px solid rgba(12, 102, 228, 0.24);
+  border: 1px solid rgba(10, 70, 154, 0.24);
   border-radius: 4px;
-  background: linear-gradient(120deg, #f0f7ff 0%, #baffe8 52%, #b9ecef 100%);
+  background: linear-gradient(120deg, #f8fcfb 0%, #ecf9f5 52%, #cceef0 100%);
   padding: 0 13px;
   color: #2a549d;
   font-size: 13px;
@@ -166,7 +166,7 @@ select {
 .app-workspace {
   background:
     radial-gradient(circle at 92% 110%, rgba(24, 84, 72, 0.22), transparent 29%),
-    linear-gradient(118deg, #84ccbc 0%, #78afe2 48%, #ccf15d 100%);
+    linear-gradient(118deg, #84ccbc 0%, #78afe2 48%, #61c473 100%);
   padding: 24px 20px 0;
 }
 
@@ -222,7 +222,7 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(90deg, #0c66e4 0%, #109d42 28%, #27db48 52%, #b6ea0c 72%, #0c66e4 100%);
+  background: linear-gradient(90deg, #0c66e4 0%, #109d42 28%, #27db48 52%, #7f8918 72%, #0c66e4 100%);
   background-size: 260% 100%;
   background-clip: text;
   color: transparent;
@@ -259,7 +259,7 @@ select {
       transparent 0deg,
       transparent 258deg,
       rgba(12, 102, 228, 0.18) 282deg,
-      rgba(124, 58, 237, 0.9) 310deg,
+      rgba(159, 116, 232, 0.9) 310deg,
       rgba(39, 219, 186, 0.72) 332deg,
       transparent 360deg) border-box;
   box-shadow: 0 1px 5px rgba(72, 89, 145, 0.04);

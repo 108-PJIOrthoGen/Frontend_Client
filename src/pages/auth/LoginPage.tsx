@@ -99,8 +99,8 @@ const LoginPage = () => {
           <img
             src={pogLogoUrl}
             alt="POG"
-            className="h-40 w-40 rounded-2xl object-contain"
-          />
+            className="h-20 w-20 rounded-1xl object-contain"
+          /> PJI OrthoGen
 
           <div className="my-auto py-10">
             <div className="mx-auto mb-7 flex h-[92px] w-[92px] items-center justify-center rounded-full bg-[#213872] text-[44px] text-white shadow-[0_12px_30px_rgba(33,56,114,0.24)]">
@@ -199,9 +199,9 @@ const LoginPage = () => {
           className="relative flex min-h-[460px] flex-col overflow-hidden px-6 py-7 text-white sm:px-10 lg:min-h-0 lg:px-12"
           style={{
             background: [
-              'radial-gradient(circle at 12% 12%, rgba(98, 164, 205, 0.88) 0%, rgba(30, 150, 205, 0.38) 22%, transparent 38%)',
-              'radial-gradient(circle at 86% 70%, rgba(163, 230, 53, 0.20) 0%, transparent 34%)',
-              'linear-gradient(135deg, #0f2d68 0%, #17aa65 48%, #11285f 100%)',
+              'radial-gradient(circle at 12% 12%, rgba(81, 166, 216, 0.88) 0%, rgba(116, 196, 234, 0.38) 22%, transparent 38%)',
+              'radial-gradient(circle at 86% 70%, rgba(100, 230, 53, 0.2) 0%, transparent 34%)',
+              'linear-gradient(135deg, #0f2d68 0%, #2eae72 48%, #11285f 100%)',
             ].join(', '),
           }}
         >
@@ -225,7 +225,7 @@ const LoginPage = () => {
 
           <div id="development-teams" className="relative z-10 my-auto flex flex-col items-center py-12 text-center">
             <h2 className="text-4xl font-bold tracking-tight sm:text-5xl">Chào mừng!</h2>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-blue-50/85 sm:text-base">
+            <p className="mt-3 max-w-xl text-md  leading-relaxed text-blue-50/85 sm:text-base">
               Đồng hành cùng đội ngũ y tế trong chuyển đổi số, ứng dụng công nghệ vào thực tiễn lâm sàng.
             </p>
 

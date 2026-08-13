@@ -13,7 +13,7 @@ import dayjs from "dayjs";
 import queryString from "query-string";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { sfLike } from "spring-filter-query-builder";
+import { sfEqual, sfLike } from "spring-filter-query-builder";
 
 const PatientTable = () => {
 
@@ -28,6 +28,10 @@ const PatientTable = () => {
     const tableRef = useRef<ActionType>(null);
     const location = useLocation();
     const navigate = useNavigate();
+    const deepLinkParams = new URLSearchParams(location.search);
+    const globalPatientId = deepLinkParams.get('view') === 'patient'
+        ? deepLinkParams.get('patientId')
+        : null;
 
     // const isFetching = useAppSelector((state) => state.patient.isFetching);
     const meta = useAppSelector((state) => state.patient.meta);
@@ -143,7 +147,8 @@ const PatientTable = () => {
         const params = new URLSearchParams(location.search);
         const patientId = params.get('patientId');
         const episodeId = params.get('episodeId');
-        if (!patientId) return;
+        const view = params.get('view');
+        if (!patientId || (view === 'patient' && !episodeId)) return;
         (async () => {
             try {
                 const res = await callFetchPatientById(patientId);
@@ -156,7 +161,7 @@ const PatientTable = () => {
                     setOpenMedicalDrawer(true);
                 }
             } catch {
-                message.error('Không thể mở bệnh án từ thông báo');
+                message.error('Không thể mở hồ sơ bệnh án');
             } finally {
                 navigate('/table-patients', { replace: true });
             }
@@ -292,7 +297,9 @@ const PatientTable = () => {
         };
 
         const clone = { ...params };
-        if (clone.fullName) q.filter = `${sfLike("fullName", clone.fullName)}`;
+        if (clone.globalPatientId) {
+            q.filter = `${sfEqual("id", Number(clone.globalPatientId))}`;
+        } else if (clone.fullName) q.filter = `${sfLike("fullName", clone.fullName)}`;
         if (clone.identityCard) {
             q.filter = clone.fullName
                 ? q.filter + " and " + `${sfLike("identityCard", clone.identityCard)}`
@@ -377,6 +384,7 @@ const PatientTable = () => {
                     rowKey="id"
                     columns={columns}
                     dataSource={users}
+                    params={{ globalPatientId: globalPatientId || undefined }}
                     request={async (params: any, sort: any, filter: any) => {
                         const query = buildQuery(params, sort, filter);
                         const res = await dispatch(fetchPatient({ query })).unwrap();
@@ -387,6 +395,7 @@ const PatientTable = () => {
                             success: true,
                         };
                     }}
+                    search={false}
                     scroll={{ x: true }}
                     pagination={{
                         showSizeChanger: true,

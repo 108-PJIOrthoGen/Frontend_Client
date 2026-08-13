@@ -139,6 +139,7 @@ export interface IEpisodeDepartmentTransfer {
 
 export interface IEpisode extends IEpisodeRequest {
     id?: string;
+    medicalRecordCode?: string;
     patient?: IPatient;
     createdAt?: string;
     updatedAt?: string;

@@ -94,6 +94,15 @@ const ManageMedicalDrawer: React.FC<ManageMedicalDrawerProps> = ({ open, onClose
             render: (_: any, __: any, index: number) => index + 1,
         },
         {
+            title: 'Mã hồ sơ',
+            dataIndex: 'medicalRecordCode',
+            key: 'medicalRecordCode',
+            width: 150,
+            render: (value: string, record: IEpisode) => (
+                <span className="font-semibold text-blue-700">{value || `BA #${record.id}`}</span>
+            ),
+        },
+        {
             title: 'Ngày vào viện',
             dataIndex: 'admissionDate',
             key: 'admissionDate',

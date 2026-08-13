@@ -27,6 +27,7 @@ import type { IPendingLabTask } from '@/types/backend';
 import ProfileSettingsModal from '@/components/user/profile/ProfileSettingsModal';
 import NotificationBell from '@/components/common/NotificationBell';
 import MedicalDisclaimerModal from '@/components/common/MedicalDisclaimerModal';
+import GlobalMedicalSearch from '@/features/global-search/GlobalMedicalSearch';
 import pogLogoUrl from '@/assets/pog-logo.png';
 
 const DIAGNOSIS_TOUR_STORAGE_KEY = 'pji_diagnosis_tour_completed';
@@ -395,6 +396,8 @@ export const LayoutClient = () => {
           </a>
         </div>
 
+        <GlobalMedicalSearch />
+
         <div className="flex items-center gap-1.5">
           <Popover
             open={tourDiscoveryOpen && !tourOpen}
@@ -505,7 +508,7 @@ export const LayoutClient = () => {
                     <>
                       <h2 className="truncate text-sm font-bold text-emerald-950">{currentCase.patient.fullName}</h2>
                       <p className="mt-0.5 truncate text-xs font-medium text-emerald-700">
-                        Bệnh án #{currentCase.episode.id} — Đang chẩn đoán
+                        Bệnh án {currentCase.episode.medicalRecordCode || `#${currentCase.episode.id}`} — Đang chẩn đoán
                       </p>
                     </>
                   ) : (
