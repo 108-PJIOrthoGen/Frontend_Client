@@ -6,7 +6,7 @@ import {
   RobotOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RootState } from '@/redux/store';
 import { getRuntimeApiBase } from '@/config/runtimeUrls';
@@ -23,6 +23,12 @@ import TreatmentDraftPanel from './components/TreatmentDraftPanel';
 import CitationsPanel from './components/CitationsPanel';
 import AiChatDrawer from './components/AiChatDrawer';
 import { getAccessToken } from '@/security/accessToken';
+import {
+  addOrUpdateTask,
+  updateTaskProgress,
+  completeTask,
+  cancelTask,
+} from '@/redux/slice/aiRegimenTaskSlice';
 import {
   clearPendingRecommendationRun,
   clearRecommendationRun,
@@ -51,6 +57,7 @@ const MAX_THOUGHT_LOGS = 200;
  * DoctorRecommendationReview.
  */
 export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
+  const dispatch = useDispatch();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -63,6 +70,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   const cancelledRef = useRef(false);
 
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
+  const tasks = useSelector((state: RootState) => state.aiRegimenTask?.tasks ?? []);
   const episodeId = currentCase?.episode?.id;
   const patientId = currentCase?.patient?.id;
   const workflowScope = useMemo(
@@ -72,6 +80,20 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   const apiBase = getRuntimeApiBase();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const setCurrentRunId = useCallback((runId: string | null) => {
+    currentRunIdRef.current = runId;
+    setActiveRunId(runId);
+  }, []);
+
+  const appendLog = useCallback((entry: ThoughtLog) => {
+    const nextLogs = [...thoughtLogsRef.current, entry].slice(-MAX_THOUGHT_LOGS);
+    thoughtLogsRef.current = nextLogs;
+    setThoughtLogs(nextLogs);
+    if (workflowScope) {
+      storeDiagnosisThoughtLogs(workflowScope, nextLogs);
+    }
+  }, [workflowScope]);
 
   const {
     surgeryPlan,
@@ -88,22 +110,10 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     hasTreatmentPlan,
   } = useTreatmentPlanData(workflowScope);
 
-  const setCurrentRunId = useCallback((id: string | null) => {
-    currentRunIdRef.current = id;
-    setActiveRunId(id);
-  }, []);
-
-  const appendLog = useCallback((entry: ThoughtLog) => {
-    setThoughtLogs((prev) => {
-      const next = [...prev, entry].slice(-MAX_THOUGHT_LOGS);
-      thoughtLogsRef.current = next;
-      if (workflowScope) storeDiagnosisThoughtLogs(workflowScope, next);
-      return next;
-    });
-  }, [workflowScope]);
-
   const clearPending = useCallback(() => {
-    if (workflowScope) clearPendingRecommendationRun(workflowScope);
+    if (workflowScope) {
+      clearPendingRecommendationRun(workflowScope);
+    }
     if (sseRef.current) {
       sseRef.current.close();
       sseRef.current = null;
@@ -128,12 +138,22 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           stage: frame.event || 'step',
           message: frame.data,
         });
+        if (episodeId) {
+          dispatch(
+            updateTaskProgress({
+              id: runId,
+              episodeId: Number(episodeId),
+              progressMessage: frame.data,
+              stage: frame.event || 'step',
+            })
+          );
+        }
       },
       onError: () => {
         // Polling remains the source of truth for final state.
       },
     });
-  }, [apiBase, appendLog]);
+  }, [apiBase, appendLog, dispatch, episodeId]);
 
   const finishWithDetail = useCallback((runId: string, detail: any): boolean => {
     if (!workflowScope) {
@@ -161,17 +181,36 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       if (cancelledRef.current || !detail) return;
       if (!finishWithDetail(runId, detail)) return;
       message.success('Phác đồ AI đã sẵn sàng.');
+      if (episodeId) {
+        dispatch(
+          completeTask({
+            id: runId,
+            episodeId: Number(episodeId),
+            status: 'SUCCESS',
+          })
+        );
+      }
     } catch (err: any) {
       if (!cancelledRef.current) {
         setLoadError(err?.message || 'AI tạo phác đồ thất bại.');
         message.error(err?.message || 'AI tạo phác đồ thất bại.');
+        if (episodeId) {
+          dispatch(
+            completeTask({
+              id: runId,
+              episodeId: Number(episodeId),
+              status: 'FAILED',
+              errorMessage: err?.message || 'AI tạo phác đồ thất bại',
+            })
+          );
+        }
       }
     } finally {
       setIsGenerating(false);
       setCurrentRunId(null);
       clearPending();
     }
-  }, [clearPending, connectStream, fetchUntilTreatmentReady, finishWithDetail, setCurrentRunId, setLoadError]);
+  }, [clearPending, connectStream, dispatch, episodeId, fetchUntilTreatmentReady, finishWithDetail, setCurrentRunId, setLoadError]);
 
   useEffect(() => {
     if (!workflowScope) return;
@@ -210,6 +249,19 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       return;
     }
 
+    const activeTasksCount = tasks.filter(
+      (t) => t.status === 'PROCESSING' || t.status === 'QUEUED'
+    ).length;
+
+    if (activeTasksCount >= 5) {
+      message.error('Đang có 5 tác vụ AI sinh phác đồ đồng thời. Vui lòng đợi các tác vụ trước hoàn tất để tránh quá tải hệ thống.');
+      return;
+    }
+
+    if (activeTasksCount >= 3) {
+      message.warning('Hệ thống đang xử lý đồng thời nhiều ca bệnh. Tác vụ mới sẽ được xếp hàng qua RabbitMQ.');
+    }
+
     setIsGenerating(true);
     setLoadError(null);
     setThoughtLogs([]);
@@ -226,18 +278,50 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       const runIdText = String(runId);
       setCurrentRunId(runIdText);
       storePendingRecommendationRun(workflowScope, runIdText);
+
+      dispatch(
+        addOrUpdateTask({
+          id: runIdText,
+          episodeId: Number(episodeId),
+          patientId: patientId ? Number(patientId) : undefined,
+          patientName: currentCase?.patient?.fullName || `Bệnh nhân #${patientId ?? '?'}`,
+          patientCode: currentCase?.patient?.patientCode,
+          medicalRecordCode: currentCase?.episode?.medicalRecordCode || `#${episodeId}`,
+          status: 'PROCESSING',
+          startedAt: Date.now(),
+          progressMessage: 'Đang khởi tạo tiến trình phân tích AI...',
+        })
+      );
+
       connectStream(runIdText);
 
       const detail = await fetchUntilTreatmentReady(runIdText);
       if (cancelledRef.current || !detail) return;
 
       if (!finishWithDetail(runIdText, detail)) return;
+      dispatch(
+        completeTask({
+          id: runIdText,
+          episodeId: Number(episodeId),
+          status: 'SUCCESS',
+        })
+      );
       message.success('Phác đồ AI đã sẵn sàng.');
     } catch (err: any) {
       if (cancelledRef.current) return;
       const msg = err?.message || 'Đã xảy ra lỗi khi tạo phác đồ AI';
       setLoadError(msg);
       message.error(msg);
+      if (episodeId) {
+        dispatch(
+          completeTask({
+            id: currentRunIdRef.current || 'unknown',
+            episodeId: Number(episodeId),
+            status: 'FAILED',
+            errorMessage: msg,
+          })
+        );
+      }
     } finally {
       setIsGenerating(false);
       setCurrentRunId(null);
@@ -260,13 +344,14 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       thoughtLogsRef.current = [];
       setIsGenerating(false);
       resetPlan();
+      dispatch(cancelTask(runId));
       message.success('Đã huỷ tạo phác đồ AI');
     } catch (err: any) {
       message.error('Không thể huỷ tạo phác đồ: ' + (err?.message || 'unknown'));
     } finally {
       setIsCancelling(false);
     }
-  }, [clearPending, isCancelling, resetPlan, setCurrentRunId, workflowScope]);
+  }, [clearPending, dispatch, isCancelling, resetPlan, setCurrentRunId, workflowScope]);
 
   const {
     sessions,

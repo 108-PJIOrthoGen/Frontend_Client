@@ -6,6 +6,7 @@ import userReducer from './features/admin/users/userSlice';
 import patientReducer from './features/patients/patientSlice';
 import { patientPersistenceMiddleware } from './features/patients/patientPersistence';
 import pendingLabTaskReducer from './slice/pendingLabTaskSlice';
+import aiRegimenTaskReducer from './slice/aiRegimenTaskSlice';
 import { injectStore } from '../apis/axios.custom';
 
 
@@ -17,6 +18,7 @@ export const store = configureStore({
         user: userReducer,
         patient: patientReducer,
         pendingLabTask: pendingLabTaskReducer,
+        aiRegimenTask: aiRegimenTaskReducer,
     },
     middleware: (getDefaultMiddleware) =>
         getDefaultMiddleware().prepend(patientPersistenceMiddleware.middleware),

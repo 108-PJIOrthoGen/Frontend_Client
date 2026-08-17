@@ -27,6 +27,7 @@ import type { IPendingLabTask } from '@/types/backend';
 import ProfileSettingsModal from '@/components/user/profile/ProfileSettingsModal';
 import NotificationBell from '@/components/common/NotificationBell';
 import MedicalDisclaimerModal from '@/components/common/MedicalDisclaimerModal';
+import CurrentCaseAndAiMonitor from '@/components/common/CurrentCaseAndAiMonitor';
 import GlobalMedicalSearch from '@/features/global-search/GlobalMedicalSearch';
 import pogLogoUrl from '@/assets/pog-logo.png';
 
@@ -111,7 +112,6 @@ export const LayoutClient = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.account?.user);
-  const currentCase = useSelector((state: RootState) => state.patient.currentCase);
   const pendingCount = useSelector((state: RootState) => state.pendingLabTask.count);
   const pendingTasks = useSelector((state: RootState) => state.pendingLabTask.tasks);
 
@@ -266,21 +266,21 @@ export const LayoutClient = () => {
   const applicationMenuItems = [
     {
       path: '/pji-diagnosis-calculator',
-      label: 'PJI Diagnosis Calculator',
+      label: 'PJI Diags Calc',
       icon: <ExperimentOutlined />,
       step: 'PJIDx · ICM 2018',
       comingSoon: false,
     },
     {
       path: '/pji-risk-calculator',
-      label: 'PJI Risk Calculator',
+      label: 'PJI Risk Calc',
       icon: <CalculatorOutlined />,
       step: 'Nguy cơ trước thay khớp',
       comingSoon: false,
     },
     {
       path: '/dair-success',
-      label: 'DAIR SUCCESS',
+      label: 'DAIR Rate Estimator',
       icon: <SafetyCertificateOutlined />,
       step: 'Ước tính khả năng thành công',
       comingSoon: true,
@@ -441,7 +441,7 @@ export const LayoutClient = () => {
               </Tooltip>
             </Popover>
           </div>
-          <Tooltip title="Tuyên bố miễn trừ trách nhiệm y khoa" placement="bottom">
+          <Tooltip title="Tuyên bố miễn trừ trách nhiệm" placement="bottom">
             <button
               data-tour="medical-disclaimer"
               type="button"
@@ -464,7 +464,7 @@ export const LayoutClient = () => {
           </Tooltip>
           <Dropdown menu={{ items: userMenu }} trigger={['click']} placement="bottomRight">
             <button type="button" className="ml-1 flex items-center gap-2 rounded-lg p-1 pr-2 text-left transition-colors hover:bg-slate-100">
-              <Avatar size={30} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
+              <Avatar size={30} src={user?.avatar} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
               <span className="hidden max-w-36 truncate text-sm font-semibold text-slate-700 md:block">
                 {user?.name || 'Bác sĩ'}
               </span>
@@ -486,40 +486,8 @@ export const LayoutClient = () => {
         {/* Sidebar */}
         <aside className="app-sidebar">
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            {/* Current Case */}
-            <div data-tour="sidebar-current-case" className={`mx-3 mb-3 mt-4 shrink-0 rounded-lg border p-3 ${currentCase
-              ? 'border-emerald-200 bg-emerald-50'
-              : 'border-slate-200 bg-slate-50'
-              }`}>
-              <div className="flex items-start gap-2">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-xs font-bold ${currentCase
-                  ? 'bg-emerald-200 text-emerald-800'
-                  : 'bg-slate-200 text-slate-500'
-                  }`}>
-                  {currentCase
-                    ? currentCase.patient.fullName?.split(' ').map((n: string) => n[0]).join('') || '?'
-                    : <span className="material-symbols-outlined text-lg">person_off</span>
-                  }
-                </div>
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <span className={`text-[11px] font-bold uppercase tracking-[0.08em] ${currentCase ? 'text-emerald-700' : 'text-slate-500'
-                    }`}>Ca bệnh hiện tại</span>
-                  {currentCase ? (
-                    <>
-                      <h2 className="truncate text-sm font-bold text-emerald-950">{currentCase.patient.fullName}</h2>
-                      <p className="mt-0.5 truncate text-xs font-medium text-emerald-700">
-                        Bệnh án {currentCase.episode.medicalRecordCode || `#${currentCase.episode.id}`} — Đang chẩn đoán
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <h2 className="text-sm font-bold text-slate-800">Chưa chọn ca bệnh</h2>
-                      <p className="mt-0.5 text-xs font-medium text-slate-500">Vui lòng chọn bệnh nhân</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+            {/* Current Case & AI Regimen Concurrency Monitor */}
+            <CurrentCaseAndAiMonitor />
 
             {/* Navigation */}
             <nav
@@ -531,7 +499,7 @@ export const LayoutClient = () => {
                 mode="inline"
                 items={navigationItems}
                 selectedKeys={selectedNavigationKey ? [selectedNavigationKey] : []}
-              openKeys={['medical-records', 'ai-recommendations', 'applications']}
+                openKeys={['medical-records', 'ai-recommendations', 'applications']}
                 onClick={handleNavigationClick}
                 className="client-sidebar-menu border-0 bg-transparent"
                 inlineIndent={16}
@@ -541,7 +509,7 @@ export const LayoutClient = () => {
 
           <div data-tour="sidebar-account" className="shrink-0 border-t border-slate-200 bg-white p-3 lg:hidden">
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-              <Avatar size={34} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
+              <Avatar size={34} src={user?.avatar} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-bold text-slate-800">{user?.name || 'Bác sĩ'}</div>
                 <div className="truncate text-xs text-slate-500">Bác sĩ chuyên khoa</div>

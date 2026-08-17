@@ -7,7 +7,8 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { notification as antdNotification } from 'antd';
 import {
   callFetchNotifications,
@@ -19,6 +20,7 @@ import { getRuntimeApiBase } from '@/config/runtimeUrls';
 import { openSse, type SseConnection } from '@/utils/sseClient';
 import type { INotification } from '@/types/notification';
 import { getAccessToken } from '@/security/accessToken';
+import { completeTask } from '@/redux/slice/aiRegimenTaskSlice';
 
 interface NotificationContextValue {
   notifications: INotification[];
@@ -41,6 +43,8 @@ interface ProviderProps {
 
 export const NotificationProvider = ({ children }: ProviderProps) => {
   const isAuthed = useSelector((state: any) => Boolean(state?.account?.isAuthenticated));
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [notifications, setNotifications] = useState<INotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -115,6 +119,23 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
     if (!incoming.isRead) {
       setUnreadCount((c) => c + 1);
     }
+
+    // If it is an AI recommendation notification, reconcile with aiRegimenTask store
+    if (
+      incoming.type === 'AI_RECOMMENDATION_DONE' ||
+      incoming.type === 'AI_RECOMMENDATION_FAILED'
+    ) {
+      if (incoming.referenceId) {
+        dispatch(
+          completeTask({
+            id: String(incoming.referenceId),
+            status: incoming.severity === 'ERROR' ? 'FAILED' : 'SUCCESS',
+            errorMessage: incoming.message || undefined,
+          })
+        );
+      }
+    }
+
     // Surface a transient toast so the user notices even without opening the bell.
     const showToast = incoming.severity === 'ERROR'
       ? antdNotification.error
@@ -123,9 +144,18 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
       message: incoming.title,
       description: incoming.message ?? undefined,
       placement: 'topRight',
-      duration: 6,
+      duration: 7,
+      onClick: () => {
+        if (incoming.linkUrl) {
+          if (!incoming.isRead) {
+            void markRead(incoming.id);
+          }
+          navigate(incoming.linkUrl);
+        }
+      },
+      style: { cursor: incoming.linkUrl ? 'pointer' : 'default' },
     });
-  }, []);
+  }, [dispatch, markRead, navigate]);
 
   // (Re)open the SSE stream. Caller is responsible for clearing any previous connection.
   const openConnection = useCallback(() => {
