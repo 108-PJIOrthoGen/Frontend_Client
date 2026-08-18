@@ -13,6 +13,7 @@ import { notification as antdNotification } from 'antd';
 import {
   callFetchNotifications,
   callFetchUnreadNotificationCount,
+  callDeleteNotifications,
   callMarkAllNotificationsRead,
   callMarkNotificationRead,
 } from '@/apis/notifications';
@@ -29,6 +30,7 @@ interface NotificationContextValue {
   refresh: () => Promise<void>;
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
+  deleteNotifications: (ids: number[]) => Promise<boolean>;
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -109,6 +111,30 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
       await refresh();
     }
   }, [unreadCount, refresh]);
+
+  const deleteNotifications = useCallback(async (ids: number[]) => {
+    if (ids.length === 0) return true;
+
+    const idsToDelete = new Set(ids);
+    const deletedUnreadCount = notifications.reduce(
+      (count, notification) => count + (idsToDelete.has(notification.id) && !notification.isRead ? 1 : 0),
+      0,
+    );
+    setNotifications((prev) => prev.filter((notification) => !idsToDelete.has(notification.id)));
+    setUnreadCount((count) => Math.max(0, count - deletedUnreadCount));
+
+    try {
+      await callDeleteNotifications(ids);
+      return true;
+    } catch (err) {
+      await refresh();
+      antdNotification.error({
+        message: 'Không thể xóa thông báo',
+        description: 'Vui lòng thử lại sau.',
+      });
+      return false;
+    }
+  }, [notifications, refresh]);
 
   // Prepend a single notification that arrived via SSE.
   const handleIncoming = useCallback((incoming: INotification) => {
@@ -229,7 +255,8 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
     refresh,
     markRead,
     markAllRead,
-  }), [notifications, unreadCount, loading, refresh, markRead, markAllRead]);
+    deleteNotifications,
+  }), [notifications, unreadCount, loading, refresh, markRead, markAllRead, deleteNotifications]);
 
   return (
     <NotificationContext.Provider value={value}>

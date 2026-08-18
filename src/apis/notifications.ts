@@ -37,3 +37,8 @@ export const callMarkAllNotificationsRead = (): Promise<
   IBackendRes<{ updated: number }>
 > =>
   instance.post('/api/v1/notifications/mark-all-read');
+
+export const callDeleteNotifications = (
+  ids: number[],
+): Promise<IBackendRes<{ deleted: number }>> =>
+  instance.delete('/api/v1/notifications', { data: { ids } });

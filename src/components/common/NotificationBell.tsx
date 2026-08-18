@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import {
   Badge,
   Button,
+  Checkbox,
   Dropdown,
   Empty,
   List,
+  Popconfirm,
   Segmented,
   Spin,
   Tag,
@@ -21,6 +23,7 @@ import {
   InfoCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DeleteOutlined,
   RightOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -96,10 +99,20 @@ const getTypeTag = (n: INotification) => {
 };
 
 const NotificationBell = ({ inline = false, compact = false }: Props) => {
-  const { notifications, unreadCount, loading, markRead, markAllRead, refresh } = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    markRead,
+    markAllRead,
+    deleteNotifications,
+    refresh,
+  } = useNotifications();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
+  const [selectedNotificationIds, setSelectedNotificationIds] = useState<Set<number>>(() => new Set());
+  const [deleting, setDeleting] = useState(false);
 
   const filteredNotifications = useMemo(() => {
     if (filter === 'UNREAD') {
@@ -107,6 +120,56 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
     }
     return notifications;
   }, [notifications, filter]);
+
+  const selectedCount = selectedNotificationIds.size;
+  const allFilteredSelected = filteredNotifications.length > 0
+    && filteredNotifications.every((notification) => selectedNotificationIds.has(notification.id));
+  const someFilteredSelected = filteredNotifications.some(
+    (notification) => selectedNotificationIds.has(notification.id),
+  );
+
+  const toggleSelection = (id: number, selected: boolean) => {
+    setSelectedNotificationIds((previous) => {
+      const next = new Set(previous);
+      if (selected) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllFiltered = (selected: boolean) => {
+    setSelectedNotificationIds((previous) => {
+      const next = new Set(previous);
+      filteredNotifications.forEach((notification) => {
+        if (selected) {
+          next.add(notification.id);
+        } else {
+          next.delete(notification.id);
+        }
+      });
+      return next;
+    });
+  };
+
+  const handleDelete = async (ids: number[]) => {
+    if (deleting || ids.length === 0) return;
+    setDeleting(true);
+    try {
+      const deleted = await deleteNotifications(ids);
+      if (deleted) {
+        setSelectedNotificationIds((previous) => {
+          const next = new Set(previous);
+          ids.forEach((id) => next.delete(id));
+          return next;
+        });
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleItemClick = async (n: INotification) => {
     if (!n.isRead) {
@@ -147,6 +210,12 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
             }`}
           >
             <div className="flex w-full items-start gap-3">
+              <Checkbox
+                checked={selectedNotificationIds.has(n.id)}
+                onClick={(event) => event.stopPropagation()}
+                onChange={(event) => toggleSelection(n.id, event.target.checked)}
+                aria-label={`Chọn thông báo ${n.title}`}
+              />
               {getNotificationIcon(n)}
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <div className="flex items-center justify-between gap-1.5">
@@ -172,11 +241,35 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
 
                 <div className="mt-1 flex items-center justify-between text-[11px] text-slate-400">
                   <span>{dayjs(n.createdAt).fromNow()}</span>
-                  {n.linkUrl ? (
-                    <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 hover:text-emerald-700">
-                      Xem ngay <RightOutlined className="text-[10px]" />
-                    </span>
-                  ) : null}
+                  <div className="flex items-center gap-1">
+                    {n.linkUrl ? (
+                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-emerald-600 hover:text-emerald-700">
+                        Xem ngay <RightOutlined className="text-[10px]" />
+                      </span>
+                    ) : null}
+                    <Popconfirm
+                      title="Xóa thông báo này?"
+                      description="Thông báo sẽ bị xóa vĩnh viễn."
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      okButtonProps={{ danger: true }}
+                      onConfirm={(event) => {
+                        event?.stopPropagation();
+                        void handleDelete([n.id]);
+                      }}
+                      onCancel={(event) => event?.stopPropagation()}
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        danger
+                        icon={<DeleteOutlined />}
+                        disabled={deleting}
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label={`Xóa thông báo ${n.title}`}
+                      />
+                    </Popconfirm>
+                  </div>
                 </div>
               </div>
             </div>
@@ -230,13 +323,47 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
           size="small"
           block
           value={filter}
-          onChange={(val) => setFilter(val as 'ALL' | 'UNREAD')}
           options={[
             { label: `Tất cả (${notifications.length})`, value: 'ALL' },
             { label: `Chưa đọc (${unreadCount})`, value: 'UNREAD' },
           ]}
+          onChange={(val) => {
+            setFilter(val as 'ALL' | 'UNREAD');
+            setSelectedNotificationIds(new Set());
+          }}
         />
       </div>
+
+      {filteredNotifications.length > 0 ? (
+        <div className="flex items-center justify-between border-b border-slate-100 bg-white px-3 py-1.5">
+          <Checkbox
+            checked={allFilteredSelected}
+            indeterminate={!allFilteredSelected && someFilteredSelected}
+            onChange={(event) => toggleAllFiltered(event.target.checked)}
+          >
+            Chọn tất cả
+          </Checkbox>
+          <Popconfirm
+            title={`Xóa ${selectedCount} thông báo đã chọn?`}
+            description="Các thông báo đã chọn sẽ bị xóa vĩnh viễn."
+            okText="Xóa"
+            cancelText="Hủy"
+            okButtonProps={{ danger: true }}
+            disabled={selectedCount === 0}
+            onConfirm={() => void handleDelete([...selectedNotificationIds])}
+          >
+            <Button
+              type="text"
+              size="small"
+              danger
+              icon={<DeleteOutlined />}
+              disabled={selectedCount === 0 || deleting}
+            >
+              Xóa ({selectedCount})
+            </Button>
+          </Popconfirm>
+        </div>
+      ) : null}
 
       <div className="max-h-[440px] overflow-y-auto overscroll-contain">
         {renderList()}

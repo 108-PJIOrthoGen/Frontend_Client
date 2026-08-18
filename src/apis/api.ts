@@ -448,6 +448,7 @@ export {
  * Module Notification
  */
 export {
+    callDeleteNotifications,
     callFetchNotifications,
     callFetchUnreadNotificationCount,
     callMarkAllNotificationsRead,
