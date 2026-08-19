@@ -1,0 +1,210 @@
+/* TreatmentPlanReadyScreen.css - Modern Medical AI Ready Screen */
+
+@keyframes fadeInSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes borderBeamSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes softPulseGlow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px -5px rgba(16, 185, 129, 0.35), 0 10px 25px -5px rgba(15, 23, 42, 0.08);
+  }
+
+  50% {
+    box-shadow: 0 0 35px 2px rgba(16, 185, 129, 0.6), 0 12px 30px -5px rgba(15, 23, 42, 0.12);
+  }
+}
+
+@keyframes floatSubtle {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes thoughtStreamEntrance {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+    filter: blur(4px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.ready-screen-container {
+  animation: fadeInSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  width: 100%;
+}
+
+.thought-stream-entering {
+  animation: thoughtStreamEntrance 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  width: 100%;
+}
+
+/* Border Beam Button Component */
+.border-beam-button-wrap {
+  position: relative;
+  display: inline-flex;
+  border-radius: 16px;
+  padding: 2px;
+  overflow: hidden;
+  background: rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 30px -5px rgba(1, 74, 50, 0.25);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+}
+
+.border-beam-button-wrap:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 40px -5px rgba(16, 185, 129, 0.4);
+}
+
+.border-beam-button-wrap:active {
+  transform: translateY(0);
+}
+
+.border-beam-button-wrap::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(transparent 0deg,
+      transparent 240deg,
+      rgba(16, 185, 129, 0.4) 270deg,
+      #06855b 305deg,
+      #06b6d4 330deg,
+      #6366f1 355deg,
+      transparent 360deg);
+  animation: borderBeamSpin 3s linear infinite;
+  z-index: 0;
+}
+
+.border-beam-button-wrap .border-beam-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #5aefbf 0%, #4e9da5 100%);
+  border-radius: 14px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+  transition: background 0.2s ease;
+  user-select: none;
+}
+
+.border-beam-button-wrap:hover .border-beam-inner {
+  background: linear-gradient(135deg, #047857 0%, #065f46 100%);
+}
+
+.border-beam-button-wrap.is-disabled {
+  pointer-events: none;
+  opacity: 0.65;
+  box-shadow: none;
+}
+
+.border-beam-button-wrap.is-disabled::before {
+  animation: none;
+}
+
+/* Paper Card in Masonry */
+.paper-card {
+  position: relative;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.paper-card .paper-image-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+.paper-card .paper-image-wrap img {
+  width: 100%;
+  max-height: 280px;
+  display: block;
+  object-fit: contain;
+}
+
+.paper-card .paper-hover-overlay {
+  display: none;
+}
+
+/* Top Avatar Group Badges */
+.ai-engine-avatar {
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.ai-engine-avatar:hover {
+  transform: scale(1.15) translateY(-2px);
+  z-index: 10;
+}
+
+/* Feature Item Pill */
+.feature-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  transition: all 0.25s ease;
+}
+
+.feature-badge-item:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateX(3px);
+}

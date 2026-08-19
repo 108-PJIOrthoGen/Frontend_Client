@@ -19,6 +19,7 @@ import ThoughtStreamConsole, { ThoughtLog } from './components/ThoughtStreamCons
 import { useTreatmentPlanData } from './hooks/useTreatmentPlanData';
 import { useAiChat } from './hooks/useAiChat';
 import TreatmentPlanHeader from './components/TreatmentPlanHeader';
+import TreatmentPlanReadyScreen from './components/TreatmentPlanReadyScreen';
 import TreatmentDraftPanel from './components/TreatmentDraftPanel';
 import CitationsPanel from './components/CitationsPanel';
 import AiChatDrawer from './components/AiChatDrawer';
@@ -469,7 +470,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           canContinue={false}
           nextLabel="Tiếp tục"
         />
-        <div style={{ flex: 1, overflowY: 'auto', width: '100%', paddingBottom: 64 }}>
+        <div className="thought-stream-entering" style={{ flex: 1, overflowY: 'auto', width: '100%', paddingBottom: 64 }}>
           <Flex vertical align="center" style={{ width: '100%' }}>
             <ThoughtStreamConsole
               logs={thoughtLogs}
@@ -507,58 +508,13 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           canContinue={false}
           nextLabel="Tiếp tục"
         />
-        <Flex
-          flex={1}
-          align="center"
-          justify="center"
-          style={{
-            width: '100%',
-            minHeight: 'calc(100vh - 170px)',
-            padding: '80px 16px 32px',
-            overflowY: 'auto',
-          }}
-        >
-          <Card
-            style={{
-              width: '100%',
-              maxWidth: 460,
-              borderRadius: 20,
-              border: '1px solid #e5e7eb',
-              boxShadow: '0 18px 45px rgba(15, 23, 42, 0.08)',
-            }}
-            styles={{ body: { padding: 10 } }}
-          >
-            <Result
-              icon={loadError
-                ? <CloseCircleOutlined style={{ color: '#f87171' }} />
-                : <RobotOutlined style={{ color: '#10b981' }} />}
-              title={loadError ? 'Lỗi tạo phác đồ' : 'Sẵn sàng tạo phác đồ AI'}
-              subTitle={loadError
-                ? loadError
-                : 'AI Agent sẽ sinh ra 3 khuyến nghị: kháng sinh tại chỗ, kháng sinh toàn thân và phẫu thuật.'}
-              extra={(
-                <Button
-                  onClick={handleAIPredict}
-                  disabled={isGenerating}
-                  type="primary"
-                  loading={isGenerating}
-                  size="large"
-                  icon={loadError ? <ReloadOutlined /> : <RobotOutlined />}
-                  block
-                  style={{
-                    height: 48,
-                    borderRadius: 12,
-                    fontWeight: 700,
-                    background: '#059669',
-                    borderColor: '#059669',
-                  }}
-                >
-                  {loadError ? 'Thử lại' : 'Tạo phác đồ AI'}
-                </Button>
-              )}
-            />
-          </Card>
-        </Flex>
+        <div style={{ flex: 1, overflowY: 'auto', width: '100%', padding: '8px 16px 32px' }}>
+          <TreatmentPlanReadyScreen
+            onStart={handleAIPredict}
+            isGenerating={isGenerating}
+            loadError={loadError}
+          />
+        </div>
       </Flex>
     );
   }
