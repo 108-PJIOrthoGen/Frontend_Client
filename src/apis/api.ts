@@ -4,7 +4,7 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview,
+    IDoctorRecommendationReview, IRuleBasedDiagnosticResult,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -49,6 +49,7 @@ export {
     callChangeOwnPassword,
     callFetchAccountAPI,
     callUpdateOwnProfile,
+    callUpdateOwnProfileWithAvatar,
     callVerifyDeviceAPI,
     forgotPasswordAPI,
     loginAPI,
@@ -378,7 +379,7 @@ export const callGenerateAiRecommendation = (episodeId: string): Promise<IBacken
     return instance.post(`/api/v1/episodes/${episodeId}/ai-recommendations/generate`);
 }
 
-export const callEvaluatePjiDiagnostic = (episodeId: string): Promise<IBackendRes<any>> => {
+export const callEvaluatePjiDiagnostic = (episodeId: string): Promise<IBackendRes<IRuleBasedDiagnosticResult>> => {
     return instance.post(`/api/v1/episodes/${episodeId}/diagnostic-test/evaluate`);
 }
 

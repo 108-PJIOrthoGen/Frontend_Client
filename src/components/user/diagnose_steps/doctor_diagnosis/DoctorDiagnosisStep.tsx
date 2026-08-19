@@ -32,12 +32,13 @@ import {
 } from '../treatment_plan/utils/permissions';
 import SuccessModal from '../treatment_plan/components/SuccessModal';
 import {
-  aiConclusionOf,
-  buildDoctorModificationJson,
   clearDiagnosisWorkflowStorage,
   loadDoctorDiagnosisModel,
 } from './doctorDiagnosisModel';
-import type { AiDiagnosisSummary } from './doctorDiagnosisModel';
+import {
+  systemConclusionOf,
+  type SystemDiagnosisSummary,
+} from './doctorDiagnosisValues';
 import { createDiagnosisWorkflowScope } from '@/features/diagnosis/diagnosisWorkflowSession';
 import {
   DoctorDecisionFormFields,
@@ -77,7 +78,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccessOpen, setIsSuccessOpen] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [aiDiagnosis, setAiDiagnosis] = useState<AiDiagnosisSummary>({});
+  const [systemDiagnosis, setSystemDiagnosis] = useState<SystemDiagnosisSummary>({});
   const [aiSurgery, setAiSurgery] = useState<SurgeryPlanData | null>(null);
   const runIdRef = useRef<string | null>(null);
 
@@ -92,7 +93,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         const model = await loadDoctorDiagnosisModel(workflowScope);
         if (cancelled) return;
         runIdRef.current = model.runId;
-        setAiDiagnosis(model.aiDiagnosis);
+        setSystemDiagnosis(model.systemDiagnosis);
         setAiSurgery(model.aiSurgery);
         form.setFieldsValue(toDoctorDecisionFormValues(model.previousDiagnosis, model.previousSurgery));
       } catch (error: any) {
@@ -105,9 +106,9 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     return () => { cancelled = true; };
   }, [form, workflowScope]);
 
-  const aiConclusion = useMemo(
-    () => aiConclusionOf(aiDiagnosis.pjiProbability),
-    [aiDiagnosis.pjiProbability],
+  const systemConclusion = useMemo(
+    () => systemConclusionOf(systemDiagnosis.pjiProbability),
+    [systemDiagnosis.pjiProbability],
   );
 
   const handleSave = async () => {
@@ -138,8 +139,6 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
       await callCreateDoctorReview(String(episodeId), {
         runId: Number(runIdRef.current),
         reviewStatus: 'SAVED_DRAFT',
-        doctorDiagnosisJson: diagnosis as Record<string, any>,
-        modificationJson: buildDoctorModificationJson(surgery),
         doctorFinalDecision: {
           diagnosisJson: diagnosis as Record<string, any>,
           surgeryPlanJson: surgery as Record<string, any> | undefined,
@@ -194,17 +193,17 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         ) : null}
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={8}>
-            <Card title={<Space><RobotOutlined />Kết quả AI để đối chiếu</Space>} size="small">
-              <Alert type="info" showIcon message="Chỉ dùng để tham khảo" description="Form bác sĩ không được khởi tạo từ nội dung phác đồ AI." style={{ marginBottom: 16 }} />
+            <Card title={<Space><RobotOutlined />Kết quả hệ thống theo snapshot của phiên bản</Space>} size="small">
+              <Alert type="info" showIcon message="Chỉ dùng để tham khảo" description="Kết quả rule engine này được khóa theo snapshot của phiên bản; biểu mẫu bác sĩ không tự sao chép dữ liệu hệ thống." style={{ marginBottom: 16 }} />
               <Descriptions column={1} size="small" bordered>
                 <Descriptions.Item label="Kết luận PJI">
-                  <Tag color={aiConclusion === 'INFECTED' ? 'red' : aiConclusion === 'NOT_INFECTED' ? 'green' : 'gold'}>
-                    {aiConclusion === 'INFECTED' ? 'Nhiễm trùng khớp nhân tạo (PJI)' : aiConclusion === 'NOT_INFECTED' ? 'Không nhiễm trùng' : 'Chưa rõ'}
+                  <Tag color={systemConclusion === 'INFECTED' ? 'red' : systemConclusion === 'NOT_INFECTED' ? 'green' : 'gold'}>
+                    {systemConclusion === 'INFECTED' ? 'Nhiễm trùng khớp nhân tạo (PJI)' : systemConclusion === 'NOT_INFECTED' ? 'Không nhiễm trùng' : 'Chưa rõ'}
                   </Tag>
                 </Descriptions.Item>
-                <Descriptions.Item label="Phân loại">{aiDiagnosis.infectionClassification ?? '—'}</Descriptions.Item>
-                <Descriptions.Item label="Chẩn đoán chính">{aiDiagnosis.primaryDiagnosis ?? '—'}</Descriptions.Item>
-                <Descriptions.Item label="Vi khuẩn">{aiDiagnosis.identifiedOrganism ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Phân loại">{systemDiagnosis.infectionClassification ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Chẩn đoán chính">{systemDiagnosis.primaryDiagnosis ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Vi khuẩn">{systemDiagnosis.identifiedOrganism ?? '—'}</Descriptions.Item>
                 <Descriptions.Item label="Chiến lược mổ">{aiSurgery?.surgeryStrategyType ?? '—'}</Descriptions.Item>
               </Descriptions>
             </Card>

@@ -9,6 +9,10 @@ import type {
 import type { SurgeryPlanData } from '@/types/treatmentType';
 import { parseItemJson } from '../treatment_plan/utils/itemJson';
 import {
+  systemDiagnosisOf,
+  type SystemDiagnosisSummary,
+} from './doctorDiagnosisValues';
+import {
   clearDiagnosisWorkflowSession,
   clearPendingRecommendationRun,
   getDiagnosisWorkflowSnapshot,
@@ -24,34 +28,8 @@ const TREATMENT_CATEGORIES = new Set([
   'LOCAL_ANTIBIOTIC',
 ]);
 
-export const PJI_CONCLUSION_LABELS: Record<string, string> = {
-  INFECTED: 'Nhiễm trùng khớp nhân tạo (PJI)',
-  NOT_INFECTED: 'Không nhiễm trùng',
-  INCONCLUSIVE: 'Chưa kết luận được',
-};
-
-/** Map the AI pji_probability vocabulary onto the doctor conclusion vocabulary. */
-export const aiConclusionOf = (pjiProbability?: string): string => {
-  switch ((pjiProbability ?? '').toUpperCase()) {
-    case 'DEFINITE':
-      return 'INFECTED';
-    case 'UNLIKELY':
-      return 'NOT_INFECTED';
-    default:
-      return 'INCONCLUSIVE';
-  }
-};
-
-export interface AiDiagnosisSummary {
-  pjiProbability?: string;
-  overallAssessment?: string;
-  primaryDiagnosis?: string;
-  infectionClassification?: string;
-  identifiedOrganism?: string;
-}
-
 export interface DoctorDiagnosisModel {
-  aiDiagnosis: AiDiagnosisSummary;
+  systemDiagnosis: SystemDiagnosisSummary;
   aiSurgery: SurgeryPlanData | null;
   previousDiagnosis?: IDoctorDiagnosis;
   previousSurgery?: SurgeryPlanData;
@@ -59,7 +37,7 @@ export interface DoctorDiagnosisModel {
 }
 
 const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
-  const categories = new Set(detail?.items?.map((item) => item.category));
+  const categories = new Set<string | undefined>(detail?.items?.map((item) => item.category));
   return [...TREATMENT_CATEGORIES].every((category) => categories.has(category));
 };
 
@@ -73,7 +51,7 @@ const fetchUntilTreatmentReady = async (runId: string): Promise<IAiRecommendatio
     const detail = response?.data ?? null;
     const status = detail?.run?.status;
 
-    if (hasTreatmentItems(detail)) return detail;
+    if (detail && hasTreatmentItems(detail)) return detail;
     if (status === 'FAILED' || status === 'TIMEOUT') {
       throw new Error(detail?.run?.errorMessage || 'Sinh phác đồ thất bại.');
     }
@@ -102,7 +80,7 @@ const loadRecommendationDetail = async (
     clearPendingRecommendationRun(workflowScope);
   }
 
-  if (!detail?.items?.length || !detail.run?.id) {
+  if (!detail || !detail.items?.length || !detail.run?.id) {
     throw new Error('Không tìm thấy dữ liệu gợi ý AI. Vui lòng quay lại bước trước.');
   }
   if (String(detail.run.episodeId ?? '') !== workflowScope.episodeId) {
@@ -111,31 +89,14 @@ const loadRecommendationDetail = async (
   return detail;
 };
 
-const parseAssessment = (rawAssessment: unknown): Record<string, any> => {
-  try {
-    return typeof rawAssessment === 'string'
-      ? JSON.parse(rawAssessment)
-      : (rawAssessment as Record<string, any>) ?? {};
-  } catch {
-    return {};
-  }
-};
-
 export const loadDoctorDiagnosisModel = async (
   workflowScope: DiagnosisWorkflowScope,
 ): Promise<DoctorDiagnosisModel> => {
   const detail = await loadRecommendationDetail(workflowScope);
-  const assessment = parseAssessment(detail.run?.assessmentJson);
-  const diagnosticItem = detail.items?.find((item) => item.category === 'DIAGNOSTIC_TEST');
-  const diagnosticJson: any = diagnosticItem ? parseItemJson(diagnosticItem) : null;
-  const aiReasoning = diagnosticJson?.aiReasoning ?? {};
-  const aiDiagnosis: AiDiagnosisSummary = {
-    pjiProbability: assessment?.pji_probability ?? assessment?.pjiProbability,
-    overallAssessment: assessment?.overall_assessment ?? assessment?.overallAssessment,
-    primaryDiagnosis: aiReasoning?.primaryDiagnosis,
-    infectionClassification: aiReasoning?.infectionClassification,
-    identifiedOrganism: aiReasoning?.identifiedOrganism?.name,
-  };
+  if (!detail.diagnostic?.itemJson) {
+    throw new Error('Phiên bản này không có kết quả chẩn đoán hệ thống đã lưu.');
+  }
+  const systemDiagnosis = systemDiagnosisOf(detail.diagnostic);
   const surgeryItem = detail.items?.find((item) => item.category === 'SURGERY_PROCEDURE');
   const aiSurgery = surgeryItem ? (parseItemJson(surgeryItem) as SurgeryPlanData) : null;
 
@@ -155,17 +116,13 @@ export const loadDoctorDiagnosisModel = async (
   }
 
   return {
-    aiDiagnosis,
+    systemDiagnosis,
     aiSurgery,
     previousDiagnosis,
     previousSurgery,
     runId: String(detail.run?.id),
   };
 };
-
-export const buildDoctorModificationJson = (surgery: SurgeryPlanData | null) => (
-  surgery ? { surgery } : undefined
-);
 
 export const clearDiagnosisWorkflowStorage = () => {
   clearDiagnosisWorkflowSession();

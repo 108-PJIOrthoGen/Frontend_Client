@@ -380,25 +380,26 @@ export interface IAiChatMessage {
 /**
  * Module AiRecommendation
  */
-export interface IAiWarning {
-    type?: string;
-    severity?: string;
-    message?: string;
-}
-
 export interface IAiRecommendationRun {
     id?: string;
     episodeId?: number;
     status?: string;
     runNo?: number;
-    assessmentJson?: Record<string, unknown> | string;
-    explanationJson?: Record<string, unknown> | string;
-    warningsJson?: IAiWarning[];
     modelName?: string;
     latencyMs?: number;
     errorMessage?: string;
     dataCompletenessJson?: IDataCompleteness;
     pendingTasksSaved?: boolean;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IRuleBasedDiagnosticResult {
+    id?: string;
+    title?: string;
+    itemJson?: Record<string, any>;
+    assessmentJson?: Record<string, any>;
+    explanationJson?: Record<string, any>;
     createdAt?: string;
     updatedAt?: string;
 }
@@ -443,7 +444,7 @@ export interface IPendingLabTask {
 export interface IAiRecommendationItem {
     id?: string;
     clientItemKey?: string;
-    category?: string;
+    category?: 'SYSTEMIC_ANTIBIOTIC' | 'SURGERY_PROCEDURE' | 'LOCAL_ANTIBIOTIC';
     title?: string;
     priorityOrder?: number;
     isPrimary?: boolean;
@@ -462,6 +463,7 @@ export interface IAiRagCitation {
 
 export interface IAiRecommendationRunDetail {
     run?: IAiRecommendationRun;
+    diagnostic?: IRuleBasedDiagnosticResult;
     items?: IAiRecommendationItem[];
     citations?: IAiRagCitation[];
 }

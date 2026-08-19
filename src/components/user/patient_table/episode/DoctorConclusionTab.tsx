@@ -10,7 +10,6 @@ import {
   toDoctorSurgeryPlan,
   type DoctorDecisionForm,
 } from '@/components/user/diagnose_steps/doctor_diagnosis/DoctorDecisionFormFields';
-import { buildDoctorModificationJson } from '@/components/user/diagnose_steps/doctor_diagnosis/doctorDiagnosisModel';
 import { parseItemJson } from '@/components/user/diagnose_steps/treatment_plan/utils/itemJson';
 
 interface AiPlanRow {
@@ -31,18 +30,13 @@ const antibioticLabel = (antibiotic: TemplateAntibiotic): string => (
 
 const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
   if (!detail?.items?.length) return [];
-  const item = (category: string) => detail.items?.find((candidate) => candidate.category === category);
-  const diagnostic = parseItemJson(item('DIAGNOSTIC_TEST')) as Record<string, any> | null;
+  const item = (category: NonNullable<IAiRecommendationRunDetail['items']>[number]['category']) => (
+    detail.items?.find((candidate) => candidate.category === category)
+  );
   const surgery = parseItemJson(item('SURGERY_PROCEDURE')) as SurgeryPlanData | null;
   const systemic = parseItemJson(item('SYSTEMIC_ANTIBIOTIC')) as SystemicPlanData | null;
   const local = parseItemJson(item('LOCAL_ANTIBIOTIC')) as LocalPlanData | null;
   const rows: AiPlanRow[] = [];
-  const diagnosisSummary = diagnostic?.aiReasoning?.primaryDiagnosis
-    ?? diagnostic?.ai_reasoning?.primary_diagnosis
-    ?? diagnostic?.title;
-  if (diagnosisSummary) {
-    rows.push({ key: 'diagnosis', category: 'Chẩn đoán AI', proposal: String(diagnosisSummary) });
-  }
   if (surgery) {
     const stages = surgery.stages?.map((stage) => stage.stageName).filter(Boolean).join(' → ');
     rows.push({
@@ -198,8 +192,6 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
         reviewStatus: review.reviewStatus ?? 'SAVED_DRAFT',
         reviewNote: review.reviewNote,
         rejectionReason: review.rejectionReason,
-        doctorDiagnosisJson: diagnosis as Record<string, any>,
-        modificationJson: buildDoctorModificationJson(surgery),
         doctorFinalDecision: {
           diagnosisJson: diagnosis as Record<string, any>,
           surgeryPlanJson: surgery as Record<string, any> | undefined,

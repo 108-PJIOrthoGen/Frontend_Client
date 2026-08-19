@@ -26,7 +26,7 @@ const TREATMENT_CATEGORIES = [
 ];
 
 export const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
-  const categories = new Set(detail?.items?.map((item) => item.category));
+  const categories = new Set<string | undefined>(detail?.items?.map((item) => item.category));
   return TREATMENT_CATEGORIES.every((category) => categories.has(category));
 };
 

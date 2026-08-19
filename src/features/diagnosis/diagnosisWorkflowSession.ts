@@ -1,4 +1,4 @@
-import type { IAiRecommendationRunDetail } from '@/types/backend';
+import type { IAiRecommendationRunDetail, IRuleBasedDiagnosticResult } from '@/types/backend';
 
 export interface DiagnosisWorkflowScope {
   episodeId: string;
@@ -12,7 +12,7 @@ export interface DiagnosisThoughtLog {
 }
 
 interface DiagnosisWorkflowState {
-  diagnosticResult: unknown | null;
+  diagnosticResult: IRuleBasedDiagnosticResult | null;
   pendingRunId: string | null;
   recommendationDetail: IAiRecommendationRunDetail | null;
   runId: string | null;
@@ -88,7 +88,7 @@ export const getDiagnosisWorkflowSnapshot = (
 
 export const storeDiagnosticResult = (
   scope: DiagnosisWorkflowScope,
-  diagnosticResult: unknown,
+  diagnosticResult: IRuleBasedDiagnosticResult,
 ): void => {
   if (!requireActiveScope(scope)) return;
   workflowState.diagnosticResult = diagnosticResult;
@@ -103,6 +103,9 @@ export const storeRecommendationRun = (
   workflowState.runId = runId;
   if (recommendationDetail) {
     workflowState.recommendationDetail = recommendationDetail;
+    if (recommendationDetail.diagnostic) {
+      workflowState.diagnosticResult = recommendationDetail.diagnostic;
+    }
   }
 };
 

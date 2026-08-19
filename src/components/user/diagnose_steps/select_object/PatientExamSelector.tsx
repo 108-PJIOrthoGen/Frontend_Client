@@ -158,8 +158,6 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
 
         setLoadingRunId(String(run.id));
         try {
-            const scope = await prepareDiagnosticWorkflow(selectedPatient, selectedExam);
-            if (!scope) return;
             const res = await callFetchAiRecommendationRunDetail(String(run.id));
             const detail = res?.data;
             if (!detail?.items?.length) {
@@ -170,7 +168,15 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                 message.error('Kết quả AI không thuộc bệnh án đang chọn.');
                 return;
             }
+            if (!detail.diagnostic?.itemJson) {
+                message.error('Lần chạy này không có dữ liệu chẩn đoán hệ thống đã lưu.');
+                return;
+            }
 
+            const scope = activateSelectedWorkflow(selectedPatient, selectedExam);
+            if (!scope) return;
+
+            storeDiagnosticResult(scope, detail.diagnostic);
             storeRecommendationRun(scope, String(run.id), detail);
             onNext();
         } catch {
@@ -180,15 +186,21 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         }
     };
 
-    const prepareDiagnosticWorkflow = async (patient: IPatient, exam: IEpisode) => {
+    const activateSelectedWorkflow = (patient: IPatient, exam: IEpisode) => {
         const scope = createDiagnosisWorkflowScope(patient.id, exam.id);
         if (!scope) {
             message.error('Không xác định được phạm vi bệnh án.');
             return null;
         }
-        const expectedSelection = `${patient.id ?? ''}:${exam.id ?? ''}`;
         dispatch(setCurrentCase({ patient, episode: exam }));
         activateDiagnosisWorkflow(scope, { reset: true });
+        return scope;
+    };
+
+    const prepareDiagnosticWorkflow = async (patient: IPatient, exam: IEpisode) => {
+        const scope = activateSelectedWorkflow(patient, exam);
+        if (!scope) return null;
+        const expectedSelection = `${patient.id ?? ''}:${exam.id ?? ''}`;
         setPreparingDiagnostic(true);
         try {
             const response = await callEvaluatePjiDiagnostic(String(exam.id));
@@ -287,7 +299,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
                             2. Bệnh án
                         </span>
                         <span className={`rounded-full border px-3 py-1 ${selectedExam ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-400'}`}>
-                            3. Kết quả AI
+                            3. Lần sinh khuyến nghị
                         </span>
                     </div>
                 </div>
