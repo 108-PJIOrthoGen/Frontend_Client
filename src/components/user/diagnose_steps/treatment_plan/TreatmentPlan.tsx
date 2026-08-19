@@ -63,9 +63,14 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [thoughtLogs, setThoughtLogs] = useState<ThoughtLog[]>([]);
+  const [stageMessage, setStageMessage] = useState<string>('Đang khởi tạo tiến trình phân tích...');
+  const [currentAgent, setCurrentAgent] = useState<string>('Agent Điều Phối');
+  const [reasoningText, setReasoningText] = useState<string>('');
+  const [isStreamDone, setIsStreamDone] = useState<boolean>(false);
 
   const sseRef = useRef<SseConnection | null>(null);
   const thoughtLogsRef = useRef<ThoughtLog[]>([]);
+  const reasoningTextRef = useRef<string>('');
   const currentRunIdRef = useRef<string | null>(null);
   const cancelledRef = useRef(false);
 
@@ -132,19 +137,91 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       url: `${apiBase}/api/v1/ai-recommendations/runs/${runId}/stream`,
       token,
       onEvent: (frame) => {
-        if (frame.event === 'done') return;
+        if (frame.event === 'done') {
+          setIsStreamDone(true);
+          return;
+        }
+
+        // Check if event is structured thinking stream payload
+        try {
+          const payload = typeof frame.data === 'string' ? JSON.parse(frame.data) : frame.data;
+          if (payload && typeof payload === 'object' && payload.type) {
+            switch (payload.type) {
+              case 'stage':
+                if (payload.text) setStageMessage(payload.text);
+                if (payload.agent) setCurrentAgent(payload.agent);
+                if (episodeId && payload.text) {
+                  dispatch(
+                    updateTaskProgress({
+                      id: runId,
+                      episodeId: Number(episodeId),
+                      progressMessage: payload.text,
+                      stage: payload.agent || 'stage',
+                    })
+                  );
+                }
+                break;
+              case 'reasoning':
+                if (payload.text) {
+                  reasoningTextRef.current += payload.text;
+                  setReasoningText(reasoningTextRef.current);
+                }
+                if (payload.agent) setCurrentAgent(payload.agent);
+                break;
+              case 'restart':
+                // MANDATORY: wipe reasoning buffer when LLM synthesis retries
+                reasoningTextRef.current = '';
+                setReasoningText('');
+                setStageMessage('Khởi động lại lượt suy luận (retry)...');
+                break;
+              case 'cancelled':
+                setStageMessage('Đã huỷ phân tích');
+                setIsStreamDone(true);
+                if (sseRef.current) {
+                  sseRef.current.close();
+                  sseRef.current = null;
+                }
+                break;
+              case 'error':
+                setStageMessage(`Lỗi phân tích: ${payload.text || 'Không xác định'}`);
+                setIsStreamDone(true);
+                if (sseRef.current) {
+                  sseRef.current.close();
+                  sseRef.current = null;
+                }
+                break;
+              case 'done':
+                setIsStreamDone(true);
+                if (sseRef.current) {
+                  sseRef.current.close();
+                  sseRef.current = null;
+                }
+                break;
+              case 'answer':
+                break;
+            }
+            return;
+          }
+        } catch {
+          // Legacy string data fallback
+        }
+
+        // Fallback for legacy progress strings
+        const text = frame.data || '';
+        const stage = frame.event || 'step';
+        setStageMessage(text);
         appendLog({
           at: Date.now(),
-          stage: frame.event || 'step',
-          message: frame.data,
+          stage,
+          message: text,
         });
         if (episodeId) {
           dispatch(
             updateTaskProgress({
               id: runId,
               episodeId: Number(episodeId),
-              progressMessage: frame.data,
-              stage: frame.event || 'step',
+              progressMessage: text,
+              stage,
             })
           );
         }
@@ -266,6 +343,11 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     setLoadError(null);
     setThoughtLogs([]);
     thoughtLogsRef.current = [];
+    reasoningTextRef.current = '';
+    setReasoningText('');
+    setStageMessage('Đang khởi tạo tiến trình phân tích AI...');
+    setCurrentAgent('Agent Điều Phối');
+    setIsStreamDone(false);
     cancelledRef.current = false;
     resetPlan();
     storeDiagnosisThoughtLogs(workflowScope, []);
@@ -342,6 +424,8 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
       setCurrentRunId(null);
       setThoughtLogs([]);
       thoughtLogsRef.current = [];
+      reasoningTextRef.current = '';
+      setReasoningText('');
       setIsGenerating(false);
       resetPlan();
       dispatch(cancelTask(runId));
@@ -387,8 +471,15 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
         />
         <div style={{ flex: 1, overflowY: 'auto', width: '100%', paddingBottom: 64 }}>
           <Flex vertical align="center" style={{ width: '100%' }}>
-            <ThoughtStreamConsole logs={thoughtLogs} />
-            <div style={{ width: '100%', maxWidth: 768, padding: '0 16px', marginTop: -2, marginBottom: 24 }}>
+            <ThoughtStreamConsole
+              logs={thoughtLogs}
+              stageMessage={stageMessage}
+              currentAgent={currentAgent}
+              reasoningText={reasoningText}
+              isStreaming={isGenerating && !isStreamDone}
+              isDone={isStreamDone}
+            />
+            <div style={{ width: '100%', maxWidth: 768, padding: '0 16px', marginTop: 12, marginBottom: 24 }}>
               <Button
                 danger
                 onClick={handleCancelAI}
@@ -414,7 +505,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           onPrev={onPrev}
           onNext={onNext}
           canContinue={false}
-          nextLabel="Tiếp tục: Kiểm tra dữ liệu"
+          nextLabel="Tiếp tục"
         />
         <Flex
           flex={1}
@@ -480,6 +571,21 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
         canContinue={hasTreatmentPlan}
         nextLabel="Tiếp tục"
       />
+
+      {/* Collapsible Clinical Thinking Review Accordion */}
+      {reasoningText && (
+        <div className="max-w-[1800px] mx-auto w-full px-6 pt-4">
+          <ThoughtStreamConsole
+            stageMessage="Đã hoàn tất phân tích và tổng hợp khuyến nghị lâm sàng."
+            currentAgent="SynthesisAgent"
+            reasoningText={reasoningText}
+            isStreaming={false}
+            isDone={true}
+            collapsible={true}
+            defaultCollapsed={true}
+          />
+        </div>
+      )}
 
       {/* Hybrid Container */}
       <div className="flex-1 overflow-hidden p-6 flex gap-6 text-slate-800 max-w-[1800px] mx-auto w-full">

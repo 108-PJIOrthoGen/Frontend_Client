@@ -1,13 +1,20 @@
-import React, { useEffect, useMemo, useRef, type CSSProperties } from 'react';
-import { Avatar, Card, Flex, Space, Spin, Tag, Timeline, Typography } from 'antd';
+import React, { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Card, Flex, Space, Spin, Tag, Typography, Collapse } from 'antd';
 import {
   BulbOutlined,
   CheckCircleFilled,
   CloseCircleFilled,
-  FileSearchOutlined,
-  GlobalOutlined,
+  CompassOutlined,
+  ExperimentOutlined,
+  InfoCircleOutlined,
   LoadingOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
+import ReactMarkdown from 'react-markdown';
+import hardenReactMarkdown from 'harden-react-markdown';
+
+const HardenedMarkdown = hardenReactMarkdown(ReactMarkdown);
+const { Text, Title } = Typography;
 
 export interface ThoughtLog {
   at: number;
@@ -15,190 +22,282 @@ export interface ThoughtLog {
   message: string;
 }
 
-const { Text, Title } = Typography;
+export interface ThoughtStreamConsoleProps {
+  logs?: ThoughtLog[];
+  stageMessage?: string;
+  currentAgent?: string;
+  reasoningText?: string;
+  isStreaming?: boolean;
+  isDone?: boolean;
+  isCancelled?: boolean;
+  isError?: boolean;
+  errorMessage?: string;
+  collapsible?: boolean;
+  defaultCollapsed?: boolean;
+}
 
 const styles: Record<string, CSSProperties> = {
   wrap: {
     width: '100%',
-    height: '64vh',
-    padding: '20px 16px 20px',
-    background: 'linear-gradient(180deg, #e2e7de 0%, #f0fbf88e 100%)',
+    maxWidth: 960,
+    margin: '0 auto',
+    padding: '16px 16px 20px',
   },
   card: {
     width: '100%',
-    maxWidth: 1000,
-    margin: '0 auto',
-    borderRadius: 10,
-    border: '1px solid #f8efc8',
+    borderRadius: 16,
+    border: '1px solid #e2e8f0',
     background: '#ffffff',
-    boxShadow: '0 14px 36px rgba(126, 105, 36, 0.22)',
+    boxShadow: '0 10px 30px -5px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03)',
     overflow: 'hidden',
   },
   body: {
-    padding: '34px 40px 20px',
+    padding: '24px 28px 20px',
   },
-  scroll: {
-    maxHeight: '60vh',
-    overflowY: 'auto',
-    paddingRight: 12,
+  headerRow: {
+    paddingBottom: 16,
+    borderBottom: '1px solid #f1f5f9',
+    marginBottom: 18,
   },
   title: {
-    margin: '0 0 22px',
-    color: '#6d6d6d',
-    fontSize: 30,
-    lineHeight: 1.22,
-    fontWeight: 400,
+    margin: 0,
+    color: '#1e293b',
+    fontSize: 20,
+    fontWeight: 600,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
   },
-  titleMuted: {
-    color: '#b8b8b8',
+  stageContainer: {
+    background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+    border: '1px solid #e2e8f0',
+    borderRadius: 12,
+    padding: '12px 16px',
+    marginBottom: 16,
+    transition: 'all 0.3s ease',
   },
-  message: {
-    display: 'block',
-    color: '#6b6b6b',
-    fontSize: 27,
-    lineHeight: 1.25,
-    whiteSpace: 'pre-wrap',
+  stageText: {
+    color: '#334155',
+    fontSize: 14.5,
+    fontWeight: 500,
+    lineHeight: 1.5,
   },
-  metaRow: {
-    marginTop: 14,
+  reasoningBox: {
+    background: '#fafbfc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 12,
+    padding: '18px 20px',
+    minHeight: 160,
+    maxHeight: '48vh',
+    overflowY: 'auto',
+    position: 'relative',
+    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   },
-  footer: {
-    paddingTop: 14,
-    borderTop: '1px solid #f0ead7',
-    marginTop: 18,
+  emptyState: {
+    color: '#94a3b8',
+    fontSize: 14,
+    fontStyle: 'italic',
+    padding: '32px 16px',
+    textAlign: 'center',
+  },
+  cursor: {
+    display: 'inline-block',
+    width: 7,
+    height: 17,
+    background: '#0ea5e9',
+    marginLeft: 4,
+    verticalAlign: 'text-bottom',
+    animation: 'pjiBlink 1s infinite',
+  },
+  disclaimer: {
+    marginTop: 16,
+    padding: '10px 14px',
+    background: '#f8fafc',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8,
+    color: '#64748b',
+    fontSize: 12.5,
+    lineHeight: 1.5,
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 8,
   },
 };
 
-const stageTagColor = (stage: string): string => {
-  switch (stage) {
-    case 'start': return 'gold';
-    case 'done': return 'success';
-    case 'error': return 'error';
-    default: return 'default';
+const formatSeconds = (sec: number): string => {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+const agentDisplayMeta = (agentName?: string) => {
+  switch (agentName) {
+    case 'SynthesisAgent':
+      return { label: 'Agent Tổng Hợp & Phác Đồ', color: 'purple', icon: <BulbOutlined /> };
+    case 'FactualAgent':
+      return { label: 'Agent Kiểm Chứng Dữ Liệu', color: 'blue', icon: <CheckCircleFilled /> };
+    case 'EvidenceAgent':
+      return { label: 'Agent Hướng Dẫn & Y Văn', color: 'cyan', icon: <ExperimentOutlined /> };
+    case 'CompletenessAgent':
+      return { label: 'Agent Đánh Giá Ca Bệnh', color: 'orange', icon: <CompassOutlined /> };
+    default:
+      return { label: agentName || 'Agent Điều Phối', color: 'geekblue', icon: <RobotOutlined /> };
   }
 };
 
-const stageLabel = (stage: string): string => {
-  switch (stage) {
-    case 'start': return 'Khởi tạo';
-    case 'done': return 'Hoàn tất';
-    case 'error': return 'Lỗi';
-    default: return stage || 'Bước xử lý';
-  }
-};
+const ThoughtStreamConsole: React.FC<ThoughtStreamConsoleProps> = ({
+  logs = [],
+  stageMessage,
+  currentAgent = 'Agent Điều Phối',
+  reasoningText = '',
+  isStreaming = true,
+  isDone = false,
+  isCancelled = false,
+  isError = false,
+  errorMessage,
+  collapsible = false,
+  defaultCollapsed = false,
+}) => {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [elapsed, setElapsed] = useState<number>(0);
 
-const formatLogTime = (ts: number): string => {
-  const d = new Date(ts);
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  const ss = String(d.getSeconds()).padStart(2, '0');
-  return `${hh}:${mm}:${ss}`;
-};
-
-const isTerminalStage = (stage: string): boolean => stage === 'done' || stage === 'error';
-
-const stageDot = (log: ThoughtLog, isLatest: boolean) => {
-  if (log.stage === 'done') {
-    return <CheckCircleFilled style={{ color: '#52c41a', fontSize: 15 }} />;
-  }
-  if (log.stage === 'error') {
-    return <CloseCircleFilled style={{ color: '#ff4d4f', fontSize: 15 }} />;
-  }
-  if (isLatest) {
-    return <Spin indicator={<LoadingOutlined spin style={{ color: '#7a7a7a', fontSize: 16 }} />} />;
-  }
-  return <span style={{ display: 'block', width: 12, height: 12, borderRadius: 999, background: '#777777' }} />;
-};
-
-const shouldShowEvidenceChips = (stage: string): boolean => {
-  const normalized = stage.toLowerCase();
-  return normalized.includes('rag')
-    || normalized.includes('search')
-    || normalized.includes('retriev')
-    || normalized.includes('citation')
-    || normalized.includes('evidence');
-};
-
-const evidenceChips = (
-  <Space size={8} wrap style={styles.metaRow}>
-    <Tag icon={<GlobalOutlined />} style={{ borderRadius: 999, paddingInline: 12, fontSize: 14 }}>
-      RAG
-    </Tag>
-    <Tag icon={<FileSearchOutlined />} style={{ borderRadius: 999, paddingInline: 12, fontSize: 14 }}>
-      ICM / PJI
-    </Tag>
-    <Tag icon={<BulbOutlined />} style={{ borderRadius: 999, paddingInline: 12, fontSize: 14 }}>
-      Hồ sơ ca bệnh
-    </Tag>
-  </Space>
-);
-
-const ThoughtStreamConsole: React.FC<{ logs: ThoughtLog[] }> = ({ logs }) => {
-  const scrollerRef = useRef<HTMLDivElement | null>(null);
-
+  // Timer counter when streaming
   useEffect(() => {
-    const el = scrollerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [logs.length]);
+    if (!isStreaming || isDone || isCancelled || isError) return;
+    const timer = setInterval(() => {
+      setElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isStreaming, isDone, isCancelled, isError]);
 
-  const timelineItems = useMemo(() => {
-    if (logs.length === 0) {
-      return [{
-        dot: <Spin indicator={<LoadingOutlined spin style={{ color: '#7a7a7a', fontSize: 16 }} />} />,
-        children: (
-          <Text style={styles.message}>
-            Đang khởi tạo phiên sinh phác đồ...
-          </Text>
-        ),
-      }];
+  // Auto-scroll to bottom of reasoning text
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
     }
+  }, [reasoningText, stageMessage]);
 
-    return logs.map((log, idx) => {
-      const isLatest = idx === logs.length - 1 && !isTerminalStage(log.stage);
-      return {
-        dot: stageDot(log, isLatest),
-        children: (
-          <div>
-            <Text style={styles.message}>{log.message}</Text>
-            <Space size={8} wrap style={styles.metaRow}>
-              <Tag color={stageTagColor(log.stage)} style={{ borderRadius: 999 }}>
-                {stageLabel(log.stage)}
-              </Tag>
-              <Text type="secondary" style={{ fontSize: 13 }}>
-                {formatLogTime(log.at)}
-              </Text>
-            </Space>
-            {shouldShowEvidenceChips(log.stage) && evidenceChips}
+  // Derive active stage message
+  const activeStage = stageMessage || (logs.length > 0 ? logs[logs.length - 1].message : 'Đang xử lý...');
+  const agentMeta = agentDisplayMeta(currentAgent);
+
+  const renderContent = () => (
+    <div>
+      {/* 1. VÙNG TIẾN TRÌNH (MACRO STAGE - 1 DÒNG THAY THẾ) */}
+      <div style={styles.stageContainer}>
+        <Flex justify="space-between" align="center" wrap="wrap" gap={8}>
+          <Space size={10} align="center">
+            {!isDone && !isCancelled && !isError ? (
+              <Spin indicator={<LoadingOutlined spin style={{ fontSize: 16, color: '#0284c7' }} />} />
+            ) : isDone ? (
+              <CheckCircleFilled style={{ fontSize: 16, color: '#10b981' }} />
+            ) : isCancelled ? (
+              <CloseCircleFilled style={{ fontSize: 16, color: '#94a3b8' }} />
+            ) : (
+              <CloseCircleFilled style={{ fontSize: 16, color: '#ef4444' }} />
+            )}
+
+            <Text style={styles.stageText}>
+              {isCancelled
+                ? 'Tiến trình đã được huỷ bỏ.'
+                : isError
+                ? `Lỗi: ${errorMessage || activeStage}`
+                : activeStage}
+            </Text>
+          </Space>
+
+          <Tag color={agentMeta.color} icon={agentMeta.icon} style={{ borderRadius: 6, margin: 0 }}>
+            {agentMeta.label}
+          </Tag>
+        </Flex>
+      </div>
+
+      {/* 2. VÙNG SUY LUẬN LÂM SÀNG (REASONING STREAM) */}
+      <div ref={scrollRef} style={styles.reasoningBox}>
+        {reasoningText ? (
+          <div className="ai-markdown prose prose-sm prose-slate max-w-none" style={{ color: '#334155', fontSize: '14.5px', lineHeight: 1.7 }}>
+            <HardenedMarkdown>{reasoningText}</HardenedMarkdown>
+            {isStreaming && !isDone && !isCancelled && !isError && <span style={styles.cursor} />}
           </div>
-        ),
-      };
-    });
-  }, [logs]);
+        ) : (
+          <div style={styles.emptyState}>
+            {isStreaming ? (
+              <Space direction="vertical" align="center" size={12}>
+                <Spin indicator={<LoadingOutlined spin style={{ fontSize: 24, color: '#94a3b8' }} />} />
+                <span>Hệ thống đang đối chiếu hướng dẫn điều trị & khởi tạo suy luận lâm sàng...</span>
+              </Space>
+            ) : (
+              <span>Chưa có dữ liệu suy luận.</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3. MEDICAL DISCLAIMER (BẮT BUỘC THEO CONTRACT) */}
+      <div style={styles.disclaimer}>
+        <InfoCircleOutlined style={{ color: '#0284c7', fontSize: 15, marginTop: 2, flexShrink: 0 }} />
+        <span>
+          <strong>Lưu ý lâm sàng:</strong> Đây là quá trình suy luận nội bộ của mô hình AI, không phải chỉ định điều trị. Chỉ phác đồ trong phần kết quả cuối mới là khuyến nghị chính thức.
+        </span>
+      </div>
+    </div>
+  );
+
+  if (collapsible) {
+    return (
+      <div style={styles.wrap}>
+        <Collapse
+          defaultActiveKey={defaultCollapsed ? [] : ['reasoning']}
+          style={{ background: '#ffffff', borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}
+          items={[
+            {
+              key: 'reasoning',
+              label: (
+                <Flex justify="space-between" align="center" style={{ width: '100%', paddingRight: 8 }}>
+                  <Space size={8}>
+                    <BulbOutlined style={{ color: '#6366f1', fontSize: 16 }} />
+                    <Text strong style={{ color: '#1e293b', fontSize: 15 }}>
+                      Luồng suy luận lâm sàng của AI (Chain-of-Thought)
+                    </Text>
+                  </Space>
+                  <Tag color="purple" style={{ borderRadius: 6, margin: 0 }}>
+                    DeepSeek Reasoning
+                  </Tag>
+                </Flex>
+              ),
+              children: renderContent(),
+            },
+          ]}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={styles.wrap}>
       <Card variant="borderless" style={styles.card} styles={{ body: styles.body }}>
-        <div ref={scrollerRef} style={styles.scroll}>
-          <Title level={2} style={styles.title}>
-            Đang sinh phác đồ điều trị <span style={styles.titleMuted}>PJI...</span>
+        {/* Header */}
+        <Flex justify="space-between" align="center" style={styles.headerRow}>
+          <Title level={4} style={styles.title}>
+            <BulbOutlined style={{ color: '#6366f1' }} />
+            Tiến trình & Luồng suy luận AI
           </Title>
 
-          <Timeline
-            mode="left"
-            items={timelineItems}
-            style={{ margin: 0 }}
-          />
-        </div>
-
-        <Flex justify="space-between" align="center" gap={10} wrap style={styles.footer}>
-          <Space size={10}>
-            <Avatar size={28} style={{ background: '#f0f0f0', color: '#6b6b6b' }}>
-              AI
-            </Avatar>
-            <Text type="secondary">{logs.length} bước đã ghi nhận</Text>
+          <Space size={12}>
+            {isStreaming && !isDone && !isCancelled && (
+              <Tag color="processing" style={{ borderRadius: 6 }}>
+                Thời gian: {formatSeconds(elapsed)}
+              </Tag>
+            )}
+            <Tag color="cyan" style={{ borderRadius: 6 }}>
+              DeepSeek Reasoning
+            </Tag>
           </Space>
-          <Text type="secondary">Có thể tạm rời trang - tiến trình vẫn tiếp tục</Text>
         </Flex>
+
+        {/* Content */}
+        {renderContent()}
       </Card>
     </div>
   );
