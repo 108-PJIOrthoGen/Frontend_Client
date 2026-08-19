@@ -76,6 +76,7 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
                 open={isSearchModalVisible}
                 onCancel={onClose}
                 footer={null}
+                destroyOnClose
             >
                 <PatientExamSelector onNext={onNext} setSearchValue={setSearchValue} searchValue={searchValue} setPatients={setPatients} patients={patients} />
             </Modal>

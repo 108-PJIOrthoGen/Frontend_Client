@@ -32,7 +32,9 @@ const loadSavedTasks = (): IAiRegimenTask[] => {
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
       const now = Date.now();
-      return parsed.filter((t) => now - (t.startedAt || 0) < 24 * 60 * 60 * 1000);
+      return parsed.filter(
+        (t) => (t.status === 'PROCESSING' || t.status === 'QUEUED') && now - (t.startedAt || 0) < 60 * 60 * 1000
+      );
     }
   } catch {
     // Ignore error
@@ -42,7 +44,8 @@ const loadSavedTasks = (): IAiRegimenTask[] => {
 
 const saveTasks = (tasks: IAiRegimenTask[]) => {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(tasks.slice(0, 20)));
+    const activeTasks = tasks.filter((t) => t.status === 'PROCESSING' || t.status === 'QUEUED');
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(activeTasks.slice(0, 10)));
   } catch {
     // Ignore error
   }
@@ -59,8 +62,15 @@ export const aiRegimenTaskSlice = createSlice({
   initialState,
   reducers: {
     addOrUpdateTask: (state, action: PayloadAction<IAiRegimenTask>) => {
+      if (action.payload.status !== 'PROCESSING' && action.payload.status !== 'QUEUED') {
+        state.tasks = state.tasks.filter(
+          (t) => t.id !== action.payload.id && Number(t.episodeId) !== Number(action.payload.episodeId)
+        );
+        saveTasks(state.tasks);
+        return;
+      }
       const existingIdx = state.tasks.findIndex(
-        (t) => t.id === action.payload.id || (t.episodeId === action.payload.episodeId && (t.status === 'PROCESSING' || t.status === 'QUEUED'))
+        (t) => t.id === action.payload.id || (Number(t.episodeId) === Number(action.payload.episodeId) && (t.status === 'PROCESSING' || t.status === 'QUEUED'))
       );
       if (existingIdx >= 0) {
         state.tasks[existingIdx] = { ...state.tasks[existingIdx], ...action.payload };
@@ -74,7 +84,7 @@ export const aiRegimenTaskSlice = createSlice({
       action: PayloadAction<{ id?: string; episodeId?: number; progressMessage?: string; stage?: string }>
     ) => {
       const { id, episodeId, progressMessage, stage } = action.payload;
-      const task = state.tasks.find((t) => (id && t.id === id) || (episodeId && t.episodeId === episodeId));
+      const task = state.tasks.find((t) => (id && t.id === id) || (episodeId && Number(t.episodeId) === Number(episodeId)));
       if (task) {
         if (progressMessage !== undefined) task.progressMessage = progressMessage;
         if (stage !== undefined) task.stage = stage;
@@ -83,27 +93,24 @@ export const aiRegimenTaskSlice = createSlice({
     },
     completeTask: (
       state,
-      action: PayloadAction<{ id?: string; episodeId?: number; status: 'SUCCESS' | 'FAILED'; errorMessage?: string }>
+      action: PayloadAction<{ id?: string; episodeId?: number; status?: 'SUCCESS' | 'FAILED'; errorMessage?: string }>
     ) => {
-      const { id, episodeId, status, errorMessage } = action.payload;
-      const task = state.tasks.find((t) => (id && t.id === id) || (episodeId && t.episodeId === episodeId));
-      if (task) {
-        task.status = status;
-        task.finishedAt = Date.now();
-        if (errorMessage) task.errorMessage = errorMessage;
-        saveTasks(state.tasks);
-      }
+      const { id, episodeId } = action.payload;
+      // When recommendation finishes, automatically remove it
+      state.tasks = state.tasks.filter(
+        (t) => !( (id && (t.id === id || String(t.id) === String(id))) || (episodeId && Number(t.episodeId) === Number(episodeId)) )
+      );
+      saveTasks(state.tasks);
     },
     cancelTask: (state, action: PayloadAction<string>) => {
-      const task = state.tasks.find((t) => t.id === action.payload);
-      if (task) {
-        task.status = 'CANCELLED';
-        task.finishedAt = Date.now();
-        saveTasks(state.tasks);
-      }
+      const id = action.payload;
+      // When recommendation is cancelled, automatically remove it
+      state.tasks = state.tasks.filter((t) => t.id !== id && String(t.id) !== String(id));
+      saveTasks(state.tasks);
     },
     removeTask: (state, action: PayloadAction<string>) => {
-      state.tasks = state.tasks.filter((t) => t.id !== action.payload);
+      const id = action.payload;
+      state.tasks = state.tasks.filter((t) => t.id !== id && String(t.id) !== String(id));
       saveTasks(state.tasks);
     },
     clearFinishedTasks: (state) => {

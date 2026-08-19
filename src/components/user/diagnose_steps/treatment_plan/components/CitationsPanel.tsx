@@ -127,7 +127,7 @@ const CitationsPanel: React.FC<Props> = ({ citations }) => {
                           color: '#475569',
                           fontSize: 13,
                         }}
-                        ellipsis={{ rows: 4, expandable: true, symbol: 'Xem thêm' }}
+                        ellipsis={{ rows: 6, expandable: true, symbol: 'Xem thêm' }}
                       >
                         {citation.snippet}
                       </Paragraph>

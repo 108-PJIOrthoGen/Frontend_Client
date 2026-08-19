@@ -5,9 +5,13 @@ import {
   CheckCircleFilled,
   CloseCircleFilled,
   CompassOutlined,
+  DeepSeekFilled,
   ExperimentOutlined,
+  GeminiFilled,
   InfoCircleOutlined,
   LoadingOutlined,
+  MistralFilled,
+  QwenFilled,
   RobotOutlined,
 } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
@@ -133,13 +137,13 @@ const formatSeconds = (sec: number): string => {
 const agentDisplayMeta = (agentName?: string) => {
   switch (agentName) {
     case 'SynthesisAgent':
-      return { label: 'Agent Tổng Hợp & Phác Đồ', color: 'purple', icon: <BulbOutlined /> };
+      return { label: 'Agent Tổng Hợp & Phác Đồ', color: 'purple', icon: <DeepSeekFilled /> };
     case 'FactualAgent':
-      return { label: 'Agent Kiểm Chứng Dữ Liệu', color: 'blue', icon: <CheckCircleFilled /> };
+      return { label: 'Agent Kiểm Chứng Dữ Liệu', color: 'blue', icon: <QwenFilled /> };
     case 'EvidenceAgent':
-      return { label: 'Agent Hướng Dẫn & Y Văn', color: 'cyan', icon: <ExperimentOutlined /> };
+      return { label: 'Agent Hướng Dẫn & Y Văn', color: 'cyan', icon: <GeminiFilled /> };
     case 'CompletenessAgent':
-      return { label: 'Agent Đánh Giá Ca Bệnh', color: 'orange', icon: <CompassOutlined /> };
+      return { label: 'Agent Đánh Giá Ca Bệnh', color: 'orange', icon: <MistralFilled /> };
     default:
       return { label: agentName || 'Agent Điều Phối', color: 'geekblue', icon: <RobotOutlined /> };
   }
@@ -202,8 +206,8 @@ const ThoughtStreamConsole: React.FC<ThoughtStreamConsoleProps> = ({
               {isCancelled
                 ? 'Tiến trình đã được huỷ bỏ.'
                 : isError
-                ? `Lỗi: ${errorMessage || activeStage}`
-                : activeStage}
+                  ? `Lỗi: ${errorMessage || activeStage}`
+                  : activeStage}
             </Text>
           </Space>
 
@@ -262,7 +266,7 @@ const ThoughtStreamConsole: React.FC<ThoughtStreamConsoleProps> = ({
                     </Text>
                   </Space>
                   <Tag color="purple" style={{ borderRadius: 6, margin: 0 }}>
-                    DeepSeek Reasoning
+                    AI Thinking
                   </Tag>
                 </Flex>
               ),

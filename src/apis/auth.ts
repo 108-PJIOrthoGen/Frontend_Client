@@ -57,6 +57,19 @@ export const callUpdateOwnProfile = (
 ): Promise<IBackendRes<IUser>> =>
   instance.put('/api/v1/auth/account', payload);
 
+export const callUpdateOwnProfileWithAvatar = (
+  payload: UpdateOwnProfilePayload,
+  avatar: File,
+): Promise<IBackendRes<IUser>> => {
+  const formData = new FormData();
+  formData.append(
+    'profile',
+    new Blob([JSON.stringify(payload)], { type: 'application/json' }),
+  );
+  formData.append('avatar', avatar);
+  return instance.put('/api/v1/auth/account', formData);
+};
+
 /**
  * The backend revokes every session after a successful password change.
  */

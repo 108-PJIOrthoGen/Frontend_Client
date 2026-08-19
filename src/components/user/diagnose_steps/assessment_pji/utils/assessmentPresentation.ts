@@ -14,11 +14,11 @@ export const formatScore = (value: number): string => (
 export const conclusionLabel = (interpretation: unknown): string => {
   switch (interpretation) {
     case 'INFECTED':
-      return 'NHIỄM TRÙNG';
+      return 'NHIỄM TRÙNG KHỚP NHÂN TẠO (PJI)';
     case 'NOT_INFECTED':
-      return 'KHÔNG NHIỄM';
+      return 'KHÔNG CÓ BẰNG CHỨNG NHIỄM TRÙNG PJI';
     case 'INCONCLUSIVE':
-      return 'CHƯA RÕ';
+      return 'CHƯA KẾT LUẬN ĐƯỢC PJI';
     default:
       return interpretation ? String(interpretation) : 'CHƯA CÓ';
   }
@@ -32,6 +32,17 @@ export const formatEnumText = (value: unknown): string => {
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/(^|\s)\S/g, match => match.toUpperCase());
+};
+
+export const infectionClassificationLabel = (value: unknown): string => {
+  switch (value) {
+    case 'ACUTE':
+      return 'Cấp tính';
+    case 'CHRONIC':
+      return 'Mạn tính';
+    default:
+      return 'Chưa xác định';
+  }
 };
 
 export const organismInitials = (name: unknown): string => {

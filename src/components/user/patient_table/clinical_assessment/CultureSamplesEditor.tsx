@@ -62,7 +62,7 @@ const CultureSamplesEditor: React.FC = () => {
                 className="w-full"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col col-span-2 gap-1.5">
               <label className="text-xs font-semibold text-slate-700">Kết quả</label>
               <Select
                 value={sample.result || undefined}

@@ -46,8 +46,8 @@ const buildTourSteps = (isDiagnosisPage: boolean): TourProps['steps'] => {
       placement: 'bottomRight',
     },
     {
-      title: 'Ca bệnh hiện tại',
-      description: 'Theo dõi nhanh bệnh nhân và bệnh án đang xử lý. Khi chưa chọn ca bệnh, hệ thống sẽ hướng dẫn bạn bắt đầu từ hồ sơ bệnh nhân.',
+      title: 'Giám sát tiến trình AI',
+      description: 'Theo dõi tiến trình các luồng AI sinh phác đồ đang xử lý theo thời gian thực.',
       target: getTourTarget('[data-tour="sidebar-current-case"]'),
       placement: 'right',
     },

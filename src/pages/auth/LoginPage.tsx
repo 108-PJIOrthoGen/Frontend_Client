@@ -187,7 +187,7 @@ const LoginPage = () => {
               <span className="h-8 w-px bg-slate-200" aria-hidden="true" />
               <img
                 src={ibmeTeamImage}
-                alt="Nhóm phát triển iBME"
+                alt="iBME lab HUST"
                 className="h-11 w-28 object-contain"
               />
             </div>

@@ -31,6 +31,7 @@ import {
   criterionDetailColor,
   formatEnumText,
   formatScore,
+  infectionClassificationLabel,
   organismInitials,
   severityAlertType,
   toNumber,
@@ -66,8 +67,10 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
   const scorePercent = Math.min(100, Math.max(0, (totalScore / scoreScaleMax) * 100));
   const majorItems = asArray<Record<string, any>>(majorCriteria?.items);
   const minorItems = asArray<Record<string, any>>(minorCriteriaScoring?.items);
-  const warnings = asArray<Record<string, any>>(aiReasoning?.warnings);
+  const warnings = asArray<Record<string, any>>(aiReasoning?.warnings)
+    .filter(warning => warning?.type !== 'DATA_COMPLETENESS');
   const interpretation = scoringSystem?.interpretation;
+  const clinicianConclusion = scoringSystem?.interpretation_label ?? conclusionLabel(interpretation);
   const isInfected = interpretation === 'INFECTED';
   const tone = conclusionTone(interpretation);
   const scoreMarkerPercent = Math.min(96, Math.max(4, scorePercent));
@@ -130,9 +133,13 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
               {primaryDiagnosis}
               {organism?.name && organism.name !== 'Chưa xác định' ? ` - ${organism.name}` : ''}
             </Title>
-            <Space size={8} wrap style={{ marginTop: 10 }}>
-              <Tag color="warning">{formatEnumText(aiReasoning?.infection_classification)}</Tag>
-            </Space>
+            {isInfected && (
+              <Space size={8} wrap style={{ marginTop: 10 }}>
+                <Tag color="warning">
+                  Phân loại: {infectionClassificationLabel(aiReasoning?.infection_classification)}
+                </Tag>
+              </Space>
+            )}
           </Col>
 
           <Col>
@@ -151,7 +158,7 @@ export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => 
                       lineHeight: 1.2,
                     }}
                   >
-                    {conclusionLabel(interpretation)}
+                    {clinicianConclusion}
                   </Text>
                 </div>
                 <div>

@@ -7,17 +7,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "test:doctor-diagnosis": "node --test src/components/user/diagnose_steps/doctor_diagnosis/doctorDiagnosisValues.test.ts",
     "test:pji": "node --test src/components/user/quick_diagnosis/quickDiagnosisModel.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.1.0",
-    "@ant-design/pro-components": "^2.8.10",
-    "@ant-design/pro-layout": "^7.22.7",
+    "@ant-design/icons": "^6.3.2",
+    "@ant-design/pro-components": "^3.1.14-6",
     "@reduxjs/toolkit": "^2.11.2",
     "@vitejs/plugin-react": "^5.1.2",
     "@vitejs/plugin-react-swc": "^4.2.3",
-    "antd": "^5.27.5",
+    "antd": "^6.5.0",
     "async-mutex": "^0.5.0",
     "axios": "1.13.6",
     "dayjs": "^1.11.19",

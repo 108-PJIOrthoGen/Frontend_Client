@@ -49,7 +49,7 @@ const AiChatDrawer: React.FC<Props> = ({
               <span className="material-symbols-outlined text-blue-600 text-[18px]">forum</span>
             </div>
             <div>
-              <span className="font-bold text-slate-800 text-sm block leading-none mb-1">Trợ lý AI Y Khoa</span>
+              <span className="font-bold text-slate-800 text-sm block leading-none mb-1">Poggy - AI hỏi đáp</span>
               <span className="text-[10px] text-emerald-500 font-bold flex items-center gap-1 uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online
               </span>
@@ -110,7 +110,7 @@ const AiChatDrawer: React.FC<Props> = ({
                   ) : (
                     <>
                       <span className="material-symbols-outlined text-[14px]">smart_toy</span>
-                      Cố Vấn AI
+                      Poggy
                     </>
                   )}
                   <span className="text-slate-400 font-normal lowercase tracking-normal px-1">—</span>
@@ -120,8 +120,8 @@ const AiChatDrawer: React.FC<Props> = ({
                 </span>
                 <div
                   className={`px-4 py-3 max-w-[85%] shadow-sm ${msg.role === 'user'
-                      ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
-                      : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-200/60'
+                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
+                    : 'bg-white text-slate-800 rounded-2xl rounded-tl-sm border border-slate-200/60'
                     }`}
                 >
                   {msg.role === 'assistant' ? (
