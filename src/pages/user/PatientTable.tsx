@@ -178,7 +178,7 @@ const PatientTable = () => {
             render: (text, record, index) => {
                 return <>{index + 1 + (meta.page - 1) * meta.pageSize}</>;
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "CCCD",
@@ -245,11 +245,11 @@ const PatientTable = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Bệnh án",
-            hideInSearch: true,
+            search: false,
             width: 118,
             align: "center",
             render: (_value, entity, _index, _action) => (
@@ -269,7 +269,7 @@ const PatientTable = () => {
         },
         {
             title: "Thao tác",
-            hideInSearch: true,
+            search: false,
             width: 82,
             align: "center",
             render: (_value, entity, _index, _action) => (

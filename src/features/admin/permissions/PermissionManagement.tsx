@@ -64,7 +64,7 @@ const PermissionPage = () => {
                     </a>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Name",
@@ -114,7 +114,7 @@ const PermissionPage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Updated Time",
@@ -130,11 +130,11 @@ const PermissionPage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Actions",
-            hideInSearch: true,
+            search: false,
             width: 50,
             render: (_value, entity, _index, _action) => (
                 <Space>

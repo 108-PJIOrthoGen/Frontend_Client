@@ -1,4 +1,4 @@
-import { FooterToolbar, ModalForm, ProCard, ProFormSwitch, ProFormText, ProFormTextArea } from "@ant-design/pro-components";
+import { ModalForm, ProCard, ProFormSwitch, ProFormText, ProFormTextArea } from "@ant-design/pro-components";
 import { Button, Col, Form, Row, message, notification } from "antd";
 import { isMobile } from 'react-device-detect';
 import { callFetchPermission } from "@/apis/permissions";

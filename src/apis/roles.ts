@@ -4,18 +4,18 @@ import instance from './axios.custom';
 export const callCreateRole = (
   role: IRole,
 ): Promise<IBackendRes<IRole>> =>
-  instance.post('/api/v1/add-role', { ...role });
+  instance.post('/api/v1/roles', { ...role });
 
 export const callUpdateRole = (
   role: IRole,
   id: string,
 ): Promise<IBackendRes<IRole>> =>
-  instance.put('/api/v1/update-role', { id, ...role });
+  instance.put('/api/v1/roles', { id, ...role });
 
 export const callDeleteRole = (
   id: string,
 ): Promise<IBackendRes<IRole>> =>
-  instance.delete(`/api/v1/delete-role/${id}`);
+  instance.delete(`/api/v1/roles/${id}`);
 
 export const callFetchRole = (
   query: string,

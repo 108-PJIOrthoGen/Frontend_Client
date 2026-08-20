@@ -81,7 +81,7 @@ const UserPage = () => {
             render: (text, record, index) => {
                 return <>{index + 1 + (meta.page - 1) * meta.pageSize}</>;
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Họ và tên",
@@ -98,13 +98,13 @@ const UserPage = () => {
             title: "Vai trò",
             dataIndex: ["role", "name"],
             sorter: true,
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Trạng thái",
             dataIndex: "status",
             width: 140,
-            hideInSearch: true,
+            search: false,
             align: "center",
             render: (_text, record) => {
                 const isActive = record.status === "ACTIVE";
@@ -128,7 +128,7 @@ const UserPage = () => {
             dataIndex: "lastLogin",
             width: 200,
             sorter: true,
-            hideInSearch: true,
+            search: false,
             render: (_text, record) => (
                 <>
                     {record.lastLogin
@@ -152,7 +152,7 @@ const UserPage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Thời gian cập nhật",
@@ -168,11 +168,11 @@ const UserPage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Actions",
-            hideInSearch: true,
+            search: false,
             width: 50,
             render: (_value, entity, _index, _action) => (
                 <Space>

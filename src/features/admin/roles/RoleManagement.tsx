@@ -51,7 +51,7 @@ const RolePage = () => {
             render: (text, record, index, action) => {
                 return <span>{record.id}</span>;
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Name",
@@ -70,7 +70,7 @@ const RolePage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "CreatedAt",
@@ -86,7 +86,7 @@ const RolePage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "UpdatedAt",
@@ -102,11 +102,11 @@ const RolePage = () => {
                     </>
                 );
             },
-            hideInSearch: true,
+            search: false,
         },
         {
             title: "Actions",
-            hideInSearch: true,
+            search: false,
             width: 50,
             render: (_value, entity, _index, _action) => (
                 <Space>
