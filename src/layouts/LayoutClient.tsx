@@ -112,6 +112,15 @@ export const LayoutClient = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector((state: any) => state.account?.user);
+  const roleName = user?.role?.name?.toUpperCase();
+  const roleDisplayLabel = roleName === 'PHARMACIST'
+    ? 'Dược sĩ lâm sàng'
+    : roleName === 'NURSE'
+      ? 'Điều dưỡng'
+      : roleName === 'ADMIN' || roleName === 'SUPER_ADMIN'
+        ? 'Quản trị viên'
+        : 'Bác sĩ chuyên khoa';
+  const fallbackUserLabel = roleName === 'PHARMACIST' ? 'Dược sĩ' : 'Bác sĩ';
   const pendingCount = useSelector((state: RootState) => state.pendingLabTask.count);
   const pendingTasks = useSelector((state: RootState) => state.pendingLabTask.tasks);
 
@@ -466,7 +475,7 @@ export const LayoutClient = () => {
             <button type="button" className="ml-1 flex items-center gap-2 rounded-lg p-1 pr-2 text-left transition-colors hover:bg-slate-100">
               <Avatar size={30} src={user?.avatar} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
               <span className="hidden max-w-36 truncate text-sm font-semibold text-slate-700 md:block">
-                {user?.name || 'Bác sĩ'}
+                {user?.name || fallbackUserLabel}
               </span>
             </button>
           </Dropdown>
@@ -511,8 +520,8 @@ export const LayoutClient = () => {
             <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
               <Avatar size={34} src={user?.avatar} icon={<UserOutlined />} className="bg-emerald-50 text-emerald-700" />
               <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-bold text-slate-800">{user?.name || 'Bác sĩ'}</div>
-                <div className="truncate text-xs text-slate-500">Bác sĩ chuyên khoa</div>
+                <div className="truncate text-sm font-bold text-slate-800">{user?.name || fallbackUserLabel}</div>
+                <div className="truncate text-xs text-slate-500">{roleDisplayLabel}</div>
               </div>
             </div>
           </div>

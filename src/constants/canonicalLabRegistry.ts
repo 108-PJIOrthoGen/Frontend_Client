@@ -41,6 +41,7 @@ export const CANONICAL_LABS: CanonicalLab[] = [
   { id: 'ht_24', name: 'PLT', group: 'hematologyTests', aliases: ['plt', 'platelet', 'tieu cau'], unit: 'G/L', normalRange: '150 - 450', role: 'routine_support', pendingEligible: false },
   { id: 'ht_25', name: 'MPV', group: 'hematologyTests', aliases: ['mpv'], unit: 'fL', normalRange: '6 - 11', role: 'routine_support', pendingEligible: false },
   { id: 'ht_7', field: 'serum_ESR', name: 'Máu lắng (bằng máy tự động)', group: 'hematologyTests', aliases: ['esr', 'mau lang', 'toc do mau lang', 'mau lang bang may tu dong'], unit: 'mm', normalRange: '< 10', role: 'diagnostic_standard', pendingEligible: true },
+  { id: 'ht_extra_crp', field: 'serum_CRP', name: 'Định lượng CRP (Máu)', group: 'hematologyTests', aliases: ['crp', 'crp mau', 'crp huyet thanh', 'dinh luong crp', 'c-reactive protein', 'crp (c-reactive protein)', 'dinh luong crp (c-reactive protein)', 'c reactive protein'], unit: 'mg/L', normalRange: '0 - 5', role: 'diagnostic_standard', pendingEligible: true },
 
   { id: 'bc_4', name: 'Định lượng Glucose', group: 'biochemistryTests', aliases: ['glucose', 'dinh luong glucose', 'duong huyet'], unit: 'mmol/l', normalRange: '4.1 - 5.6', role: 'routine_support', pendingEligible: false },
   { id: 'bc_5', name: 'Định lượng Urê máu', group: 'biochemistryTests', aliases: ['ure', 'ure mau', 'urea'], unit: 'mmol/l', normalRange: '2.8 - 7.2', role: 'routine_support', pendingEligible: false },

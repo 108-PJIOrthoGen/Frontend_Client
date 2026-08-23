@@ -12,9 +12,11 @@ import {
   Tag,
   Typography,
   message,
+  Popconfirm,
 } from 'antd';
 import {
   ArrowLeftOutlined,
+  FileDoneOutlined,
   RobotOutlined,
   SaveOutlined,
   UserOutlined,
@@ -22,14 +24,9 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { clearCurrentCase } from '@/redux/features/patients/patientSlice';
-import { callCreateDoctorReview } from '@/apis/api';
-import type { IDoctorDiagnosis, IPermission } from '@/types/backend';
+import { callSaveDoctorClinicalDecision, callSignDoctorClinicalDecision } from '@/apis/api';
+import type { IDoctorDiagnosis } from '@/types/backend';
 import type { SurgeryPlanData } from '@/types/treatmentType';
-import {
-  TREATMENT_REVIEW_WRITE_PERMISSION,
-  hasPermission,
-  normalizeIdentity,
-} from '../treatment_plan/utils/permissions';
 import SuccessModal from '../treatment_plan/components/SuccessModal';
 import {
   clearDiagnosisWorkflowStorage,
@@ -57,22 +54,12 @@ interface Props {
 const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => {
   const dispatch = useDispatch();
   const currentCase = useSelector((state: RootState) => state.patient.currentCase);
-  const currentUser = useSelector((state: RootState) => state.account.user);
   const episodeId = currentCase?.episode?.id;
   const patientId = currentCase?.patient?.id;
   const workflowScope = useMemo(
     () => createDiagnosisWorkflowScope(patientId, episodeId),
     [episodeId, patientId],
   );
-  const permissions = currentUser.role.permissions as IPermission[] | undefined;
-  const roleName = currentUser.role.name?.toUpperCase() ?? '';
-  const isAdmin = roleName === 'ADMIN' || roleName === 'SUPER_ADMIN';
-  const patientCreatedBy = currentCase?.patient?.createdBy;
-  const ownsPatientRecord = !patientCreatedBy
-    || normalizeIdentity(patientCreatedBy) === normalizeIdentity(currentUser.email);
-  const canWriteReview = hasPermission(permissions, TREATMENT_REVIEW_WRITE_PERMISSION)
-    && (ownsPatientRecord || isAdmin);
-
   const [form] = Form.useForm<DoctorDecisionForm>();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,6 +67,9 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [systemDiagnosis, setSystemDiagnosis] = useState<SystemDiagnosisSummary>({});
   const [aiSurgery, setAiSurgery] = useState<SurgeryPlanData | null>(null);
+  const [revision, setRevision] = useState(0);
+  const [decisionStatus, setDecisionStatus] = useState<'DRAFT' | 'SIGNED'>();
+  const [canEditDoctor, setCanEditDoctor] = useState(false);
   const runIdRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -95,6 +85,9 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         runIdRef.current = model.runId;
         setSystemDiagnosis(model.systemDiagnosis);
         setAiSurgery(model.aiSurgery);
+        setRevision(model.revision);
+        setDecisionStatus(model.status);
+        setCanEditDoctor(model.canEditDoctor);
         form.setFieldsValue(toDoctorDecisionFormValues(model.previousDiagnosis, model.previousSurgery));
       } catch (error: any) {
         if (!cancelled) setLoadError(error?.message || 'Lỗi khi tải dữ liệu.');
@@ -111,9 +104,9 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     [systemDiagnosis.pjiProbability],
   );
 
-  const handleSave = async () => {
-    if (!canWriteReview) {
-      message.warning('Chỉ bác sĩ phụ trách hồ sơ này mới được lưu chẩn đoán.');
+  const persistDraft = async () => {
+    if (!canEditDoctor || decisionStatus === 'SIGNED') {
+      message.warning('Bạn không phải bác sĩ sở hữu quyết định này hoặc quyết định đã được ký.');
       return;
     }
     if (!episodeId || !runIdRef.current) {
@@ -136,17 +129,41 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
     const surgery = toDoctorSurgeryPlan(values);
     setIsSaving(true);
     try {
-      await callCreateDoctorReview(String(episodeId), {
-        runId: Number(runIdRef.current),
-        reviewStatus: 'SAVED_DRAFT',
-        doctorFinalDecision: {
-          diagnosisJson: diagnosis as Record<string, any>,
-          surgeryPlanJson: surgery as Record<string, any> | undefined,
-        },
+      const response = await callSaveDoctorClinicalDecision(runIdRef.current, {
+        diagnosisJson: diagnosis as Record<string, any>,
+        surgeryPlanJson: surgery as Record<string, any> | undefined,
+        revision,
       });
+      const savedRevision = response?.data?.doctorDecision?.revision;
+      if (savedRevision == null) throw new Error('Không nhận được dữ liệu quyết định.');
+      setRevision(savedRevision);
+      setDecisionStatus(response.data?.doctorDecision?.status);
+      return response.data;
+    } catch (error: any) {
+      message.error(error?.response?.data?.message || 'Lỗi khi lưu kết luận của bác sĩ.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    const saved = await persistDraft();
+    if (saved) message.success('Đã lưu bản nháp kết luận bác sĩ.');
+  };
+
+  const handleSign = async () => {
+    const saved = await persistDraft();
+    const runId = runIdRef.current;
+    if (!saved || !runId) return;
+    setIsSaving(true);
+    try {
+      const response = await callSignDoctorClinicalDecision(runId, saved.doctorDecision?.revision ?? revision);
+      setRevision(response?.data?.doctorDecision?.revision ?? revision);
+      setDecisionStatus('SIGNED');
+      setCanEditDoctor(false);
       setIsSuccessOpen(true);
-    } catch {
-      message.error('Lỗi khi lưu kết luận của bác sĩ.');
+    } catch (error: any) {
+      message.error(error?.response?.data?.message || 'Không thể ký kết luận bác sĩ.');
     } finally {
       setIsSaving(false);
     }
@@ -181,15 +198,22 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
         </Space>
         <Space wrap>
           <Button icon={<ArrowLeftOutlined />} onClick={onPrev}>Quay lại</Button>
-          <Button type="primary" icon={<SaveOutlined />} loading={isSaving} disabled={!canWriteReview} onClick={handleSave}>
-            Lưu kết luận
+          <Button icon={<SaveOutlined />} loading={isSaving} disabled={!canEditDoctor || decisionStatus === 'SIGNED'} onClick={handleSave}>
+            Lưu nháp
           </Button>
+          <Popconfirm title="Ký xác nhận kết luận?" description="Sau khi ký, nội dung sẽ bị khóa."
+            okText="Ký xác nhận" cancelText="Hủy" onConfirm={handleSign}>
+            <Button type="primary" icon={<FileDoneOutlined />} loading={isSaving}
+              disabled={!canEditDoctor || decisionStatus === 'SIGNED'}>Ký xác nhận</Button>
+          </Popconfirm>
         </Space>
       </Card>
 
       <div style={{ maxWidth: 1480, margin: '0 auto', padding: 24 }}>
-        {!canWriteReview ? (
-          <Alert type="info" showIcon message="Chế độ chỉ xem" description="Bạn không có quyền lưu review của bệnh án này." style={{ marginBottom: 16 }} />
+        {!canEditDoctor ? (
+          <Alert type="info" showIcon message="Chế độ chỉ xem"
+            description={decisionStatus === 'SIGNED' ? 'Kết luận đã được ký và không thể chỉnh sửa.' : 'Chỉ bác sĩ tạo phiên bản AI này được lập kết luận.'}
+            style={{ marginBottom: 16 }} />
         ) : null}
         <Row gutter={[16, 16]}>
           <Col xs={24} xl={8}>
@@ -210,7 +234,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
           </Col>
 
           <Col xs={24} xl={16}>
-            <Form form={form} layout="vertical" disabled={!canWriteReview}>
+            <Form form={form} layout="vertical" disabled={!canEditDoctor || decisionStatus === 'SIGNED'}>
               <DoctorDecisionFormFields />
             </Form>
           </Col>

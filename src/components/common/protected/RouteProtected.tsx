@@ -4,7 +4,7 @@ import { Navigate, useLocation } from "react-router-dom"
 import { Spin } from "antd"
 
 /** Các role được phép dùng khu vực client ("/"). Khu vực /admin chỉ dành cho ADMIN. */
-const CLIENT_ROLES = ['USER', 'ADMIN', 'DOCTOR', 'NURSE'];
+const CLIENT_ROLES = ['USER', 'ADMIN', 'DOCTOR', 'NURSE', 'PHARMACIST'];
 
 const RoleCheck = (props) => {
     // Dùng useLocation thay vì window.location để re-render đúng khi SPA navigate.

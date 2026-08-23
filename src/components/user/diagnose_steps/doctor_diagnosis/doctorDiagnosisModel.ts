@@ -1,6 +1,6 @@
 import {
   callFetchAiRecommendationRunDetail,
-  callFetchDoctorReviewByRunId,
+  callFetchRunClinicalDecision,
 } from '@/apis/api';
 import type {
   IAiRecommendationRunDetail,
@@ -33,6 +33,9 @@ export interface DoctorDiagnosisModel {
   aiSurgery: SurgeryPlanData | null;
   previousDiagnosis?: IDoctorDiagnosis;
   previousSurgery?: SurgeryPlanData;
+  revision: number;
+  status?: 'DRAFT' | 'SIGNED';
+  canEditDoctor: boolean;
   runId: string;
 }
 
@@ -104,15 +107,22 @@ export const loadDoctorDiagnosisModel = async (
   let previousSurgery: SurgeryPlanData | undefined;
 
   try {
-    const response = await callFetchDoctorReviewByRunId(String(detail.run?.id));
-    const review = response?.data;
-    if (review) {
-      previousDiagnosis = review.doctorFinalDecision?.diagnosisJson ?? review.doctorDiagnosisJson;
-      previousSurgery = review.doctorFinalDecision?.surgeryPlanJson
-        ?? (review.modificationJson?.surgery as SurgeryPlanData | undefined);
-    }
+    const response = await callFetchRunClinicalDecision(String(detail.run?.id));
+    const decision = response?.data?.doctorDecision;
+    previousDiagnosis = decision?.diagnosisJson;
+    previousSurgery = decision?.surgeryPlanJson;
+    return {
+      systemDiagnosis,
+      aiSurgery,
+      previousDiagnosis,
+      previousSurgery,
+      revision: decision?.revision ?? 0,
+      status: decision?.status,
+      canEditDoctor: response?.data?.canEditDoctor ?? false,
+      runId: String(detail.run?.id),
+    };
   } catch {
-    // A missing review is the normal first-review state.
+    // Keep the model readable if the decision workspace has not been initialized yet.
   }
 
   return {
@@ -120,6 +130,8 @@ export const loadDoctorDiagnosisModel = async (
     aiSurgery,
     previousDiagnosis,
     previousSurgery,
+    revision: 0,
+    canEditDoctor: false,
     runId: String(detail.run?.id),
   };
 };

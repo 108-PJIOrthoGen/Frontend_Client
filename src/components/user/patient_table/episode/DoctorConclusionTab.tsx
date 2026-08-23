@@ -1,8 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Empty, Form, Select, Space, Spin, Table, Tag, message } from 'antd';
-import { CheckCircleOutlined, SaveOutlined } from '@ant-design/icons';
-import { callCreateDoctorReview, callFetchAiRecommendationRunDetail } from '@/apis/api';
-import type { IAiRecommendationRunDetail, IDoctorDiagnosis, IDoctorRecommendationReview } from '@/types/backend';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Card, Empty, Form, Popconfirm, Space, Spin, Table, Tag, Typography, message } from 'antd';
+import { CheckCircleOutlined, FileDoneOutlined, SaveOutlined, UserOutlined } from '@ant-design/icons';
+import {
+  callFetchAiRecommendationRunDetail,
+  callSaveDoctorClinicalDecision,
+  callSelectFinalClinicalDecisionRun,
+  callSignDoctorClinicalDecision,
+} from '@/apis/api';
+import type { IAiRecommendationRunDetail, IDoctorDiagnosis, IRunClinicalDecision } from '@/types/backend';
 import type { LocalPlanData, SurgeryPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
 import {
   DoctorDecisionFormFields,
@@ -11,6 +16,9 @@ import {
   type DoctorDecisionForm,
 } from '@/components/user/diagnose_steps/doctor_diagnosis/DoctorDecisionFormFields';
 import { parseItemJson } from '@/components/user/diagnose_steps/treatment_plan/utils/itemJson';
+import DecisionVersionRail from './DecisionVersionRail';
+
+const { Text } = Typography;
 
 interface AiPlanRow {
   key: string;
@@ -18,14 +26,18 @@ interface AiPlanRow {
   proposal: React.ReactNode;
 }
 
+interface DoctorConclusionTabProps {
+  episodeId?: string;
+  runs: IRunClinicalDecision[];
+  selectedRunId?: string;
+  onRunChange: (runId: string) => void;
+  onDecisionUpdated: (run: IRunClinicalDecision) => void;
+}
+
 const antibioticLabel = (antibiotic: TemplateAntibiotic): string => (
-  [
-    antibiotic.antibioticName,
-    antibiotic.dosage,
-    antibiotic.frequency,
-    antibiotic.route,
-    antibiotic.role ? `(${antibiotic.role})` : undefined,
-  ].filter(Boolean).join(' · ')
+  [antibiotic.antibioticName, antibiotic.dosage, antibiotic.frequency, antibiotic.route]
+    .filter(Boolean)
+    .join(' · ')
 );
 
 const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
@@ -43,7 +55,7 @@ const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
       key: 'surgery',
       category: 'Phẫu thuật',
       proposal: (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <strong>{surgery.surgeryStrategyType ?? 'Chưa nêu chiến lược'}</strong>
           {surgery.strategyRationale ? <span>{surgery.strategyRationale}</span> : null}
           {stages ? <span>Các giai đoạn: {stages}</span> : null}
@@ -52,35 +64,30 @@ const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
     });
   }
   if (systemic) {
-    const phases = systemic.phases?.map((phase) => (
-      <div key={`${phase.phaseOrder}-${phase.phaseName}`}>
-        <strong>{phase.phaseName}</strong>{phase.durationWeeks ? ` · ${phase.durationWeeks} tuần` : ''}
-        {phase.antibiotics?.length ? `: ${phase.antibiotics.map(antibioticLabel).join('; ')}` : ''}
-      </div>
-    ));
     rows.push({
       key: 'systemic',
       category: 'Kháng sinh toàn thân',
       proposal: (
-        <Space direction="vertical" size={0}>
-          <strong>{systemic.regimenName || systemic.title || 'Phác đồ kháng sinh toàn thân'}</strong>
-          {systemic.indication ? <span>{systemic.indication}</span> : null}
-          {phases}
+        <Space orientation="vertical" size={0}>
+          <strong>{systemic.regimenName || systemic.title}</strong>
+          {systemic.phases?.map((phase) => (
+            <span key={`${phase.phaseOrder}-${phase.phaseName}`}>
+              {phase.phaseName}{phase.durationWeeks ? ` · ${phase.durationWeeks} tuần` : ''}
+              {phase.antibiotics?.length ? `: ${phase.antibiotics.map(antibioticLabel).join('; ')}` : ''}
+            </span>
+          ))}
         </Space>
       ),
     });
   }
   if (local) {
-    const antibiotics = local.antibiotics?.map(antibioticLabel).join('; ');
     rows.push({
       key: 'local',
       category: 'Kháng sinh tại chỗ',
       proposal: (
-        <Space direction="vertical" size={0}>
-          <strong>{local.regimenName || local.title || 'Phác đồ kháng sinh tại chỗ'}</strong>
-          {local.indication ? <span>{local.indication}</span> : null}
-          {antibiotics ? <span>{antibiotics}</span> : null}
-          {local.deliveryInfo?.deliveryMethod ? <span>Cách đưa thuốc: {local.deliveryInfo.deliveryMethod}</span> : null}
+        <Space orientation="vertical" size={0}>
+          <strong>{local.regimenName || local.title}</strong>
+          {local.antibiotics?.length ? <span>{local.antibiotics.map(antibioticLabel).join('; ')}</span> : null}
         </Space>
       ),
     });
@@ -88,94 +95,61 @@ const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
   return rows;
 };
 
-interface DoctorConclusionTabProps {
-  active?: boolean;
-  episodeId?: string;
-  reviews: IDoctorRecommendationReview[];
-  selectedReviewId?: string;
-  selecting?: boolean;
-  onReviewChange: (reviewId: string) => void;
-  onReviewSaved: (review: IDoctorRecommendationReview) => void;
-  onSelectFinal: (reviewId: string) => void;
-}
-
-const reviewVersionLabel = (review: IDoctorRecommendationReview): string => {
-  const version = review.run?.runNo ?? review.run?.id ?? review.runId ?? '?';
-  return `Phiên bản AI #${version}${review.finalDecision ? ' — Kết luận cuối cùng' : ''}`;
-};
+const apiErrorMessage = (error: any, fallback: string): string => (
+  error?.response?.data?.message || fallback
+);
 
 const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
-  active,
   episodeId,
-  reviews,
-  selectedReviewId,
-  selecting,
-  onReviewChange,
-  onReviewSaved,
-  onSelectFinal,
+  runs,
+  selectedRunId,
+  onRunChange,
+  onDecisionUpdated,
 }) => {
   const [form] = Form.useForm<DoctorDecisionForm>();
   const [saving, setSaving] = useState(false);
+  const [signing, setSigning] = useState(false);
+  const [selecting, setSelecting] = useState(false);
   const [runDetails, setRunDetails] = useState<Record<string, IAiRecommendationRunDetail>>({});
-  const [isPlanLoading, setIsPlanLoading] = useState(false);
-  const [planLoadError, setPlanLoadError] = useState<string>();
-  const warnedEpisodeRef = useRef<string>();
+  const [loadingPlan, setLoadingPlan] = useState(false);
 
-  const review = useMemo(
-    () => reviews.find((item) => String(item.id) === selectedReviewId) ?? reviews[0],
-    [reviews, selectedReviewId],
+  const selected = useMemo(
+    () => runs.find((candidate) => String(candidate.run.id) === selectedRunId) ?? runs[0],
+    [runs, selectedRunId],
   );
-  const hasFinalDecision = reviews.some((item) => item.finalDecision);
-  const runId = review?.runId ?? review?.run?.id;
-  const runDetail = runId ? runDetails[String(runId)] : undefined;
+  const runId = selected?.run.id != null ? String(selected.run.id) : undefined;
+  const runDetail = runId ? runDetails[runId] : undefined;
   const planRows = useMemo(() => planRowsOf(runDetail), [runDetail]);
+  const doctorDecision = selected?.doctorDecision;
+  const signed = doctorDecision?.status === 'SIGNED';
 
   useEffect(() => {
-    if (!review) return;
-    const diagnosis = review.doctorFinalDecision?.diagnosisJson ?? review.doctorDiagnosisJson;
-    const surgery = review.doctorFinalDecision?.surgeryPlanJson
-      ?? (review.modificationJson?.surgery as any);
+    if (!selected) return;
     form.resetFields();
-    form.setFieldsValue(toDoctorDecisionFormValues(diagnosis, surgery));
-  }, [form, review]);
-
-  useEffect(() => {
-    const warningScope = `${episodeId ?? ''}:${reviews.map((item) => item.id).join(',')}`;
-    if (!active || !reviews.length || hasFinalDecision || warnedEpisodeRef.current === warningScope) return;
-    warnedEpisodeRef.current = warningScope;
-    message.warning('Bệnh án này chưa chọn phiên bản nào làm kết luận cuối cùng. Bạn vẫn có thể lưu chỉnh sửa trước khi chọn.');
-  }, [active, episodeId, hasFinalDecision, reviews]);
+    form.setFieldsValue(toDoctorDecisionFormValues(
+      doctorDecision?.diagnosisJson,
+      doctorDecision?.surgeryPlanJson,
+    ));
+  }, [doctorDecision, form, selected]);
 
   useEffect(() => {
     if (!runId || runDetail) return;
     let cancelled = false;
-    setIsPlanLoading(true);
-    setPlanLoadError(undefined);
-    void callFetchAiRecommendationRunDetail(String(runId))
+    setLoadingPlan(true);
+    void callFetchAiRecommendationRunDetail(runId)
       .then((response) => {
-        if (cancelled || !response?.data) return;
-        setRunDetails((current) => ({ ...current, [String(runId)]: response.data }));
+        if (!cancelled && response?.data) {
+          setRunDetails((current) => ({ ...current, [runId]: response.data }));
+        }
       })
-      .catch(() => {
-        if (!cancelled) setPlanLoadError('Không thể tải phác đồ AI của phiên bản này.');
-      })
-      .finally(() => {
-        if (!cancelled) setIsPlanLoading(false);
-      });
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setLoadingPlan(false); });
     return () => { cancelled = true; };
   }, [runDetail, runId]);
 
-  const handleSave = async () => {
-    if (!episodeId || !runId) {
-      message.error('Thiếu thông tin bệnh án hoặc phiên bản AI.');
-      return;
-    }
-    let values: DoctorDecisionForm;
-    try {
-      values = await form.validateFields();
-    } catch {
-      return;
-    }
+  const persistDraft = async (): Promise<IRunClinicalDecision | undefined> => {
+    if (!runId || !selected?.canEditDoctor) return undefined;
+    const values = await form.validateFields();
     const diagnosis: IDoctorDiagnosis = {
       pji_conclusion: values.pji_conclusion,
       infection_classification: values.infection_classification,
@@ -184,101 +158,138 @@ const DoctorConclusionTab: React.FC<DoctorConclusionTabProps> = ({
       identified_organism: values.identified_organism,
     };
     const surgery = toDoctorSurgeryPlan(values);
+    const response = await callSaveDoctorClinicalDecision(runId, {
+      diagnosisJson: diagnosis as Record<string, any>,
+      surgeryPlanJson: surgery as Record<string, any> | undefined,
+      revision: doctorDecision?.revision ?? 0,
+    });
+    if (!response?.data) throw new Error('Không nhận được dữ liệu quyết định.');
+    onDecisionUpdated(response.data);
+    return response.data;
+  };
 
+  const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await callCreateDoctorReview(episodeId, {
-        runId: Number(runId),
-        reviewStatus: review.reviewStatus ?? 'SAVED_DRAFT',
-        reviewNote: review.reviewNote,
-        rejectionReason: review.rejectionReason,
-        doctorFinalDecision: {
-          diagnosisJson: diagnosis as Record<string, any>,
-          surgeryPlanJson: surgery as Record<string, any> | undefined,
-        },
-      });
-      if (!response?.data) throw new Error('Không nhận được kết quả lưu.');
-      onReviewSaved(response.data);
-      message.success('Đã lưu kết luận bác sĩ cho phiên bản AI này.');
-    } catch {
-      message.error('Không thể lưu kết luận bác sĩ.');
+      await persistDraft();
+      message.success('Đã lưu bản nháp kết luận bác sĩ.');
+    } catch (error: any) {
+      message.error(apiErrorMessage(error, 'Không thể lưu kết luận bác sĩ.'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (!reviews.length) {
-    return <Empty description="Chưa có đánh giá bác sĩ cho các phiên bản gợi ý AI của bệnh án." />;
-  }
+  const handleSign = async () => {
+    if (!runId) return;
+    setSigning(true);
+    try {
+      const saved = await persistDraft();
+      if (!saved) return;
+      const response = await callSignDoctorClinicalDecision(runId, saved.doctorDecision?.revision ?? 0);
+      if (!response?.data) throw new Error('Không nhận được dữ liệu quyết định.');
+      onDecisionUpdated(response.data);
+      message.success('Đã ký xác nhận kết luận bác sĩ.');
+    } catch (error: any) {
+      message.error(apiErrorMessage(error, 'Không thể ký kết luận bác sĩ.'));
+    } finally {
+      setSigning(false);
+    }
+  };
+
+  const handleSelectFinal = async () => {
+    if (!episodeId || !runId) return;
+    setSelecting(true);
+    try {
+      const response = await callSelectFinalClinicalDecisionRun(episodeId, runId);
+      if (!response?.data) throw new Error('Không nhận được dữ liệu quyết định.');
+      onDecisionUpdated(response.data);
+      message.success('Đã chọn phiên bản làm phác đồ cuối cùng.');
+    } catch (error: any) {
+      message.error(apiErrorMessage(error, 'Không thể chọn phiên bản cuối cùng.'));
+    } finally {
+      setSelecting(false);
+    }
+  };
 
   return (
-    <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-      {!hasFinalDecision ? (
-        <Alert
-          type="warning"
-          showIcon
-          message="Chưa chọn kết luận cuối cùng"
-          description="Hãy rà soát và chọn một phiên bản làm kết luận cuối cùng khi phù hợp. Việc này không bắt buộc để lưu chỉnh sửa."
-        />
-      ) : null}
+    <DecisionVersionRail runs={runs} selectedRunId={runId} onRunChange={onRunChange}>
+      {selected ? (
+        <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+          <Card size="small">
+            <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Space>
+                <UserOutlined style={{ color: '#1677ff', fontSize: 20 }} />
+                <div>
+                  <Text strong>Kết luận bác sĩ · Phiên bản #{selected.run.runNo ?? selected.run.id}</Text>
+                  <div>
+                    <Text type="secondary">
+                      {doctorDecision?.author?.fullName || doctorDecision?.author?.email || 'Chưa có người lập quyết định'}
+                    </Text>
+                  </div>
+                </div>
+              </Space>
+              <Space wrap>
+                {signed ? <Tag color="green" icon={<CheckCircleOutlined />}>Đã ký · chỉ đọc</Tag> : null}
+                {selected.finalSelection ? <Tag color="green">Phác đồ cuối cùng</Tag> : null}
+                {selected.canSelectFinal && !selected.finalSelection ? (
+                  <Button loading={selecting} onClick={handleSelectFinal}>Chọn làm cuối cùng</Button>
+                ) : null}
+              </Space>
+            </Space>
+          </Card>
 
-      <Card
-        size="small"
-        style={review?.finalDecision ? { borderColor: '#22c55e', background: '#f0fdf4' } : undefined}
-      >
-        <Space wrap style={{ width: '100%', justifyContent: 'space-between' }}>
-          <Space wrap>
-            <strong>Phiên bản gợi ý AI</strong>
-            <Select
-              value={String(review.id)}
-              style={{ width: 'min(100%, 360px)', minWidth: 0 }}
-              options={reviews.map((item) => ({ value: String(item.id), label: reviewVersionLabel(item) }))}
-              onChange={onReviewChange}
+          {!selected.canEditDoctor && !signed ? (
+            <Alert
+              type="info"
+              showIcon
+              title="Chế độ chỉ xem"
+              description={doctorDecision
+                ? 'Quyết định này thuộc một bác sĩ khác.'
+                : 'Chỉ bác sĩ đã tạo phiên bản AI này mới được lập kết luận.'}
             />
-          </Space>
-          {review.finalDecision ? (
-            <Tag color="green" icon={<CheckCircleOutlined />}>Kết luận cuối cùng đang được chọn</Tag>
-          ) : (
-            <Button type="primary" loading={selecting} onClick={() => onSelectFinal(String(review.id))}>
-              Chọn làm kết luận cuối cùng
-            </Button>
-          )}
+          ) : null}
+
+          <Card title="Phác đồ AI đề xuất cho phiên bản này" size="small">
+            <Spin spinning={loadingPlan}>
+              {planRows.length ? (
+                <Table<AiPlanRow>
+                  size="small"
+                  pagination={false}
+                  rowKey="key"
+                  columns={[
+                    { title: 'Hạng mục', dataIndex: 'category', width: 210 },
+                    { title: 'AI đề xuất', dataIndex: 'proposal' },
+                  ]}
+                  dataSource={planRows}
+                />
+              ) : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Chưa có dữ liệu phác đồ AI." />}
+            </Spin>
+          </Card>
+
+          <fieldset disabled={!selected.canEditDoctor || signed} style={{ border: 0, padding: 0, margin: 0 }}>
+            <Form form={form} layout="vertical">
+              <DoctorDecisionFormFields />
+            </Form>
+          </fieldset>
+
+          {selected.canEditDoctor && !signed ? (
+            <Space wrap style={{ width: '100%', justifyContent: 'flex-end' }}>
+              <Button icon={<SaveOutlined />} loading={saving} onClick={handleSave}>Lưu nháp</Button>
+              <Popconfirm
+                title="Ký xác nhận kết luận?"
+                description="Sau khi ký, nội dung sẽ bị khóa và không thể chỉnh sửa trực tiếp."
+                okText="Ký xác nhận"
+                cancelText="Hủy"
+                onConfirm={handleSign}
+              >
+                <Button type="primary" icon={<FileDoneOutlined />} loading={signing}>Ký xác nhận</Button>
+              </Popconfirm>
+            </Space>
+          ) : null}
         </Space>
-      </Card>
-
-      <Card
-        title="Phác đồ AI đề xuất cho phiên bản này"
-        size="small"
-        extra={review?.run?.runNo ? <Tag color="blue">Phiên bản AI #{review.run.runNo}</Tag> : undefined}
-      >
-        {isPlanLoading ? (
-          <div style={{ minHeight: 120, display: 'grid', placeItems: 'center' }}><Spin tip="Đang tải phác đồ AI..." /></div>
-        ) : planLoadError ? (
-          <Alert type="warning" showIcon message={planLoadError} />
-        ) : planRows.length ? (
-          <Table<AiPlanRow>
-            size="small"
-            pagination={false}
-            rowKey="key"
-            columns={[
-              { title: 'Hạng mục', dataIndex: 'category', width: 220 },
-              { title: 'AI đề xuất', dataIndex: 'proposal' },
-            ]}
-            dataSource={planRows}
-          />
-        ) : (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Phiên bản này chưa có dữ liệu phác đồ AI." />
-        )}
-      </Card>
-
-      <Form form={form} layout="vertical">
-        <DoctorDecisionFormFields />
-      </Form>
-
-      <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={handleSave}>
-        Lưu kết luận bác sĩ cho phiên bản này
-      </Button>
-    </Space>
+      ) : null}
+    </DecisionVersionRail>
   );
 };
 

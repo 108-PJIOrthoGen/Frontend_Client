@@ -5,6 +5,7 @@ import {
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
     IDoctorRecommendationReview, IRuleBasedDiagnosticResult,
+    IClinicalDecisionWorkspace, IRunClinicalDecision,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
 
@@ -431,6 +432,62 @@ export const callSelectFinalDecisionVersion = (
     reviewId: string,
 ): Promise<IBackendRes<IDoctorRecommendationReview>> => {
     return instance.put(`/api/v1/episodes/${episodeId}/doctor-reviews/${reviewId}/final-decision`);
+}
+
+export const callFetchClinicalDecisionWorkspace = (
+    episodeId: string,
+): Promise<IBackendRes<IClinicalDecisionWorkspace>> => {
+    return instance.get(`/api/v1/episodes/${episodeId}/clinical-decisions/workspace`);
+}
+
+export const callFetchRunClinicalDecision = (
+    runId: string,
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.get(`/api/v1/ai-recommendations/runs/${runId}/clinical-decisions`);
+}
+
+export const callSaveDoctorClinicalDecision = (
+    runId: string,
+    data: {
+        diagnosisJson: Record<string, any>;
+        surgeryPlanJson?: Record<string, any>;
+        revision: number;
+    },
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.put(`/api/v1/ai-recommendations/runs/${runId}/doctor-decision`, data);
+}
+
+export const callSignDoctorClinicalDecision = (
+    runId: string,
+    revision: number,
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.post(`/api/v1/ai-recommendations/runs/${runId}/doctor-decision/sign`, { revision });
+}
+
+export const callSavePharmacistClinicalDecision = (
+    runId: string,
+    data: {
+        systemicAntibioticPlanJson?: Record<string, any>;
+        localAntibioticPlanJson?: Record<string, any>;
+        notes?: string;
+        revision: number;
+    },
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.put(`/api/v1/ai-recommendations/runs/${runId}/pharmacist-decision`, data);
+}
+
+export const callSignPharmacistClinicalDecision = (
+    runId: string,
+    revision: number,
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.post(`/api/v1/ai-recommendations/runs/${runId}/pharmacist-decision/sign`, { revision });
+}
+
+export const callSelectFinalClinicalDecisionRun = (
+    episodeId: string,
+    runId: string,
+): Promise<IBackendRes<IRunClinicalDecision>> => {
+    return instance.put(`/api/v1/episodes/${episodeId}/clinical-decisions/final-run/${runId}`);
 }
 
 /**

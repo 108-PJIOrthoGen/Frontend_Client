@@ -47,17 +47,8 @@ export function buildTestCandidate(
   const alias = findTestAlias(test);
   const extractedValue = test.value == null ? '' : String(test.value);
 
-  if (!alias) {
-    return {
-      id: nextExtractId(),
-      sourceName: test.sourceName,
-      extractedValue,
-      unit: test.unit ?? undefined,
-      referenceRange: test.referenceRange ?? undefined,
-      confidence: 'low',
-      selected: false,
-      conflict: false,
-    };
+  if (!alias || alias.targetId === 'fa_1' || alias.targetGroup === 'cultureResults') {
+    return undefined;
   }
 
   const target = getTestItem(form, alias.targetGroup, alias.targetId);

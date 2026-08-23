@@ -5,6 +5,11 @@ export const TREATMENT_REVIEW_WRITE_PERMISSION = {
   apiPath: '/api/v1/episodes/{episodeId}/doctor-reviews',
 };
 
+export const EPISODE_AGGREGATE_WRITE_PERMISSION = {
+  method: 'PUT',
+  apiPath: '/api/v1/episodes/{id}/full',
+};
+
 export const hasPermission = (
   permissions: IPermission[] | undefined,
   target: { method: string; apiPath: string },

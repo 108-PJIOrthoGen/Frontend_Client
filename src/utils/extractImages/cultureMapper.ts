@@ -120,16 +120,29 @@ export function buildCultureCandidate(
 
   const organismName = inferCultureOrganismName(culture);
   const result = getCultureResult(culture);
+  const normalizedRes = normalizeCultureResult(result, organismName);
+  const displayStatus =
+    normalizedRes === 'POSITIVE'
+      ? 'Dương tính'
+      : normalizedRes === 'NO_GROWTH'
+        ? 'Âm tính'
+        : normalizedRes === 'PENDING'
+          ? 'Đang chờ'
+          : normalizedRes || result || '';
+
+  const extractedValue = organismName
+    ? `${organismName}${displayStatus ? ` (${displayStatus})` : ''}`
+    : (displayStatus || 'Cấy khuẩn');
 
   return {
     id: nextExtractId(),
     sourceName: getCultureSourceName(culture),
     targetGroup: 'cultureResults',
-    targetLabel: 'Ket qua cay',
+    targetLabel: 'Kết quả cấy',
     sourceIndex,
-    extractedValue: [organismName, result].filter(Boolean).join(' / '),
+    extractedValue,
     confidence: organismName ? 'high' : 'medium',
-    selected: !!organismName,
+    selected: !!organismName || normalizedRes === 'POSITIVE' || normalizedRes === 'NO_GROWTH',
     conflict: false,
   };
 }
@@ -147,14 +160,14 @@ export function applyCultureCandidate(
       );
   if (!cultureSource) return cultureResults;
 
-  const organismName = inferCultureOrganismName(cultureSource);
+  const organismName = inferCultureOrganismName(cultureSource) || '';
   const cultureResult = getCultureResult(cultureSource);
   const cultureRecord = cultureSource as unknown as Record<string, unknown>;
   const cultureSample = {
     _tempId: candidate.id,
     name: organismName,
-    result: normalizeCultureResult(cultureResult, organismName),
-    gramType: normalizeGramType(getCultureGramType(cultureSource)),
+    result: normalizeCultureResult(cultureResult, organismName) || 'POSITIVE',
+    gramType: normalizeGramType(getCultureGramType(cultureSource)) || '',
     incubationDays: getNumberField(cultureRecord, ['incubationDays', 'incubation_days']),
     antibioticed: getBooleanField(cultureRecord, [
       'antibioticed',
@@ -167,10 +180,11 @@ export function applyCultureCandidate(
       'daysOffAntibiotic',
       'days_off_antibiotic',
     ]) ?? 0,
-    notes: getCultureNotes(cultureSource),
+    notes: getCultureNotes(cultureSource) || '',
   };
-  const blankSampleIndex = cultureResults.findIndex(isBlankCultureSample);
 
+  // 1. Try filling a blank sample first
+  const blankSampleIndex = cultureResults.findIndex(isBlankCultureSample);
   if (blankSampleIndex !== -1) {
     return cultureResults.map((sample, index) =>
       index === blankSampleIndex
@@ -184,6 +198,26 @@ export function applyCultureCandidate(
     );
   }
 
+  // 2. Check if a sample with the same organism already exists (avoid duplicate rows)
+  if (organismName) {
+    const existingOrgIndex = cultureResults.findIndex(
+      (s) => normalizeText(s.name || '') === normalizeText(organismName),
+    );
+    if (existingOrgIndex !== -1) {
+      return cultureResults.map((sample, index) =>
+        index === existingOrgIndex
+          ? {
+            ...sample,
+            ...cultureSample,
+            _tempId: sample._tempId || cultureSample._tempId,
+            sampleNumber: sample.sampleNumber ?? index + 1,
+          }
+          : sample,
+      );
+    }
+  }
+
+  // 3. Otherwise append new sample
   return [
     ...cultureResults,
     {
@@ -193,11 +227,65 @@ export function applyCultureCandidate(
   ];
 }
 
+function getCultureIdentityKey(culture: ExtractedCultureValue): string {
+  const organism = normalizeText(inferCultureOrganismName(culture) || '');
+  if (organism) {
+    return `org:${organism}`;
+  }
+  const result = normalizeText(getCultureResult(culture) || '');
+  const source = normalizeText(getCultureSourceName(culture) || '');
+  return `res:${result || 'unknown'}_${source}`;
+}
+
+function mergeCultureEntries(
+  target: ExtractedCultureValue,
+  source: ExtractedCultureValue,
+): ExtractedCultureValue {
+  const targetRecord = asRecord(target);
+  const sourceRecord = asRecord(source);
+
+  const organismName =
+    target.organismName ||
+    source.organismName ||
+    inferCultureOrganismName(target) ||
+    inferCultureOrganismName(source);
+
+  const rawResult = target.result || source.result;
+  const normalizedRes = normalizeCultureResult(rawResult, organismName);
+
+  return {
+    ...target,
+    ...source,
+    sourceName: target.sourceName || source.sourceName || 'Cấy khuẩn',
+    organismName: organismName || undefined,
+    result: normalizedRes || rawResult || undefined,
+    gramType: target.gramType || source.gramType || undefined,
+    incubationDays:
+      target.incubationDays ??
+      source.incubationDays ??
+      getNumberField(targetRecord, ['incubationDays', 'incubation_days']) ??
+      getNumberField(sourceRecord, ['incubationDays', 'incubation_days']),
+    antibioticed:
+      target.antibioticed ??
+      source.antibioticed ??
+      getBooleanField(targetRecord, ['antibioticed', 'usedAntibioticBefore', 'used_antibiotic_before']) ??
+      getBooleanField(sourceRecord, ['antibioticed', 'usedAntibioticBefore', 'used_antibiotic_before']),
+    daysOffAntibio:
+      target.daysOffAntibio ??
+      source.daysOffAntibio ??
+      getNumberField(targetRecord, ['daysOffAntibio', 'days_off_antibio', 'daysOffAntibiotic', 'days_off_antibiotic']) ??
+      getNumberField(sourceRecord, ['daysOffAntibio', 'days_off_antibio', 'daysOffAntibiotic', 'days_off_antibiotic']),
+    notes: [target.notes, source.notes].filter(Boolean).join('; ') || undefined,
+  };
+}
+
 export function extractCulturesFromTemplate(
   obj: Record<string, unknown>,
   tests: ExtractedTestValue[] = [],
 ): ExtractedCultureValue[] {
-  const out: ExtractedCultureValue[] = [];
+  const rawList: ExtractedCultureValue[] = [];
+
+  // 1. Check explicit culture results / cultures array
   const cultureRoot = (obj.culture_results || obj.cultures) as Record<string, unknown> | undefined;
   if (cultureRoot) {
     const items = Array.isArray(cultureRoot)
@@ -207,8 +295,8 @@ export function extractCulturesFromTemplate(
         : Object.values(cultureRoot);
     for (const item of items) {
       if (!isRecord(item)) continue;
-      out.push({
-        sourceName: (item.sample_name || item.sourceName || item.test || item.name || 'Cay khuan') as string,
+      rawList.push({
+        sourceName: (item.sample_name || item.sourceName || item.test || item.name || 'Cấy khuẩn') as string,
         result: (item.result || item.value || item.status) as string | undefined,
         organismName: (item.organismName || item.organism || item.organism_name) as string | undefined,
         gramType: (item.gramType || item.gram || item.gram_type) as string | undefined,
@@ -231,6 +319,7 @@ export function extractCulturesFromTemplate(
     }
   }
 
+  // 2. Check abnormal flags summary POSITIVE_CULTURE
   const abnormalPositiveCultures = (obj.abnormal_flags_summary as Record<string, unknown> | undefined)
     ?.POSITIVE_CULTURE;
   if (Array.isArray(abnormalPositiveCultures)) {
@@ -238,8 +327,8 @@ export function extractCulturesFromTemplate(
       if (!isRecord(item)) continue;
       const organismName = getStringField(item, ['organism', 'organism_name', 'organismName']);
       if (!organismName) continue;
-      out.push({
-        sourceName: getStringField(item, ['test', 'test_name', 'sourceName']) || 'Cay khuan',
+      rawList.push({
+        sourceName: getStringField(item, ['test', 'test_name', 'sourceName']) || 'Cấy khuẩn',
         result: 'POSITIVE',
         organismName,
         notes: getStringField(item, ['notes', 'note']),
@@ -247,16 +336,31 @@ export function extractCulturesFromTemplate(
     }
   }
 
+  // 3. Check tests matching CULTURE_CONTEXT_RE (only if value exists)
   for (const test of tests) {
+    if (!hasExtractedValue(test.value)) continue;
     const normalized = normalizeText(`${test.sourceName} ${test.groupName || ''}`);
     if (!CULTURE_CONTEXT_RE.test(normalized)) continue;
-    out.push({
+    rawList.push({
       sourceName: test.sourceName,
-      result: test.value == null ? undefined : String(test.value),
+      result: String(test.value),
       notes: test.groupName,
     });
   }
-  return out;
+
+  // 4. Deduplicate and merge by culture identity key
+  const deduplicatedMap = new Map<string, ExtractedCultureValue>();
+  for (const raw of rawList) {
+    const key = getCultureIdentityKey(raw);
+    const existing = deduplicatedMap.get(key);
+    if (existing) {
+      deduplicatedMap.set(key, mergeCultureEntries(existing, raw));
+    } else {
+      deduplicatedMap.set(key, normalizeCultureValue(raw));
+    }
+  }
+
+  return Array.from(deduplicatedMap.values());
 }
 
 export function normalizeCultureValue(culture: ExtractedCultureValue): ExtractedCultureValue {

@@ -18,14 +18,15 @@ import {
     ISurgery,
     IPatient,
     IEpisodeFullRequest,
-    IDoctorRecommendationReview,
+    IClinicalDecisionWorkspace,
+    IRunClinicalDecision,
+    IPermission,
 } from '@/types/backend';
 import {
     callFetchEpisodeFull,
     callCreateEpisodeFull,
     callUpdateEpisodeFull,
-    callFetchDoctorReviewsByEpisode,
-    callSelectFinalDecisionVersion,
+    callFetchClinicalDecisionWorkspace,
 } from '@/apis/api';
 import { useClinicForm, useAppDispatch, useAppSelector } from '@/redux/hook';
 import { resetClinicForm } from '@/redux/features/patients/patientSlice';
@@ -36,6 +37,10 @@ import EpisodeLockBanner from './EpisodeLockBanner';
 import { episodeToFormData, formDataToEpisodeRequest } from '@/utils/apiToForm';
 import { ClinicalAssessmentPage } from './ClinicalAssessment';
 import { BIOCHEM_ID_TO_BACKEND_KEY } from '@/constants/canonicalLabRegistry';
+import {
+    EPISODE_AGGREGATE_WRITE_PERMISSION,
+    hasPermission,
+} from '@/components/user/diagnose_steps/treatment_plan/utils/permissions';
 
 interface MedicalExamDetailProps {
     open: boolean;
@@ -43,7 +48,7 @@ interface MedicalExamDetailProps {
     examData: IEpisode | null;
     patientId?: string;
     patient?: IPatient | null;
-    /** Tab key to pre-select when opened (e.g. '6' for pending-lab follow-up). */
+    /** Tab key to pre-select when opened (e.g. '4' for pending-lab follow-up). */
     initialTab?: string;
 }
 
@@ -63,15 +68,17 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const [sensitivityMap, setSensitivityMap] = useState<Record<string, ISensitivityResult[]>>({});
     const [medicalHistory, setMedicalHistory] = useState<IMedicalHistory | null>(null);
     const [surgeries, setSurgeries] = useState<ISurgery[]>([]);
-    const [reviews, setReviews] = useState<IDoctorRecommendationReview[]>([]);
-    const [selectedReviewId, setSelectedReviewId] = useState<string>();
-    const [selectingFinal, setSelectingFinal] = useState(false);
+    const [decisionWorkspace, setDecisionWorkspace] = useState<IClinicalDecisionWorkspace>();
+    const [selectedRunId, setSelectedRunId] = useState<string>();
 
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
     const antibioticsRef = useRef<Record<string, AntibioticRow[]>>({});
     const { form } = useClinicForm();
     const dispatch = useAppDispatch();
+    const currentUser = useAppSelector((state) => state.account.user);
+    const permissions = currentUser.role.permissions as IPermission[] | undefined;
+    const canEditEpisode = hasPermission(permissions, EPISODE_AGGREGATE_WRITE_PERMISSION);
 
     // Pending lab/clinical tasks for THIS episode drive the follow-up tab and
     // its label badge. The list holds PENDING + FULFILLED, so we count only the
@@ -85,7 +92,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
 
     // Redis soft-lock — only locks existing episodes. New ones (no id yet)
     // are local-only until the first save, so locking would be premature.
-    const lock = useEpisodeLock(examData?.id ?? null, open && !!examData?.id);
+    const lock = useEpisodeLock(examData?.id ?? null, open && !!examData?.id && canEditEpisode);
     const isReadOnly = lock.status === 'busy';
     const isLockBlocking = lock.status === 'busy' || lock.status === 'acquiring';
 
@@ -126,8 +133,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         setSensitivityMap({});
         setMedicalHistory(null);
         setSurgeries([]);
-        setReviews([]);
-        setSelectedReviewId(undefined);
+        setDecisionWorkspace(undefined);
+        setSelectedRunId(undefined);
         dispatch(resetClinicForm());
     };
 
@@ -137,9 +144,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         try {
             // One transactional read of the whole aggregate — replaces the former
             // 6 + N (per-culture sensitivity) fan-out.
-            const [episodeResult, reviewsResult] = await Promise.allSettled([
+            const [episodeResult, workspaceResult] = await Promise.allSettled([
                 callFetchEpisodeFull(episodeId),
-                callFetchDoctorReviewsByEpisode(episodeId),
+                callFetchClinicalDecisionWorkspace(episodeId),
             ]);
             if (requestId !== latestFetchRequestRef.current) {
                 return;
@@ -156,13 +163,27 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             setCultureResults(data.cultureResults ?? []);
             setImageResults(data.imageResults ?? []);
             setSensitivityMap(data.sensitivityMap ?? {});
+            antibioticsRef.current = Object.fromEntries(
+                Object.entries(data.sensitivityMap ?? {}).map(([cultureId, sensitivities]) => [
+                    cultureId,
+                    sensitivities.map((sensitivity) => ({
+                        id: sensitivity.id != null ? String(sensitivity.id) : undefined,
+                        name: sensitivity.antibioticName ?? '',
+                        mic: sensitivity.micValue ?? '',
+                        interpretation: sensitivity.sensitivityCode ?? '',
+                        notes: '',
+                    })),
+                ]),
+            );
             setMedicalHistory(data.medicalHistory ?? null);
             setSurgeries(data.surgeries ?? []);
-            if (reviewsResult.status === 'fulfilled') {
-                const reviewItems = reviewsResult.value?.data ?? [];
-                setReviews(reviewItems);
-                const selected = reviewItems.find((review) => review.finalDecision) ?? reviewItems[0];
-                setSelectedReviewId(selected?.id != null ? String(selected.id) : undefined);
+            if (workspaceResult.status === 'fulfilled' && workspaceResult.value?.data) {
+                const workspace = workspaceResult.value.data;
+                setDecisionWorkspace(workspace);
+                const selected = workspace.runs.find((run) => run.finalSelection)
+                    ?? workspace.runs.find((run) => run.run.status === 'SUCCESS' || run.run.status === 'PARTIAL')
+                    ?? workspace.runs[0];
+                setSelectedRunId(selected?.run.id != null ? String(selected.run.id) : undefined);
             }
         } catch {
             if (requestId !== latestFetchRequestRef.current) {
@@ -176,36 +197,31 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         }
     };
 
-    const handleSelectFinalDecision = async (reviewId: string) => {
-        if (!examData?.id) return;
-        setSelectingFinal(true);
-        try {
-            const response = await callSelectFinalDecisionVersion(String(examData.id), reviewId);
-            const selected = response?.data;
-            setReviews((current) => current.map((review) => (
-                String(review.id) === reviewId
-                    ? { ...review, ...selected, finalDecision: true }
-                    : { ...review, finalDecision: false }
-            )));
-            setSelectedReviewId(reviewId);
-            message.success('Đã chọn final decision cho bệnh án.');
-        } catch {
-            message.error('Không thể chọn version final decision.');
-        } finally {
-            setSelectingFinal(false);
-        }
-    };
-
-    const handleReviewSaved = (savedReview: IDoctorRecommendationReview) => {
-        const savedId = String(savedReview.id);
-        setReviews((current) => current.map((review) => (
-            String(review.id) === savedId ? savedReview : review
-        )));
-        setSelectedReviewId(savedId);
+    const handleDecisionUpdated = (updatedRun: IRunClinicalDecision) => {
+        const updatedRunId = String(updatedRun.run.id);
+        setDecisionWorkspace((current) => {
+            if (!current) return current;
+            const runs = current.runs.map((run) => {
+                if (String(run.run.id) === updatedRunId) return updatedRun;
+                return updatedRun.finalSelection ? { ...run, finalSelection: false } : run;
+            });
+            return {
+                ...current,
+                finalRunId: updatedRun.finalSelection && updatedRun.run.id != null
+                    ? Number(updatedRun.run.id)
+                    : current.finalRunId,
+                runs,
+            };
+        });
+        setSelectedRunId(updatedRunId);
     };
 
     const handleSave = async () => {
         if (saving) return;
+        if (!canEditEpisode) {
+            message.warning('Bạn không có quyền cập nhật dữ liệu bệnh án.');
+            return;
+        }
         if (isLockBlocking) {
             message.warning('Bệnh án đang được người khác chỉnh sửa, không thể lưu.');
             return;
@@ -364,15 +380,22 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         }
     };
 
-    const finalReview = reviews.find((review) => review.finalDecision);
-    const selectedFinalRunId = finalReview?.run?.id ?? finalReview?.runId;
+    const decisionRuns = decisionWorkspace?.runs ?? [];
+    const episodeLockedSurface = (children: React.ReactNode) => (
+        <fieldset
+            disabled={isReadOnly}
+            style={isReadOnly ? { opacity: 0.65, pointerEvents: 'none', border: 0, padding: 0, margin: 0 } : { border: 0, padding: 0, margin: 0 }}
+        >
+            {children}
+        </fieldset>
+    );
 
     const tabItems = [
         {
             key: '1',
             label: 'Quản lý người bệnh',
             forceRender: true,
-            children: (
+            children: episodeLockedSurface(
                 <MedicalExamination
                     ref={examinationRef}
                     mode="standalone"
@@ -385,7 +408,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             key: '2',
             label: 'Tiền sử bệnh',
             forceRender: true,
-            children: (
+            children: episodeLockedSurface(
                 <MedicalHistoryPage
 
                     medicalHistoryData={medicalHistory}
@@ -397,7 +420,7 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             key: '3',
             label: 'Lâm sàng & CLS',
             forceRender: true,
-            children: (
+            children: episodeLockedSurface(
                 <ClinicalAssessmentPage
 
                     labResults={labResults}
@@ -409,41 +432,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 />
             ),
         },
-        {
-            key: '4',
-            label: 'Kết luận bác sĩ',
-            forceRender: true,
-            children: (
-                <DoctorConclusionTab
-                    active={activeTab === '4'}
-                    episodeId={examData?.id}
-                    reviews={reviews}
-                    selectedReviewId={selectedReviewId}
-                    selecting={selectingFinal}
-                    onReviewChange={setSelectedReviewId}
-                    onReviewSaved={handleReviewSaved}
-                    onSelectFinal={handleSelectFinalDecision}
-                />
-            ),
-        },
-        {
-            key: '5',
-            label: 'Kháng sinh đồ',
-            forceRender: true,
-            children: (
-                <AntibiogramAiVersionTab
-                    episodeId={examData?.id}
-                    loadAi={activeTab === '5'}
-                    preferredRunId={selectedFinalRunId}
-                    cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults}
-                    sensitivityMap={sensitivityMap}
-                    onAntibioticsChange={(data) => { antibioticsRef.current = data; }}
-                />
-            ),
-        },
         ...(examData?.id
             ? [{
-                key: '6',
+                key: '4',
                 label: (
                     <span className="flex items-center gap-2">
                         Xét nghiệm chờ bổ sung
@@ -451,11 +442,42 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                     </span>
                 ),
                 forceRender: true,
-                children: (
+                children: episodeLockedSurface(
                     <PendingLabTasksTab episodeId={examData?.id} />
                 ),
             }]
             : []),
+
+        {
+            key: '5',
+            label: 'Kháng sinh & dược lâm sàng',
+            forceRender: true,
+            children: (
+                <AntibiogramAiVersionTab
+                    episodeId={examData?.id}
+                    runs={decisionRuns}
+                    selectedRunId={selectedRunId}
+                    onRunChange={setSelectedRunId}
+                    onDecisionUpdated={handleDecisionUpdated}
+                    cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults}
+                    sensitivityMap={sensitivityMap}
+                />
+            ),
+        }, {
+            key: '6',
+            label: 'Kết luận bác sĩ',
+            forceRender: true,
+            children: (
+                <DoctorConclusionTab
+                    episodeId={examData?.id}
+                    runs={decisionRuns}
+                    selectedRunId={selectedRunId}
+                    onRunChange={setSelectedRunId}
+                    onDecisionUpdated={handleDecisionUpdated}
+                />
+            ),
+        },
+
     ];
 
     return (
@@ -473,43 +495,41 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             footer={
                 <div className="flex justify-end gap-3 py-2">
                     <Button onClick={onClose} disabled={saving}>Đóng</Button>
-                    <Button
-                        type="primary"
-                        icon={<SaveOutlined />}
-                        onClick={handleSave}
-                        loading={saving}
-                        disabled={loading || saving || isLockBlocking}
-                    >
-                        Lưu bệnh án
-                    </Button>
+                    {canEditEpisode ? (
+                        <Button
+                            type="primary"
+                            icon={<SaveOutlined />}
+                            onClick={handleSave}
+                            loading={saving}
+                            disabled={loading || saving || isLockBlocking}
+                        >
+                            Lưu bệnh án
+                        </Button>
+                    ) : null}
                 </div>
             }
         >
-            <EpisodeLockBanner
-                status={lock.status}
-                heldBy={lock.heldBy}
-                ttlSeconds={lock.ttlSeconds}
-                message={lock.message}
-                onRetry={lock.retry}
-            />
+            {canEditEpisode ? (
+                <EpisodeLockBanner
+                    status={lock.status}
+                    heldBy={lock.heldBy}
+                    ttlSeconds={lock.ttlSeconds}
+                    message={lock.message}
+                    onRetry={lock.retry}
+                />
+            ) : null}
             {loading ? (
                 <div className="flex items-center justify-center h-64">
                     <Spin size="large" tip="Đang tải dữ liệu bệnh án..." />
                 </div>
             ) : (
-                <fieldset
-                    disabled={isReadOnly}
-                    style={isReadOnly ? { opacity: 0.65, pointerEvents: 'none' } : undefined}
-                    className="border-0 p-0 m-0"
-                >
-                    <Tabs
-                        activeKey={activeTab}
-                        onChange={setActiveTab}
-                        items={tabItems}
-                        type="card"
-                        className="medical-exam-tabs"
-                    />
-                </fieldset>
+                <Tabs
+                    activeKey={activeTab}
+                    onChange={setActiveTab}
+                    items={tabItems}
+                    type="card"
+                    className="medical-exam-tabs"
+                />
             )}
         </Drawer>
     );

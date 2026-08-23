@@ -468,6 +468,56 @@ export interface IAiRecommendationRunDetail {
     citations?: IAiRagCitation[];
 }
 
+export type ClinicalDecisionStatus = 'DRAFT' | 'SIGNED';
+
+export interface IClinicalDecisionActor {
+    userId?: number;
+    fullName?: string;
+    email?: string;
+}
+
+export interface IDoctorClinicalDecision {
+    id?: number;
+    status: ClinicalDecisionStatus;
+    author?: IClinicalDecisionActor;
+    diagnosisJson?: IDoctorDiagnosis;
+    surgeryPlanJson?: import('./treatmentType').SurgeryPlanData;
+    signedAt?: string;
+    revision: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IPharmacistClinicalDecision {
+    id?: number;
+    status: ClinicalDecisionStatus;
+    author?: IClinicalDecisionActor;
+    systemicAntibioticPlanJson?: import('./treatmentType').SystemicPlanData;
+    localAntibioticPlanJson?: import('./treatmentType').LocalPlanData;
+    notes?: string;
+    signedAt?: string;
+    revision: number;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface IRunClinicalDecision {
+    run: IAiRecommendationRun;
+    doctorDecision?: IDoctorClinicalDecision;
+    pharmacistDecision?: IPharmacistClinicalDecision;
+    finalSelection: boolean;
+    eligibleForFinal: boolean;
+    canEditDoctor: boolean;
+    canEditPharmacist: boolean;
+    canSelectFinal: boolean;
+}
+
+export interface IClinicalDecisionWorkspace {
+    episodeId: number;
+    finalRunId?: number;
+    runs: IRunClinicalDecision[];
+}
+
 export interface IDoctorRecommendationReview {
     id?: string;
     episode?: IEpisode;

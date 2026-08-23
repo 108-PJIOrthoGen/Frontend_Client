@@ -103,6 +103,15 @@ export const ALL_PERMISSIONS = {
         GET_FINAL_DECISION: { method: "GET", apiPath: '/api/v1/episodes/{episodeId}/doctor-reviews/final-decision', module: "DOCTOR_REVIEWS" },
         SELECT_FINAL_DECISION: { method: "PUT", apiPath: '/api/v1/episodes/{episodeId}/doctor-reviews/{reviewId}/final-decision', module: "DOCTOR_REVIEWS" },
     },
+    CLINICAL_DECISIONS: {
+        GET_WORKSPACE: { method: "GET", apiPath: '/api/v1/episodes/{episodeId}/clinical-decisions/workspace', module: "CLINICAL_DECISIONS" },
+        GET_RUN: { method: "GET", apiPath: '/api/v1/ai-recommendations/runs/{runId}/clinical-decisions', module: "CLINICAL_DECISIONS" },
+        SAVE_DOCTOR: { method: "PUT", apiPath: '/api/v1/ai-recommendations/runs/{runId}/doctor-decision', module: "CLINICAL_DECISIONS" },
+        SIGN_DOCTOR: { method: "POST", apiPath: '/api/v1/ai-recommendations/runs/{runId}/doctor-decision/sign', module: "CLINICAL_DECISIONS" },
+        SAVE_PHARMACIST: { method: "PUT", apiPath: '/api/v1/ai-recommendations/runs/{runId}/pharmacist-decision', module: "CLINICAL_DECISIONS" },
+        SIGN_PHARMACIST: { method: "POST", apiPath: '/api/v1/ai-recommendations/runs/{runId}/pharmacist-decision/sign', module: "CLINICAL_DECISIONS" },
+        SELECT_FINAL: { method: "PUT", apiPath: '/api/v1/episodes/{episodeId}/clinical-decisions/final-run/{runId}', module: "CLINICAL_DECISIONS" },
+    },
     PENDING_LAB_TASKS: {
         GET_MY: { method: "GET", apiPath: '/api/v1/pending-lab-tasks/my', module: "PENDING_LAB_TASKS" },
         GET_MY_COUNT: { method: "GET", apiPath: '/api/v1/pending-lab-tasks/my/count', module: "PENDING_LAB_TASKS" },

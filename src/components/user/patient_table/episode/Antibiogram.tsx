@@ -45,6 +45,7 @@ interface StepProps {
   cultureResults?: CultureItem[];
   sensitivityMap?: Record<string, ISensitivityResult[]>;
   onAntibioticsChange?: (data: Record<string, AntibioticRow[]>) => void;
+  readOnly?: boolean;
 }
 
 const emptyRow: AntibioticRow = { name: '', mic: '', interpretation: '', notes: '' };
@@ -61,6 +62,7 @@ export const Antibiogram: React.FC<StepProps> = ({
   cultureResults,
   sensitivityMap,
   onAntibioticsChange,
+  readOnly = false,
 }) => {
   const [form] = Form.useForm<{ antibiotics: AntibioticRow[] }>();
   const [activeCultureKey, setActiveCultureKey] = useState<string>('');
@@ -127,6 +129,7 @@ export const Antibiogram: React.FC<StepProps> = ({
   };
 
   const handleValuesChange = () => {
+    if (readOnly) return;
     const values = form.getFieldsValue();
     mapRef.current[activeCultureKey] = values.antibiotics || [];
     onAntibioticsChange?.({ ...mapRef.current });
@@ -209,6 +212,7 @@ export const Antibiogram: React.FC<StepProps> = ({
                 <Form
                   form={form}
                   layout="vertical"
+                  disabled={readOnly}
                   onValuesChange={handleValuesChange}
                   initialValues={{ antibiotics: [{ ...emptyRow }] }}
                 >
@@ -221,7 +225,7 @@ export const Antibiogram: React.FC<StepProps> = ({
                           </th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32 text-center">MIC (ug/mL)</th>
                           <th className="px-4 py-3 border-r border-slate-200 w-32 text-center">Biện luận</th>
-                          <th className="px-4 py-3 text-center w-24">Hành động</th>
+                          {!readOnly && <th className="px-4 py-3 text-center w-24">Hành động</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
@@ -271,7 +275,7 @@ export const Antibiogram: React.FC<StepProps> = ({
                                       />
                                     </Form.Item>
                                   </td>
-                                  <td className="px-4 py-2 text-center">
+                                  {!readOnly && <td className="px-4 py-2 text-center">
                                     <Button
                                       type="link"
                                       danger
@@ -280,17 +284,17 @@ export const Antibiogram: React.FC<StepProps> = ({
                                     >
                                       Xóa
                                     </Button>
-                                  </td>
+                                  </td>}
                                 </tr>
                               ))}
-                              <tr
+                              {!readOnly && <tr
                                 className="hover:bg-slate-50/50 cursor-pointer"
                                 onClick={() => add({ ...emptyRow })}
                               >
                                 <td className="px-4 py-3 text-sm font-medium text-blue-600 text-center" colSpan={4}>
                                   + Thêm KS mới
                                 </td>
-                              </tr>
+                              </tr>}
                             </>
                           )}
                         </Form.List>
