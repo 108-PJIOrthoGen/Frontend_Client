@@ -18,6 +18,7 @@ import synoeticTeamImage from '@/assets/teams/synoetic.png';
 import ibmeTeamImage from '@/assets/teams/no-slg.png';
 import { setAccessToken } from '@/security/accessToken';
 import pogLogoUrl from '@/assets/pog-logo.png';
+import { homePathForRole } from '@/security/roleHome';
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -25,13 +26,16 @@ const LoginPage = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector(state => state.account.isAuthenticated);
+  const accountRole = useAppSelector(state => state.account.user.role.name);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const from = location.state?.from?.pathname || '/';
+  const requestedPath = location.state?.from?.pathname;
+  const from = requestedPath || homePathForRole(accountRole);
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate(from, { replace: true });
+      const hydratedRole = accountResult.payload?.user?.role?.name ?? res.data.user?.role?.name;
+      navigate(requestedPath || homePathForRole(hydratedRole), { replace: true });
     }
   }, [isAuthenticated]);
 

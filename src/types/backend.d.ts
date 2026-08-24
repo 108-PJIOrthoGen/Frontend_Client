@@ -385,6 +385,7 @@ export interface IAiRecommendationRun {
     episodeId?: number;
     status?: string;
     runNo?: number;
+    recommendationScope?: RecommendationScope;
     modelName?: string;
     latencyMs?: number;
     errorMessage?: string;
@@ -444,7 +445,7 @@ export interface IPendingLabTask {
 export interface IAiRecommendationItem {
     id?: string;
     clientItemKey?: string;
-    category?: 'SYSTEMIC_ANTIBIOTIC' | 'SURGERY_PROCEDURE' | 'LOCAL_ANTIBIOTIC';
+    category?: 'SYSTEMIC_ANTIBIOTIC' | 'SURGERY_PROCEDURE' | 'LOCAL_ANTIBIOTIC' | 'ANTIBIOTIC_CARE_PLAN';
     title?: string;
     priorityOrder?: number;
     isPrimary?: boolean;
@@ -469,6 +470,7 @@ export interface IAiRecommendationRunDetail {
 }
 
 export type ClinicalDecisionStatus = 'DRAFT' | 'SIGNED';
+export type RecommendationScope = 'SURGERY' | 'ANTIBIOTIC' | 'LEGACY_COMBINED';
 
 export interface IClinicalDecisionActor {
     userId?: number;
@@ -494,6 +496,7 @@ export interface IPharmacistClinicalDecision {
     author?: IClinicalDecisionActor;
     systemicAntibioticPlanJson?: import('./treatmentType').SystemicPlanData;
     localAntibioticPlanJson?: import('./treatmentType').LocalPlanData;
+    carePlanJson?: import('./treatmentType').AntibioticCarePlanData;
     notes?: string;
     signedAt?: string;
     revision: number;
@@ -515,6 +518,8 @@ export interface IRunClinicalDecision {
 export interface IClinicalDecisionWorkspace {
     episodeId: number;
     finalRunId?: number;
+    finalDoctorRunId?: number;
+    finalPharmacistRunId?: number;
     runs: IRunClinicalDecision[];
 }
 

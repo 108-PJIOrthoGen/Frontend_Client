@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { callFetchAiRecommendationRunDetail } from '@/apis/api';
 import type {
   IAiRecommendationRunDetail,
+  RecommendationScope,
 } from '@/types/backend';
 import type {
   CitationData,
@@ -19,20 +20,20 @@ import {
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 300;
-const TREATMENT_CATEGORIES = [
-  'SURGERY_PROCEDURE',
-  'SYSTEMIC_ANTIBIOTIC',
-  'LOCAL_ANTIBIOTIC',
-];
+const treatmentCategories = (scope: RecommendationScope) => scope === 'SURGERY'
+  ? ['SURGERY_PROCEDURE']
+  : scope === 'ANTIBIOTIC'
+    ? ['SYSTEMIC_ANTIBIOTIC', 'LOCAL_ANTIBIOTIC', 'ANTIBIOTIC_CARE_PLAN']
+    : ['SURGERY_PROCEDURE', 'SYSTEMIC_ANTIBIOTIC', 'LOCAL_ANTIBIOTIC'];
 
-export const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null): boolean => {
+export const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null, scope: RecommendationScope = 'SURGERY'): boolean => {
   const categories = new Set<string | undefined>(detail?.items?.map((item) => item.category));
-  return TREATMENT_CATEGORIES.every((category) => categories.has(category));
+  return treatmentCategories(scope).every((category) => categories.has(category));
 };
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | null) {
+export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | null, recommendationScope: RecommendationScope) {
   const [surgeryPlan, setSurgeryPlan] = useState<SurgeryPlanData | null>(null);
   const [systemicPlan, setSystemicPlan] = useState<SystemicPlanData | null>(null);
   const [localPlan, setLocalPlan] = useState<LocalPlanData | null>(null);
@@ -63,8 +64,8 @@ export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | nul
 
     setCitations(mapCitations(detail.citations));
     setLoadError(null);
-    return hasTreatmentItems(detail);
-  }, []);
+    return hasTreatmentItems(detail, recommendationScope);
+  }, [recommendationScope]);
 
   const resetPlan = useCallback(() => {
     setSurgeryPlan(null);
@@ -89,21 +90,21 @@ export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | nul
         throw new Error('Kết quả AI không thuộc bệnh án đang mở.');
       }
 
-      if (hasTreatmentItems(detail)) return detail;
+      if (hasTreatmentItems(detail, recommendationScope)) return detail;
       if (status === 'FAILED' || status === 'TIMEOUT') {
         throw new Error(detail?.run?.errorMessage || 'AI tạo phác đồ thất bại.');
       }
       if (status === 'CANCELLED') {
         throw new Error('Lần tạo phác đồ AI đã bị huỷ.');
       }
-      if ((status === 'SUCCESS' || status === 'PARTIAL') && !hasTreatmentItems(detail)) {
-        throw new Error('AI chưa trả đủ 3 phác đồ điều trị.');
+      if ((status === 'SUCCESS' || status === 'PARTIAL') && !hasTreatmentItems(detail, recommendationScope)) {
+        throw new Error('AI chưa trả đủ dữ liệu cho phạm vi điều trị này.');
       }
 
       await wait(POLL_INTERVAL_MS);
     }
     throw new Error('AI tạo phác đồ quá lâu. Vui lòng quay lại sau.');
-  }, [workflowScope]);
+  }, [recommendationScope, workflowScope]);
 
   useEffect(() => {
     let cancelled = false;
@@ -121,7 +122,7 @@ export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | nul
         const runId = snapshot?.runId ?? null;
         const pendingRunId = snapshot?.pendingRunId ?? null;
 
-        if (pendingRunId && pendingRunId === runId && (!detail || !hasTreatmentItems(detail))) {
+        if (pendingRunId && pendingRunId === runId && (!detail || !hasTreatmentItems(detail, recommendationScope))) {
           setLoadError(null);
           return;
         }
@@ -131,7 +132,7 @@ export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | nul
           return;
         }
 
-        if ((!detail || !hasTreatmentItems(detail)) && runId) {
+        if ((!detail || !hasTreatmentItems(detail, recommendationScope)) && runId) {
           detail = await fetchUntilTreatmentReady(runId);
           if (cancelled || !isDiagnosisWorkflowScopeActive(workflowScope)) return;
           if (detail) {
@@ -172,6 +173,8 @@ export function useTreatmentPlanData(workflowScope: DiagnosisWorkflowScope | nul
     fetchUntilTreatmentReady,
     resetPlan,
     setLoadError,
-    hasTreatmentPlan: !!surgeryPlan && !!systemicPlan && !!localPlan,
+    hasTreatmentPlan: recommendationScope === 'SURGERY'
+      ? !!surgeryPlan
+      : !!systemicPlan && !!localPlan,
   };
 }

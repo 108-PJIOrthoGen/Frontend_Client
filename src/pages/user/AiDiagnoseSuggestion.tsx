@@ -32,6 +32,7 @@ const AiDiagnosisSuggestion = () => {
             content: (
                 <div className="min-h-full bg-white">
                     <Step1PatientSelection
+                        recommendationScope="SURGERY"
                         onNext={next}
                         autoOpenSearch={autoOpenSearch}
                         onAutoSearchConsumed={consumeAutoOpenSearch}
@@ -44,8 +45,8 @@ const AiDiagnosisSuggestion = () => {
             content: <S5AssessmentPji onNext={next} onPrev={prev} />,
         },
         {
-            title: 'Gợi ý phác đồ',
-            content: <TreatmentPlan onPrev={prev} onNext={next} />,
+            title: 'Phác đồ phẫu thuật',
+            content: <TreatmentPlan recommendationScope="SURGERY" onPrev={prev} onNext={next} />,
         },
         {
             title: 'Bổ sung dữ liệu',
@@ -77,7 +78,7 @@ const AiDiagnosisSuggestion = () => {
                                 title: <HomeOutlined style={{ fontSize: "15px", color: "#1890ff" }} />,
                             },
                             {
-                                title: "Chẩn đoán & đề xuất điều trị"
+                                title: "Hoạch định phẫu thuật AI"
                             }, {
                                 title: <span className="text-primary">Bước {currentStep + 1}</span>
                             }

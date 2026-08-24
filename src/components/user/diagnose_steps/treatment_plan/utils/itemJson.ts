@@ -28,6 +28,14 @@ const ARRAY_FIELDS = new Set([
   'preconditions',
   'items',
   'warnings',
+  'monitoringSchedule',
+  'tdmPlan',
+  'allergyChecks',
+  'interactionChecks',
+  'startCriteria',
+  'transitionCriteria',
+  'therapies',
+  'goals',
 ]);
 
 export const coerceListFields = (obj: any): any => {

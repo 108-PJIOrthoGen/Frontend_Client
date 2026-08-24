@@ -57,7 +57,7 @@ const DoctorDiagnosisStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => 
   const episodeId = currentCase?.episode?.id;
   const patientId = currentCase?.patient?.id;
   const workflowScope = useMemo(
-    () => createDiagnosisWorkflowScope(patientId, episodeId),
+    () => createDiagnosisWorkflowScope(patientId, episodeId, 'SURGERY'),
     [episodeId, patientId],
   );
   const [form] = Form.useForm<DoctorDecisionForm>();

@@ -8,7 +8,7 @@ import {
   callSignDoctorClinicalDecision,
 } from '@/apis/api';
 import type { IAiRecommendationRunDetail, IDoctorDiagnosis, IRunClinicalDecision } from '@/types/backend';
-import type { LocalPlanData, SurgeryPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
+import type { SurgeryPlanData } from '@/types/treatmentType';
 import {
   DoctorDecisionFormFields,
   toDoctorDecisionFormValues,
@@ -34,20 +34,12 @@ interface DoctorConclusionTabProps {
   onDecisionUpdated: (run: IRunClinicalDecision) => void;
 }
 
-const antibioticLabel = (antibiotic: TemplateAntibiotic): string => (
-  [antibiotic.antibioticName, antibiotic.dosage, antibiotic.frequency, antibiotic.route]
-    .filter(Boolean)
-    .join(' · ')
-);
-
 const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
   if (!detail?.items?.length) return [];
   const item = (category: NonNullable<IAiRecommendationRunDetail['items']>[number]['category']) => (
     detail.items?.find((candidate) => candidate.category === category)
   );
   const surgery = parseItemJson(item('SURGERY_PROCEDURE')) as SurgeryPlanData | null;
-  const systemic = parseItemJson(item('SYSTEMIC_ANTIBIOTIC')) as SystemicPlanData | null;
-  const local = parseItemJson(item('LOCAL_ANTIBIOTIC')) as LocalPlanData | null;
   const rows: AiPlanRow[] = [];
   if (surgery) {
     const stages = surgery.stages?.map((stage) => stage.stageName).filter(Boolean).join(' → ');
@@ -59,35 +51,6 @@ const planRowsOf = (detail?: IAiRecommendationRunDetail): AiPlanRow[] => {
           <strong>{surgery.surgeryStrategyType ?? 'Chưa nêu chiến lược'}</strong>
           {surgery.strategyRationale ? <span>{surgery.strategyRationale}</span> : null}
           {stages ? <span>Các giai đoạn: {stages}</span> : null}
-        </Space>
-      ),
-    });
-  }
-  if (systemic) {
-    rows.push({
-      key: 'systemic',
-      category: 'Kháng sinh toàn thân',
-      proposal: (
-        <Space orientation="vertical" size={0}>
-          <strong>{systemic.regimenName || systemic.title}</strong>
-          {systemic.phases?.map((phase) => (
-            <span key={`${phase.phaseOrder}-${phase.phaseName}`}>
-              {phase.phaseName}{phase.durationWeeks ? ` · ${phase.durationWeeks} tuần` : ''}
-              {phase.antibiotics?.length ? `: ${phase.antibiotics.map(antibioticLabel).join('; ')}` : ''}
-            </span>
-          ))}
-        </Space>
-      ),
-    });
-  }
-  if (local) {
-    rows.push({
-      key: 'local',
-      category: 'Kháng sinh tại chỗ',
-      proposal: (
-        <Space orientation="vertical" size={0}>
-          <strong>{local.regimenName || local.title}</strong>
-          {local.antibiotics?.length ? <span>{local.antibiotics.map(antibioticLabel).join('; ')}</span> : null}
         </Space>
       ),
     });

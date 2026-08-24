@@ -8,13 +8,15 @@ import {
 } from '@ant-design/icons';
 import {
   callFetchAiRecommendationRunDetail,
+  callSelectFinalClinicalDecisionRun,
   callSavePharmacistClinicalDecision,
   callSignPharmacistClinicalDecision,
 } from '@/apis/api';
 import type {
   IAiRecommendationRunDetail, ICultureResult, IRunClinicalDecision, ISensitivityResult,
 } from '@/types/backend';
-import type { LocalPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
+import type { AntibioticCarePlanData, LocalPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
+import AntibioticCarePlanPanel from '../../antibiotic/AntibioticCarePlanPanel';
 import { parseItemJson } from '../../diagnose_steps/treatment_plan/utils/itemJson';
 import LocalAntibioticTreatment, {
   type LocalAntibioticTreatmentHandle,
@@ -119,6 +121,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
   const [notes, setNotes] = useState('');
   const [systemicPlan, setSystemicPlan] = useState<SystemicPlanData>(emptySystemicPlan);
   const [localPlan, setLocalPlan] = useState<LocalPlanData>(emptyLocalPlan);
+  const [carePlan, setCarePlan] = useState<AntibioticCarePlanData>();
   const [editorKey, setEditorKey] = useState(0);
 
   const selected = useMemo(
@@ -129,6 +132,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
   const detail = runId ? runDetails[runId] : undefined;
   const aiSystemic = useMemo(() => parsePlan<SystemicPlanData>(detail, 'SYSTEMIC_ANTIBIOTIC'), [detail]);
   const aiLocal = useMemo(() => parsePlan<LocalPlanData>(detail, 'LOCAL_ANTIBIOTIC'), [detail]);
+  const aiCare = useMemo(() => parsePlan<AntibioticCarePlanData>(detail, 'ANTIBIOTIC_CARE_PLAN'), [detail]);
   const rows = useMemo(() => buildRows(aiSystemic, aiLocal), [aiLocal, aiSystemic]);
   const decision = selected?.pharmacistDecision;
   const signed = decision?.status === 'SIGNED';
@@ -136,6 +140,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
   useEffect(() => {
     setSystemicPlan(clonePlan(decision?.systemicAntibioticPlanJson ?? emptySystemicPlan()));
     setLocalPlan(clonePlan(decision?.localAntibioticPlanJson ?? emptyLocalPlan()));
+    setCarePlan(decision?.carePlanJson ? clonePlan(decision.carePlanJson) : undefined);
     setNotes(decision?.notes ?? '');
     setEditorKey((current) => current + 1);
   }, [decision, runId]);
@@ -157,6 +162,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
     if (!aiSystemic && !aiLocal) return;
     setSystemicPlan(clonePlan(aiSystemic ?? emptySystemicPlan()));
     setLocalPlan(clonePlan(aiLocal ?? emptyLocalPlan()));
+    setCarePlan(aiCare ? clonePlan(aiCare) : undefined);
     setEditorKey((current) => current + 1);
     message.success('Đã sao chép đề xuất AI vào bản nháp của dược sĩ.');
   };
@@ -166,6 +172,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
     const response = await callSavePharmacistClinicalDecision(runId, {
       systemicAntibioticPlanJson: systemicRef.current?.getData() as Record<string, any>,
       localAntibioticPlanJson: localRef.current?.getData() as Record<string, any>,
+      carePlanJson: carePlan as unknown as Record<string, any> | undefined,
       notes,
       revision: decision?.revision ?? 0,
     });
@@ -200,6 +207,17 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
       message.error(apiErrorMessage(error, 'Không thể ký quyết định của dược sĩ.'));
     } finally {
       setSigning(false);
+    }
+  };
+
+  const handleSelectFinal = async () => {
+    if (!runId || !selected?.run.episodeId) return;
+    try {
+      const response = await callSelectFinalClinicalDecisionRun(String(selected.run.episodeId), runId);
+      if (response?.data) onDecisionUpdated(response.data);
+      message.success('Đã chọn phác đồ kháng sinh cuối cùng cho bệnh án.');
+    } catch (error: any) {
+      message.error(apiErrorMessage(error, 'Không thể chọn phiên bản kháng sinh cuối cùng.'));
     }
   };
 
@@ -249,6 +267,10 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
             </Spin>
           </Card>
 
+          <Card title="Kế hoạch chăm sóc kháng sinh" size="small">
+            <AntibioticCarePlanPanel plan={carePlan ?? aiCare} />
+          </Card>
+
           <Card title="Quyết định của dược sĩ" size="small">
             <Row gutter={[16, 16]}>
               <Col xs={24} xl={12}>
@@ -278,6 +300,13 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
                 <Button type="primary" icon={<FileDoneOutlined />} loading={signing}>Ký xác nhận</Button>
               </Popconfirm>
             </Space>
+          ) : null}
+          {signed && selected.canSelectFinal && !selected.finalSelection ? (
+            <div style={{ textAlign: 'right' }}>
+              <Popconfirm title="Chọn phiên bản kháng sinh này làm quyết định cuối cùng?" onConfirm={handleSelectFinal}>
+                <Button type="primary" icon={<CheckCircleOutlined />}>Chọn phác đồ cuối cùng</Button>
+              </Popconfirm>
+            </div>
           ) : null}
         </Space>
       ) : null}

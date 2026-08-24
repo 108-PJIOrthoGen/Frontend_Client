@@ -8,16 +8,17 @@ import {
   isDiagnosisWorkflowScopeActive,
   storeDiagnosticResult,
 } from '@/features/diagnosis/diagnosisWorkflowSession';
+import type { RecommendationScope } from '@/types/backend';
 
 type DiagnosticData = Record<string, any>;
 
-export const usePjiAssessment = () => {
+export const usePjiAssessment = (recommendationScope: RecommendationScope = 'SURGERY') => {
   const currentCase = useAppSelector(state => state.patient.currentCase);
   const episodeId = currentCase?.episode?.id;
   const patientId = currentCase?.patient?.id;
   const workflowScope = useMemo(
-    () => createDiagnosisWorkflowScope(patientId, episodeId),
-    [episodeId, patientId],
+    () => createDiagnosisWorkflowScope(patientId, episodeId, recommendationScope),
+    [episodeId, patientId, recommendationScope],
   );
   const [isDiagnosticLoading, setIsDiagnosticLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);

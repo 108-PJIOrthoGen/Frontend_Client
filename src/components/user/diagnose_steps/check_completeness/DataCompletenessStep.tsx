@@ -4,7 +4,7 @@ import { CheckCircleOutlined } from '@ant-design/icons';
 import { useAppSelector, useAppDispatch } from '@/redux/hook';
 import { callCreatePendingLabTasksFromCompleteness } from '@/apis/pendingLabTasks';
 import { fetchMyPendingCount, fetchMyPendingTasks } from '@/redux/slice/pendingLabTaskSlice';
-import type { IDataCompleteness, IMissingItem, IPermission } from '@/types/backend';
+import type { IDataCompleteness, IMissingItem, IPermission, RecommendationScope } from '@/types/backend';
 import { categoryIcon, categoryLabel, importanceColor, importanceLabel } from './utils/Style';
 import {
   createDiagnosisWorkflowScope,
@@ -14,6 +14,7 @@ import {
 interface Props {
   onNext: () => void;
   onPrev: () => void;
+  recommendationScope?: RecommendationScope;
 }
 
 const PATIENT_RECORD_WRITE_PERMISSIONS = [
@@ -37,7 +38,7 @@ const hasPermission = (
   );
 };
 
-const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
+const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev, recommendationScope = 'SURGERY' }) => {
   const [completeness, setCompleteness] = useState<IDataCompleteness | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -54,8 +55,8 @@ const DataCompletenessStep: React.FC<Props> = ({ onNext, onPrev }) => {
   );
   const canSaveReminders = hasPatientRecordWritePermission && (ownsPatientRecord || isAdmin);
   const workflowScope = useMemo(
-    () => createDiagnosisWorkflowScope(currentCase?.patient?.id, currentCase?.episode?.id),
-    [currentCase?.episode?.id, currentCase?.patient?.id],
+    () => createDiagnosisWorkflowScope(currentCase?.patient?.id, currentCase?.episode?.id, recommendationScope),
+    [currentCase?.episode?.id, currentCase?.patient?.id, recommendationScope],
   );
 
   useEffect(() => {

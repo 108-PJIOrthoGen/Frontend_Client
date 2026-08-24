@@ -6,14 +6,21 @@ import { Spin } from "antd"
 /** Các role được phép dùng khu vực client ("/"). Khu vực /admin chỉ dành cho ADMIN. */
 const CLIENT_ROLES = ['USER', 'ADMIN', 'DOCTOR', 'NURSE', 'PHARMACIST'];
 
-const RoleCheck = (props) => {
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+    allowedRoles?: string[];
+}
+
+const RoleCheck = (props: ProtectedRouteProps) => {
     // Dùng useLocation thay vì window.location để re-render đúng khi SPA navigate.
     const { pathname } = useLocation();
     const isAdminPath = pathname.startsWith("/admin");
     const user = useAppSelector((state) => state.account.user)
     const userRole = user?.role?.name
 
-    const allowed = isAdminPath
+    const allowed = props.allowedRoles?.length
+        ? props.allowedRoles.includes(userRole)
+        : isAdminPath
         ? userRole === 'ADMIN'
         : CLIENT_ROLES.includes(userRole);
 
@@ -24,7 +31,7 @@ const RoleCheck = (props) => {
  * Bọc quanh **layout cha** của một nhánh route (không chỉ page con) để khi
  * thiếu quyền thì cả layout (sider/header) không mount — 403 thay thế fullpage.
  */
-const ProtectedRoute = (props) => {
+const ProtectedRoute = (props: ProtectedRouteProps) => {
     const isAuthenticated = useAppSelector((state) => state.account.isAuthenticated)
     const isLoading = useAppSelector((state) => state.account.isLoading)
     const location = useLocation();
@@ -37,7 +44,7 @@ const ProtectedRoute = (props) => {
         <>
             {isAuthenticated === true ?
                 <>
-                    <RoleCheck>{props.children}</RoleCheck>
+                    <RoleCheck allowedRoles={props.allowedRoles}>{props.children}</RoleCheck>
                 </> : <Navigate to="/login" state={{ from: location }} replace={true} />
             }
         </>

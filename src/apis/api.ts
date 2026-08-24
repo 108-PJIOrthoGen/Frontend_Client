@@ -376,8 +376,11 @@ export const callFetchAiChatSessionsByEpisode = (episodeId: string, query: strin
  *
 Module AiRecommendation
  */
-export const callGenerateAiRecommendation = (episodeId: string): Promise<IBackendRes<any>> => {
-    return instance.post(`/api/v1/episodes/${episodeId}/ai-recommendations/generate`);
+export const callGenerateAiRecommendation = (
+    episodeId: string,
+    scope: import('@/types/backend').RecommendationScope = 'SURGERY',
+): Promise<IBackendRes<any>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/ai-recommendations/generate`, null, { params: { scope } });
 }
 
 export const callEvaluatePjiDiagnostic = (episodeId: string): Promise<IBackendRes<IRuleBasedDiagnosticResult>> => {
@@ -469,6 +472,7 @@ export const callSavePharmacistClinicalDecision = (
     data: {
         systemicAntibioticPlanJson?: Record<string, any>;
         localAntibioticPlanJson?: Record<string, any>;
+        carePlanJson?: Record<string, any>;
         notes?: string;
         revision: number;
     },

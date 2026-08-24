@@ -10,6 +10,7 @@ import {
 } from '@/redux/slice/accountSlice';
 import { useAppDispatch } from '@/redux/hook';
 import { setAccessToken } from '@/security/accessToken';
+import { homePathForRole } from '@/security/roleHome';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -72,7 +73,8 @@ const VerifyDevicePage = () => {
                 }
 
                 message.success('Xác thực thiết bị thành công');
-                navigate('/', { replace: true });
+                const hydratedRole = accountResult.payload?.user?.role?.name ?? res.data.user?.role?.name;
+                navigate(homePathForRole(hydratedRole), { replace: true });
                 return;
             }
 

@@ -69,7 +69,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     const [medicalHistory, setMedicalHistory] = useState<IMedicalHistory | null>(null);
     const [surgeries, setSurgeries] = useState<ISurgery[]>([]);
     const [decisionWorkspace, setDecisionWorkspace] = useState<IClinicalDecisionWorkspace>();
-    const [selectedRunId, setSelectedRunId] = useState<string>();
+    const [selectedDoctorRunId, setSelectedDoctorRunId] = useState<string>();
+    const [selectedPharmacistRunId, setSelectedPharmacistRunId] = useState<string>();
 
     // Form data refs for saving
     const episodeFormRef = useRef<EpisodeFormData | null>(null);
@@ -134,7 +135,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
         setMedicalHistory(null);
         setSurgeries([]);
         setDecisionWorkspace(undefined);
-        setSelectedRunId(undefined);
+        setSelectedDoctorRunId(undefined);
+        setSelectedPharmacistRunId(undefined);
         dispatch(resetClinicForm());
     };
 
@@ -180,10 +182,15 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             if (workspaceResult.status === 'fulfilled' && workspaceResult.value?.data) {
                 const workspace = workspaceResult.value.data;
                 setDecisionWorkspace(workspace);
-                const selected = workspace.runs.find((run) => run.finalSelection)
-                    ?? workspace.runs.find((run) => run.run.status === 'SUCCESS' || run.run.status === 'PARTIAL')
-                    ?? workspace.runs[0];
-                setSelectedRunId(selected?.run.id != null ? String(selected.run.id) : undefined);
+                const doctorRuns = workspace.runs.filter((run) => run.run.recommendationScope === 'SURGERY' || run.run.recommendationScope === 'LEGACY_COMBINED' || !run.run.recommendationScope);
+                const pharmacistRuns = workspace.runs.filter((run) => run.run.recommendationScope === 'ANTIBIOTIC' || run.run.recommendationScope === 'LEGACY_COMBINED' || !run.run.recommendationScope);
+                const pick = (runs: IRunClinicalDecision[]) => runs.find((run) => run.finalSelection)
+                    ?? runs.find((run) => run.run.status === 'SUCCESS' || run.run.status === 'PARTIAL')
+                    ?? runs[0];
+                const selectedDoctor = pick(doctorRuns);
+                const selectedPharmacist = pick(pharmacistRuns);
+                setSelectedDoctorRunId(selectedDoctor?.run.id != null ? String(selectedDoctor.run.id) : undefined);
+                setSelectedPharmacistRunId(selectedPharmacist?.run.id != null ? String(selectedPharmacist.run.id) : undefined);
             }
         } catch {
             if (requestId !== latestFetchRequestRef.current) {
@@ -203,7 +210,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             if (!current) return current;
             const runs = current.runs.map((run) => {
                 if (String(run.run.id) === updatedRunId) return updatedRun;
-                return updatedRun.finalSelection ? { ...run, finalSelection: false } : run;
+                const sameScope = run.run.recommendationScope === updatedRun.run.recommendationScope;
+                return updatedRun.finalSelection && sameScope ? { ...run, finalSelection: false } : run;
             });
             return {
                 ...current,
@@ -213,7 +221,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
                 runs,
             };
         });
-        setSelectedRunId(updatedRunId);
+        if (updatedRun.run.recommendationScope === 'ANTIBIOTIC') setSelectedPharmacistRunId(updatedRunId);
+        else setSelectedDoctorRunId(updatedRunId);
     };
 
     const handleSave = async () => {
@@ -381,6 +390,8 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
     };
 
     const decisionRuns = decisionWorkspace?.runs ?? [];
+    const doctorDecisionRuns = decisionRuns.filter((run) => run.run.recommendationScope === 'SURGERY' || run.run.recommendationScope === 'LEGACY_COMBINED' || !run.run.recommendationScope);
+    const pharmacistDecisionRuns = decisionRuns.filter((run) => run.run.recommendationScope === 'ANTIBIOTIC' || run.run.recommendationScope === 'LEGACY_COMBINED' || !run.run.recommendationScope);
     const episodeLockedSurface = (children: React.ReactNode) => (
         <fieldset
             disabled={isReadOnly}
@@ -455,9 +466,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             children: (
                 <AntibiogramAiVersionTab
                     episodeId={examData?.id}
-                    runs={decisionRuns}
-                    selectedRunId={selectedRunId}
-                    onRunChange={setSelectedRunId}
+                    runs={pharmacistDecisionRuns}
+                    selectedRunId={selectedPharmacistRunId}
+                    onRunChange={setSelectedPharmacistRunId}
                     onDecisionUpdated={handleDecisionUpdated}
                     cultureResults={form.cultureResults?.length ? form.cultureResults : cultureResults}
                     sensitivityMap={sensitivityMap}
@@ -470,9 +481,9 @@ const MedicalExamDetail: React.FC<MedicalExamDetailProps> = ({ open, onClose, ex
             children: (
                 <DoctorConclusionTab
                     episodeId={examData?.id}
-                    runs={decisionRuns}
-                    selectedRunId={selectedRunId}
-                    onRunChange={setSelectedRunId}
+                    runs={doctorDecisionRuns}
+                    selectedRunId={selectedDoctorRunId}
+                    onRunChange={setSelectedDoctorRunId}
                     onDecisionUpdated={handleDecisionUpdated}
                 />
             ),

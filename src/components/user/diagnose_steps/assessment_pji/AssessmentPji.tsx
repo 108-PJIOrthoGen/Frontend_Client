@@ -24,6 +24,7 @@ import {
 } from '@ant-design/icons';
 import { pageStyles } from './style';
 import { usePjiAssessment } from './hooks/usePjiAssessment';
+import type { RecommendationScope } from '@/types/backend';
 import {
   asArray,
   conclusionLabel,
@@ -40,6 +41,7 @@ import {
 interface ClinicalAssessmentProps {
   onNext?: () => void;
   onPrev?: () => void;
+  recommendationScope?: RecommendationScope;
 }
 
 const { Paragraph, Text, Title } = Typography;
@@ -48,14 +50,14 @@ const SCORE_SCALE_MAX = 12;
 const NOT_INFECTED_MAX_SCORE = 3;
 const INFECTED_MIN_SCORE = 6;
 
-export const S5AssessmentPji = ({ onNext, onPrev }: ClinicalAssessmentProps) => {
+export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY' }: ClinicalAssessmentProps) => {
   const {
     diagnosticData,
     errorMsg,
     evaluateDiagnostic,
     isDiagnosticLoading,
     showResults,
-  } = usePjiAssessment();
+  } = usePjiAssessment(recommendationScope);
 
   const scoringSystem = diagnosticData?.scoring_system;
   const majorCriteria = diagnosticData?.major_criteria;

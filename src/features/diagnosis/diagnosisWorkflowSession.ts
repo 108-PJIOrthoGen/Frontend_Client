@@ -1,8 +1,9 @@
-import type { IAiRecommendationRunDetail, IRuleBasedDiagnosticResult } from '@/types/backend';
+import type { IAiRecommendationRunDetail, IRuleBasedDiagnosticResult, RecommendationScope } from '@/types/backend';
 
 export interface DiagnosisWorkflowScope {
   episodeId: string;
   patientId: string;
+  recommendationScope: RecommendationScope;
 }
 
 export interface DiagnosisThoughtLog {
@@ -38,11 +39,12 @@ const normalizeId = (value: string | number | null | undefined): string => (
 export const createDiagnosisWorkflowScope = (
   patientId: string | number | null | undefined,
   episodeId: string | number | null | undefined,
+  recommendationScope: RecommendationScope = 'SURGERY',
 ): DiagnosisWorkflowScope | null => {
   const normalizedPatientId = normalizeId(patientId);
   const normalizedEpisodeId = normalizeId(episodeId);
   if (!normalizedPatientId || !normalizedEpisodeId) return null;
-  return { patientId: normalizedPatientId, episodeId: normalizedEpisodeId };
+  return { patientId: normalizedPatientId, episodeId: normalizedEpisodeId, recommendationScope };
 };
 
 const isSameScope = (
@@ -52,7 +54,8 @@ const isSameScope = (
   left
   && right
   && left.patientId === right.patientId
-  && left.episodeId === right.episodeId,
+  && left.episodeId === right.episodeId
+  && left.recommendationScope === right.recommendationScope,
 );
 
 const requireActiveScope = (scope: DiagnosisWorkflowScope): boolean => (

@@ -1,11 +1,13 @@
 import React from 'react';
 import { Button } from 'antd';
+import type { RecommendationScope } from '@/types/backend';
 
 interface Props {
   onPrev: () => void;
   onNext: () => void;
   canContinue?: boolean;
   nextLabel?: string;
+  recommendationScope?: RecommendationScope;
 }
 
 const TreatmentPlanHeader: React.FC<Props> = ({
@@ -13,6 +15,7 @@ const TreatmentPlanHeader: React.FC<Props> = ({
   onNext,
   canContinue = true,
   nextLabel = 'Tiếp tục',
+  recommendationScope = 'SURGERY',
 }) => {
   return (
     <header className="flex-shrink-0 bg-white/80 backdrop-blur-md border-b justify-between border-slate-200/60 px-6 py-4 flex items-center shadow-sm z-20 sticky top-0 w-full transition-all">
@@ -23,7 +26,7 @@ const TreatmentPlanHeader: React.FC<Props> = ({
         </div>
         <div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight flex items-center gap-2">
-            Gợi ý Phác đồ Điều trị kháng sinh & Phẫu thuật
+            {recommendationScope === 'ANTIBIOTIC' ? 'Gợi ý phác đồ kháng sinh' : 'Gợi ý phác đồ phẫu thuật'}
           </h1>
           <p className="text-xs text-slate-500 font-medium tracking-wide">
             Kết quả của AI chỉ mang tính tham khảo vì có thể đưa ra sai sót.

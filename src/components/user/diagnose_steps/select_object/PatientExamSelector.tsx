@@ -8,7 +8,7 @@ import {
     callFetchAiRecommendationRuns,
     callFetchAiRecommendationRunDetail,
 } from '@/apis/api';
-import { IPatient, IEpisode, IAiRecommendationRun } from '@/types/backend';
+import { IPatient, IEpisode, IAiRecommendationRun, RecommendationScope } from '@/types/backend';
 import dayjs from 'dayjs';
 import { sfLike, sfOr } from 'spring-filter-query-builder';
 import { useAppDispatch } from '@/redux/hook';
@@ -47,9 +47,10 @@ interface PatientExamSelectorProps {
     setSearchValue: (v: string) => void;
     patients: IPatient[];
     setPatients: (v: IPatient[]) => void;
+    recommendationScope?: RecommendationScope;
 }
 
-export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext, searchValue, setSearchValue, patients, setPatients }) => {
+export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext, searchValue, setSearchValue, patients, setPatients, recommendationScope = 'SURGERY' }) => {
     const dispatch = useAppDispatch();
 
     const [searchLoading, setSearchLoading] = useState(false);
@@ -137,8 +138,13 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
         try {
             const res = await callFetchAiRecommendationRuns(String(exam.id), 'page=0&size=10&sort=createdAt,desc');
             if (res?.data?.result) {
-                setAiRuns(res.data.result);
-                setAiRunsTotal(res.data.meta?.total ?? res.data.result.length);
+                const scopedRuns = res.data.result.filter((run) => (
+                    run.recommendationScope === recommendationScope
+                    || run.recommendationScope === 'LEGACY_COMBINED'
+                    || !run.recommendationScope
+                ));
+                setAiRuns(scopedRuns);
+                setAiRunsTotal(scopedRuns.length);
             } else {
                 setAiRunsTotal(0);
             }
@@ -187,7 +193,7 @@ export const PatientExamSelector: React.FC<PatientExamSelectorProps> = ({ onNext
     };
 
     const activateSelectedWorkflow = (patient: IPatient, exam: IEpisode) => {
-        const scope = createDiagnosisWorkflowScope(patient.id, exam.id);
+        const scope = createDiagnosisWorkflowScope(patient.id, exam.id, recommendationScope);
         if (!scope) {
             message.error('Không xác định được phạm vi bệnh án.');
             return null;

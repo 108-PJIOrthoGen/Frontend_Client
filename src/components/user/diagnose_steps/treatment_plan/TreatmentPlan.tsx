@@ -40,11 +40,13 @@ import {
   storePendingRecommendationRun,
   storeRecommendationRun,
 } from '@/features/diagnosis/diagnosisWorkflowSession';
+import type { RecommendationScope } from '@/types/backend';
 
 
 interface Step5Props {
   onPrev: () => void;
   onNext: () => void;
+  recommendationScope?: RecommendationScope;
 }
 
 const MAX_THOUGHT_LOGS = 200;
@@ -57,7 +59,7 @@ const MAX_THOUGHT_LOGS = 200;
  * the next step, "Chẩn đoán bác sĩ", which is the single writer of
  * DoctorRecommendationReview.
  */
-export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
+export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext, recommendationScope = 'SURGERY' }) => {
   const dispatch = useDispatch();
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -80,8 +82,8 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
   const episodeId = currentCase?.episode?.id;
   const patientId = currentCase?.patient?.id;
   const workflowScope = useMemo(
-    () => createDiagnosisWorkflowScope(patientId, episodeId),
-    [episodeId, patientId],
+    () => createDiagnosisWorkflowScope(patientId, episodeId, recommendationScope),
+    [episodeId, patientId, recommendationScope],
   );
   const apiBase = getRuntimeApiBase();
   const location = useLocation();
@@ -114,7 +116,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     resetPlan,
     setLoadError,
     hasTreatmentPlan,
-  } = useTreatmentPlanData(workflowScope);
+  } = useTreatmentPlanData(workflowScope, recommendationScope);
 
   const clearPending = useCallback(() => {
     if (workflowScope) {
@@ -354,7 +356,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
     storeDiagnosisThoughtLogs(workflowScope, []);
 
     try {
-      const generateRes = await callGenerateAiRecommendation(String(episodeId));
+      const generateRes = await callGenerateAiRecommendation(String(episodeId), recommendationScope);
       const runId = generateRes?.data?.run?.id;
       if (!runId) throw new Error('Không nhận được runId từ server');
 
@@ -469,6 +471,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           onNext={onNext}
           canContinue={false}
           nextLabel="Tiếp tục"
+          recommendationScope={recommendationScope}
         />
         <div className="thought-stream-entering" style={{ flex: 1, overflowY: 'auto', width: '100%', paddingBottom: 64 }}>
           <Flex vertical align="center" style={{ width: '100%' }}>
@@ -507,6 +510,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           onNext={onNext}
           canContinue={false}
           nextLabel="Tiếp tục"
+          recommendationScope={recommendationScope}
         />
         <div style={{ flex: 1, overflowY: 'auto', width: '100%', padding: '8px 16px 32px' }}>
           <TreatmentPlanReadyScreen
@@ -526,6 +530,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
         onNext={onNext}
         canContinue={hasTreatmentPlan}
         nextLabel="Tiếp tục"
+        recommendationScope={recommendationScope}
       />
 
       {/* Collapsible Clinical Thinking Review Accordion */}
@@ -549,6 +554,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext }) => {
           surgeryPlan={surgeryPlan}
           systemicPlan={systemicPlan}
           localPlan={localPlan}
+          recommendationScope={recommendationScope}
         />
         <CitationsPanel citations={citations} />
       </div>

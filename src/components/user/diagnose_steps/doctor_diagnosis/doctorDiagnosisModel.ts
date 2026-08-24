@@ -22,11 +22,7 @@ import {
 
 const POLL_INTERVAL_MS = 2000;
 const MAX_POLL_ATTEMPTS = 300;
-const TREATMENT_CATEGORIES = new Set([
-  'SURGERY_PROCEDURE',
-  'SYSTEMIC_ANTIBIOTIC',
-  'LOCAL_ANTIBIOTIC',
-]);
+const TREATMENT_CATEGORIES = new Set(['SURGERY_PROCEDURE']);
 
 export interface DoctorDiagnosisModel {
   systemDiagnosis: SystemDiagnosisSummary;
@@ -60,7 +56,7 @@ const fetchUntilTreatmentReady = async (runId: string): Promise<IAiRecommendatio
     }
     if (status === 'CANCELLED') throw new Error('Lần sinh phác đồ đã bị huỷ.');
     if ((status === 'SUCCESS' || status === 'PARTIAL') && !hasTreatmentItems(detail)) {
-      throw new Error('AI chưa trả đủ 3 phác đồ điều trị.');
+      throw new Error('AI chưa trả phác đồ phẫu thuật.');
     }
     await wait(POLL_INTERVAL_MS);
   }

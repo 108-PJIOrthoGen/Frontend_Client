@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Modal } from 'antd';
 import { SearchOutlined, UserAddOutlined } from '@ant-design/icons';
 import { PatientExamSelector } from './PatientExamSelector';
-import { IPatient } from '@/types/backend';
+import { IPatient, RecommendationScope } from '@/types/backend';
 import { useNavigate } from 'react-router-dom';
 
 interface Step1Props {
@@ -11,9 +11,10 @@ interface Step1Props {
     // jump straight into patient search instead of showing the landing cards.
     autoOpenSearch?: boolean
     onAutoSearchConsumed?: () => void
+    recommendationScope?: RecommendationScope
 }
 
-export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSearch, onAutoSearchConsumed }) => {
+export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSearch, onAutoSearchConsumed, recommendationScope = 'SURGERY' }) => {
 
     const navigate = useNavigate();
     const [isSearchModalVisible, setIsSearchModalVisible] = useState(false);
@@ -78,7 +79,7 @@ export const Step1PatientSelection: React.FC<Step1Props> = ({ onNext, autoOpenSe
                 footer={null}
                 destroyOnClose
             >
-                <PatientExamSelector onNext={onNext} setSearchValue={setSearchValue} searchValue={searchValue} setPatients={setPatients} patients={patients} />
+                <PatientExamSelector recommendationScope={recommendationScope} onNext={onNext} setSearchValue={setSearchValue} searchValue={searchValue} setPatients={setPatients} patients={patients} />
             </Modal>
 
         </div>

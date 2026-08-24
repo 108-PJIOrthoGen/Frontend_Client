@@ -13,12 +13,14 @@ import type {
   SystemicPlanData,
   TemplateAntibiotic,
 } from '@/types/treatmentType';
+import type { RecommendationScope } from '@/types/backend';
 import './TreatmentDraftPanel.css';
 
 interface Props {
   surgeryPlan: SurgeryPlanData | null;
   systemicPlan: SystemicPlanData | null;
   localPlan: LocalPlanData | null;
+  recommendationScope?: RecommendationScope;
 }
 
 type ModuleTone = 'teal' | 'slate';
@@ -198,7 +200,7 @@ const TreatmentTimeline: React.FC<Props> = ({ surgeryPlan, systemicPlan, localPl
 };
 
 /** Read-only viewer of the AI treatment plan, styled after the approved clinical drafts. */
-const TreatmentDraftPanel: React.FC<Props> = ({ surgeryPlan, systemicPlan, localPlan }) => {
+const TreatmentDraftPanel: React.FC<Props> = ({ surgeryPlan, systemicPlan, localPlan, recommendationScope = 'SURGERY' }) => {
   const hasPlan = Boolean(surgeryPlan || systemicPlan || localPlan);
 
   return (
@@ -206,7 +208,7 @@ const TreatmentDraftPanel: React.FC<Props> = ({ surgeryPlan, systemicPlan, local
       <div className="tdp-panel__content">
         <div className="tdp-notice">
           <InfoCircleOutlined />
-          <p><strong>Phác đồ AI chỉ để tham khảo.</strong> Bác sĩ nhập chẩn đoán và phác đồ chính thức ở bước tiếp theo.</p>
+          <p><strong>Phác đồ AI chỉ để tham khảo.</strong> {recommendationScope === 'ANTIBIOTIC' ? 'Dược sĩ chủ động hiệu chỉnh và ký quyết định ở bước tiếp theo.' : 'Bác sĩ nhập chẩn đoán và phác đồ chính thức ở bước tiếp theo.'}</p>
         </div>
         {hasPlan ? (
           <>

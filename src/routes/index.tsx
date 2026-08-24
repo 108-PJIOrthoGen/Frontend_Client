@@ -48,7 +48,7 @@ const router = createBrowserRouter([
         children: [
             {
                 index: true,
-                element: <ProtectedRoute><AiDiagnosisSuggestion /></ProtectedRoute>
+                element: <ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}><AiDiagnosisSuggestion /></ProtectedRoute>
             },
             {
                 path: "table-patients",
@@ -65,7 +65,7 @@ const router = createBrowserRouter([
             },
             {
                 path: "antibiotic-planner",
-                element: <ProtectedRoute><AntibioticCarePlanner /></ProtectedRoute>
+                element: <ProtectedRoute allowedRoles={['PHARMACIST', 'ADMIN']}><AntibioticCarePlanner /></ProtectedRoute>
             },
             {
                 path: "quick-diagnosis",

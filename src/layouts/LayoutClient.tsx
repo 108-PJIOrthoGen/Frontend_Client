@@ -30,6 +30,7 @@ import MedicalDisclaimerModal from '@/components/common/MedicalDisclaimerModal';
 import CurrentCaseAndAiMonitor from '@/components/common/CurrentCaseAndAiMonitor';
 import GlobalMedicalSearch from '@/features/global-search/GlobalMedicalSearch';
 import pogLogoUrl from '@/assets/pog-logo.png';
+import { homePathForRole } from '@/security/roleHome';
 
 const DIAGNOSIS_TOUR_STORAGE_KEY = 'pji_diagnosis_tour_completed';
 
@@ -267,10 +268,13 @@ export const LayoutClient = () => {
 
 
   const aiPredictionMenuItems = [
-    { path: '/', label: 'Chẩn đoán và đề xuất điều trị', icon: <WechatOutlined />, step: 'Tích hợp AI' },
-    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: <ExperimentOutlined />, step: 'Mô phỏng & so sánh kịch bản', comingSoon: true },
-    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: <ForkOutlined />, step: 'Quản lý bệnh học dài kỳ', comingSoon: true },
+    { path: '/', label: 'Hoạch định phẫu thuật AI', icon: <WechatOutlined />, step: 'Workspace bác sĩ', roles: ['DOCTOR', 'ADMIN'] },
+    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: <ExperimentOutlined />, step: 'Mô phỏng & so sánh kịch bản', comingSoon: true, roles: ['DOCTOR', 'PHARMACIST', 'ADMIN'] },
+    { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: <ForkOutlined />, step: 'Workspace dược sĩ', comingSoon: false, roles: ['PHARMACIST', 'ADMIN'] },
   ];
+  const visibleAiPredictionMenuItems = aiPredictionMenuItems.filter((item) => (
+    !item.roles || Boolean(roleName && item.roles.includes(roleName))
+  ));
 
   const applicationMenuItems = [
     {
@@ -296,7 +300,7 @@ export const LayoutClient = () => {
     },
   ];
 
-  const selectedNavigationKey = [...recordMenuItems, ...aiPredictionMenuItems, ...applicationMenuItems]
+  const selectedNavigationKey = [...recordMenuItems, ...visibleAiPredictionMenuItems, ...applicationMenuItems]
     .find((item) => (
       item.path === '/'
         ? location.pathname === '/'
@@ -325,7 +329,7 @@ export const LayoutClient = () => {
       key: 'ai-recommendations',
       className: 'feature-group-menu',
       label: <span className="feature-group-label">Tính năng</span>,
-      children: aiPredictionMenuItems.map((item) => ({
+      children: visibleAiPredictionMenuItems.map((item) => ({
         key: item.path,
         className: 'feature-border-beam',
         disabled: item.comingSoon,
@@ -393,7 +397,7 @@ export const LayoutClient = () => {
             <AppstoreOutlined className="text-[18px]" />
           </div>
           <span className="hidden h-6 w-px bg-slate-200 sm:block" />
-          <a href="/" className="flex min-w-0 items-center gap-3" aria-label="PJI OrthGen - Trang chủ">
+          <a href={homePathForRole(roleName)} className="flex min-w-0 items-center gap-3" aria-label="PJI OrthGen - Trang chủ">
             <span className="app-brand-mark" aria-hidden="true">
               <img src={pogLogoUrl} alt="" />
             </span>

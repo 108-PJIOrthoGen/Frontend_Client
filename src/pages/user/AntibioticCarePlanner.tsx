@@ -1,38 +1,163 @@
-import React from 'react';
-import { Card, Result, Tag, Typography } from 'antd';
-import { SafetyCertificateOutlined } from '@ant-design/icons';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Breadcrumb, Button, Card, Empty, Popconfirm, Space, Spin, Steps, Tag, Typography } from 'antd';
+import {
+  ArrowLeftOutlined, CalendarOutlined, ExperimentOutlined, HomeOutlined, LogoutOutlined,
+  MedicineBoxOutlined, RightOutlined, SafetyCertificateOutlined, SwapOutlined, UserOutlined,
+} from '@ant-design/icons';
+import { callFetchAiRecommendationRunDetail, callFetchClinicalDecisionWorkspace } from '@/apis/api';
+import type { IAiRecommendationRunDetail, IRunClinicalDecision } from '@/types/backend';
+import type { AntibioticCarePlanData } from '@/types/treatmentType';
+import { parseItemJson } from '@/components/user/diagnose_steps/treatment_plan/utils/itemJson';
+import { Step1PatientSelection } from '@/components/user/diagnose_steps/select_object/PatientSelection';
+import { S5AssessmentPji } from '@/components/user/diagnose_steps/assessment_pji/AssessmentPji';
+import { TreatmentPlan } from '@/components/user/diagnose_steps/treatment_plan/TreatmentPlan';
+import DataCompletenessStep from '@/components/user/diagnose_steps/check_completeness/DataCompletenessStep';
+import PharmacistDecisionStep from '@/components/user/diagnose_steps/pharmacist_decision/PharmacistDecisionStep';
+import AntibioticCarePlanPanel from '@/components/user/antibiotic/AntibioticCarePlanPanel';
+import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
 
-const { Paragraph } = Typography;
+const { Paragraph, Text, Title } = Typography;
+type WorkspaceMode = 'GENERATE' | 'MONITOR' | null;
 
-/**
- * Placeholder — "Tiên lượng rủi ro & Tối ưu hóa trước mổ".
- * Sẽ đánh giá nguy cơ biến chứng/tái nhiễm của bệnh nhân và đề xuất các bước
- * tối ưu hóa trước phẫu thuật (dinh dưỡng, đường huyết, ngưng thuốc, ...).
- */
-const AntibioticCarePlanner: React.FC = () => (
-    <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f6f8fb' }}>
-        <Card style={{ maxWidth: 560, width: '100%' }}>
-            <Result
-                icon={<SafetyCertificateOutlined style={{ color: '#0ea5e9' }} />}
-                title="Trợ lý Hoạch định Kháng sinh Toàn diện"
-                subTitle={
-                    <>
-                        <Tag color="cyan">Đang phát triển</Tag>
-                        <Paragraph type="secondary" style={{ marginTop: 12 }}>
-                            <p>
-                                Giải quyết toàn bộ lộ trình: Bác sĩ không chỉ biết hôm nay cho bệnh nhân dùng thuốc gì, mà họ nhìn thấy trước được tương lai điều trị của ca bệnh này trong vòng 6 tuần tới sẽ diễn ra như thế nào.
-                            </p>
-                            <p>
-                                Cá nhân hóa tối đa: Nếu ca khác có vi khuẩn khác (ví dụ: vi khuẩn Gram âm kháng thuốc Pseudomonas), hệ thống sẽ tự động đổi sang một lịch trình giám sát độc tính hoàn toàn khác (ví dụ: giám sát tiền đình/thính giác do thuốc Amikacin).
-                            </p>
+const parseCarePlan = (detail?: IAiRecommendationRunDetail): AntibioticCarePlanData | undefined => {
+  const item = detail?.items?.find((candidate) => candidate.category === 'ANTIBIOTIC_CARE_PLAN');
+  return item ? parseItemJson(item) as AntibioticCarePlanData : undefined;
+};
 
-                            An toàn pháp lý cho bác sĩ: Bác sĩ ở các viện lớn như 108 rất sợ việc bệnh nhân về nhà dùng thuốc nặng rồi bị biến chứng (suy thận, suy tủy) mà bác sĩ quên không dặn tái khám. Tính năng này đóng vai trò như một "màng lọc bảo hiểm" cho cả bác sĩ lẫn bệnh nhân.
-                        </Paragraph>
-                    </>
-                }
-            />
-        </Card>
+const MonitoringWorkspace: React.FC<{ episodeId?: string | number; onBack: () => void }> = ({ episodeId, onBack }) => {
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<IRunClinicalDecision>();
+  const [detail, setDetail] = useState<IAiRecommendationRunDetail>();
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        if (!episodeId) return;
+        const workspace = await callFetchClinicalDecisionWorkspace(String(episodeId));
+        const antibioticRuns = (workspace.data?.runs ?? []).filter((run) => (
+          run.run.recommendationScope === 'ANTIBIOTIC' || run.run.recommendationScope === 'LEGACY_COMBINED'
+        ));
+        const run = antibioticRuns.find((candidate) => candidate.finalSelection)
+          ?? antibioticRuns.find((candidate) => candidate.pharmacistDecision?.status === 'SIGNED')
+          ?? antibioticRuns[0];
+        if (!run?.run.id || cancelled) return;
+        setSelected(run);
+        const response = await callFetchAiRecommendationRunDetail(String(run.run.id));
+        if (!cancelled) setDetail(response.data);
+      } catch {
+        if (!cancelled) setSelected(undefined);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    void load();
+    return () => { cancelled = true; };
+  }, [episodeId]);
+
+  const plan = selected?.pharmacistDecision?.carePlanJson ?? parseCarePlan(detail);
+  return (
+    <div className="min-h-full bg-slate-50 p-6">
+      <div className="mx-auto max-w-[1600px]">
+        <Space style={{ marginBottom: 16 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>Chọn bệnh án khác</Button>
+          <Tag color={selected?.pharmacistDecision?.status === 'SIGNED' ? 'green' : 'gold'}>
+            {selected?.pharmacistDecision?.status === 'SIGNED' ? 'Kế hoạch dược sĩ đã ký' : 'Đề xuất chưa được ký'}
+          </Tag>
+          {selected?.run.id ? <Text type="secondary">Phiên bản #{selected.run.runNo ?? selected.run.id}</Text> : null}
+        </Space>
+        {loading ? <div style={{ minHeight: 440, display: 'grid', placeItems: 'center' }}><Spin size="large" /></div>
+          : plan ? <AntibioticCarePlanPanel plan={plan} />
+            : <Card><Empty description="Bệnh án chưa có kế hoạch chăm sóc kháng sinh để theo dõi." /></Card>}
+      </div>
     </div>
-);
+  );
+};
+
+const AntibioticCarePlanner: React.FC = () => {
+  const [mode, setMode] = useState<WorkspaceMode>(null);
+  const [monitorReady, setMonitorReady] = useState(false);
+  const workflow = useDiagnosisWorkflow();
+  const { currentCase, currentStep } = workflow;
+
+  const generationSteps = useMemo(() => [
+    { title: 'Chọn hồ sơ', content: <Step1PatientSelection recommendationScope="ANTIBIOTIC" onNext={workflow.next} autoOpenSearch={workflow.autoOpenSearch} onAutoSearchConsumed={workflow.consumeAutoOpenSearch} /> },
+    { title: 'Đánh giá vi sinh', content: <S5AssessmentPji recommendationScope="ANTIBIOTIC" onNext={workflow.next} onPrev={workflow.prev} /> },
+    { title: 'Phác đồ kháng sinh', content: <TreatmentPlan recommendationScope="ANTIBIOTIC" onPrev={workflow.prev} onNext={workflow.next} /> },
+    { title: 'Bổ sung dữ liệu', content: <DataCompletenessStep recommendationScope="ANTIBIOTIC" onNext={workflow.next} onPrev={workflow.prev} /> },
+    { title: 'Quyết định dược sĩ', content: <PharmacistDecisionStep onPrev={workflow.prev} onBackToFirstStep={workflow.backToFirstStep} /> },
+  ], [workflow]);
+
+  const leaveWorkspace = () => {
+    workflow.backToFirstStep();
+    setMonitorReady(false);
+    setMode(null);
+  };
+
+  if (!mode) {
+    return (
+      <div className="h-full overflow-y-auto bg-[#f4f8fb] px-6 py-10">
+        <div className="mx-auto max-w-[1320px]">
+          <div className="mb-8">
+            <Tag color="cyan" icon={<MedicineBoxOutlined />}>Workspace dược lâm sàng</Tag>
+            <Title level={2} style={{ margin: '14px 0 8px' }}>Hoạch định kháng sinh toàn diện</Title>
+            <Paragraph type="secondary" style={{ maxWidth: 760, fontSize: 15 }}>
+              Sinh phác đồ đúng phạm vi dược sĩ, ký quyết định độc lập theo từng phiên bản và theo dõi lộ trình điều trị từ nội trú đến OPAT/chuyển uống.
+            </Paragraph>
+          </div>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card hoverable styles={{ body: { padding: 30 } }} onClick={() => setMode('GENERATE')}>
+              <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-2xl text-cyan-700"><ExperimentOutlined /></div>
+                <div><Title level={3}>Sinh phác đồ kháng sinh</Title><Paragraph type="secondary">Quy trình 5 bước: chọn hồ sơ, đánh giá, sinh đề xuất kháng sinh, rà soát dữ liệu và quyết định dược sĩ.</Paragraph></div>
+                <Button type="primary" size="large" icon={<RightOutlined />}>Bắt đầu sinh phác đồ</Button>
+              </Space>
+            </Card>
+            <Card hoverable styles={{ body: { padding: 30 } }} onClick={() => setMode('MONITOR')}>
+              <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl text-emerald-700"><SafetyCertificateOutlined /></div>
+                <div><Title level={3}>Theo dõi điều trị</Title><Paragraph type="secondary">Xem 3 giai đoạn, ngày dừng thuốc, chỉnh liều theo thận, TDM, tương tác và lịch xét nghiệm an toàn.</Paragraph></div>
+                <Button size="large" icon={<CalendarOutlined />}>Mở kế hoạch theo dõi</Button>
+              </Space>
+            </Card>
+          </div>
+          <Alert style={{ marginTop: 24 }} showIcon type="info" message="Ranh giới an toàn" description="AI chỉ tạo đề xuất. Dược sĩ là người sao chép, hiệu chỉnh và ký; hệ thống không tự phát hành y lệnh hoặc tự đổi liều." />
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === 'MONITOR') {
+    if (monitorReady) return <MonitoringWorkspace episodeId={currentCase?.episode?.id} onBack={() => { workflow.backToFirstStep(); setMonitorReady(false); }} />;
+    return (
+      <div className="h-full overflow-y-auto bg-slate-50 p-6">
+        <Button icon={<ArrowLeftOutlined />} onClick={leaveWorkspace} style={{ marginBottom: 16 }}>Về workspace dược sĩ</Button>
+        <Card title="Chọn bệnh án cần theo dõi">
+          <Step1PatientSelection recommendationScope="ANTIBIOTIC" onNext={() => setMonitorReady(true)} />
+        </Card>
+      </div>
+    );
+  }
+
+  const items = generationSteps.map((step, index) => ({ title: step.title, disabled: index > currentStep }));
+  return (
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-slate-50">
+      <div className="z-10 border-b border-slate-200 bg-white px-8 py-5 shadow-sm">
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <Breadcrumb items={[{ title: <HomeOutlined />, onClick: leaveWorkspace }, { title: 'Hoạch định kháng sinh' }, { title: <span className="text-primary">Bước {currentStep + 1}</span> }]} />
+          {currentCase?.patient && currentStep > 0 ? (
+            <Space wrap>
+              <div className="flex items-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-3 py-1.5"><UserOutlined /><b>{currentCase.patient.fullName}</b>{currentCase.patient.patientCode ? <Tag color="cyan">{currentCase.patient.patientCode}</Tag> : null}</div>
+              <Button icon={<SwapOutlined />} onClick={workflow.changePatient}>Đổi bệnh nhân</Button>
+              <Popconfirm title="Thoát workspace hiện tại?" onConfirm={leaveWorkspace}><Button danger icon={<LogoutOutlined />}>Thoát</Button></Popconfirm>
+            </Space>
+          ) : <Button icon={<ArrowLeftOutlined />} onClick={leaveWorkspace}>Về workspace</Button>}
+        </div>
+        <Steps current={currentStep} items={items} onChange={workflow.selectStep} size="small" className="mt-4" />
+      </div>
+      <div className="relative flex-1 overflow-y-auto">{generationSteps[currentStep]?.content}</div>
+    </div>
+  );
+};
 
 export default AntibioticCarePlanner;

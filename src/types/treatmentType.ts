@@ -78,3 +78,50 @@ export interface CitationData {
   relevanceScore: number;
   citedFor: string;
 }
+
+export interface AntibioticCarePhaseData {
+  phaseOrder: number;
+  phaseName: string;
+  careSetting?: string;
+  startCriteria?: string[];
+  transitionCriteria?: string[];
+  therapies?: string[];
+  goals?: string[];
+}
+
+export interface AntibioticMonitoringScheduleData {
+  timing: string;
+  testName: string;
+  purpose?: string;
+  careSetting?: string;
+  actionIfAbnormal?: string;
+}
+
+export interface AntibioticCarePlanData {
+  category: 'ANTIBIOTIC_CARE_PLAN';
+  title: string;
+  treatmentGoal?: string;
+  totalDurationDays?: number;
+  plannedStopRule?: string;
+  plannedStopDate?: string;
+  phases?: AntibioticCarePhaseData[];
+  renalDosing?: {
+    calculationMethod?: string;
+    inputsAvailable?: boolean;
+    creatinineClearanceMlMin?: number;
+    assessment?: string;
+    loadingDoseNote?: string;
+    maintenanceDoseNote?: string;
+  };
+  tdmPlan?: Array<{
+    drugName: string;
+    target?: string;
+    samplingTime?: string;
+    reviewTrigger?: string;
+  }>;
+  interactionChecks?: string[];
+  allergyChecks?: string[];
+  monitoringSchedule?: AntibioticMonitoringScheduleData[];
+  pharmacistNotes?: string;
+  safetyNote?: string;
+}
