@@ -112,6 +112,8 @@ export interface AntibioticCarePlanData {
     assessment?: string;
     loadingDoseNote?: string;
     maintenanceDoseNote?: string;
+    requiresPharmacistReview?: boolean;
+    missingInputs?: string[];
   };
   tdmPlan?: Array<{
     drugName: string;

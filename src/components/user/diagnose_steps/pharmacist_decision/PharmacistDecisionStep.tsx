@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Button, Card, Col, DatePicker, Form, Input, Popconfirm, Row, Space, Spin, Typography, message } from 'antd';
+import { Alert, Button, Card, Col, Empty, Input, Popconfirm, Row, Space, Spin, Tag, Typography, message } from 'antd';
 import { ArrowLeftOutlined, CopyOutlined, FileDoneOutlined, MedicineBoxOutlined, RobotOutlined, SaveOutlined } from '@ant-design/icons';
-import dayjs from 'dayjs';
 import { useAppSelector } from '@/redux/hook';
 import {
   callFetchRunClinicalDecision,
@@ -9,14 +8,13 @@ import {
   callSignPharmacistClinicalDecision,
 } from '@/apis/api';
 import type { IAiRecommendationRunDetail } from '@/types/backend';
-import type { AntibioticCarePlanData, LocalPlanData, SystemicPlanData } from '@/types/treatmentType';
+import type { LocalPlanData, SystemicPlanData } from '@/types/treatmentType';
 import { createDiagnosisWorkflowScope, getDiagnosisWorkflowSnapshot } from '@/features/diagnosis/diagnosisWorkflowSession';
 import { parseItemJson } from '../treatment_plan/utils/itemJson';
 import LocalAntibioticTreatment, { type LocalAntibioticTreatmentHandle } from '../../rag_diagnose/rag_antibiolocal/LocalAntibioticTreatment';
 import { SystemicAntibioticTreatment, type SystemicAntibioticTreatmentHandle } from '../../rag_diagnose/rag_antibiolocal/SystemicAntibioticTreatment';
-import AntibioticCarePlanPanel from '../../antibiotic/AntibioticCarePlanPanel';
 
-const { Text } = Typography;
+const { Paragraph, Text, Title } = Typography;
 
 interface Props {
   onPrev: () => void;
@@ -31,11 +29,61 @@ const emptyLocal = (): LocalPlanData => ({
   category: 'LOCAL_ANTIBIOTIC', title: 'Quyết định kháng sinh tại chỗ', regimenName: 'Phác đồ dược sĩ',
   indication: '', durationDays: 0, durationNote: '', antibiotics: [], monitoring: [], contraindications: [], notes: '',
 });
-const emptyCare = (): AntibioticCarePlanData => ({ category: 'ANTIBIOTIC_CARE_PLAN', title: 'Kế hoạch chăm sóc kháng sinh', phases: [], monitoringSchedule: [] });
 const clone = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const itemOf = <T,>(detail: IAiRecommendationRunDetail, category: string): T | undefined => {
   const item = detail.items?.find((candidate) => candidate.category === category);
   return item ? parseItemJson(item) as T : undefined;
+};
+
+interface ProposalSummaryProps {
+  systemic?: SystemicPlanData;
+  local?: LocalPlanData;
+}
+
+const ProposalSummary: React.FC<ProposalSummaryProps> = ({ systemic, local }) => {
+  if (!systemic && !local) {
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="AI chưa trả phác đồ kháng sinh." />;
+  }
+
+  const systemicAntibiotics = systemic?.phases?.flatMap((phase) => phase.antibiotics ?? []) ?? [];
+  const localAntibiotics = local?.antibiotics ?? [];
+
+  return (
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+      {systemic ? (
+        <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div>
+              <Text strong>Kháng sinh toàn thân</Text>
+              <Paragraph type="secondary" style={{ margin: '2px 0 0' }}>{systemic.regimenName}</Paragraph>
+            </div>
+            <Tag color="blue">{systemic.totalDurationWeeks || 0} tuần</Tag>
+          </div>
+          <Space wrap size={[6, 6]}>
+            {systemicAntibiotics.map((antibiotic, index) => (
+              <Tag key={`${antibiotic.antibioticName}-${index}`}>{antibiotic.antibioticName || 'Chưa đặt tên'}</Tag>
+            ))}
+          </Space>
+        </div>
+      ) : null}
+      {local ? (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4">
+          <div className="mb-2 flex items-start justify-between gap-3">
+            <div>
+              <Text strong>Kháng sinh tại chỗ</Text>
+              <Paragraph type="secondary" style={{ margin: '2px 0 0' }}>{local.regimenName}</Paragraph>
+            </div>
+            <Tag color="cyan">{local.durationDays || 0} ngày</Tag>
+          </div>
+          <Space wrap size={[6, 6]}>
+            {localAntibiotics.map((antibiotic, index) => (
+              <Tag key={`${antibiotic.antibioticName}-${index}`}>{antibiotic.antibioticName || 'Chưa đặt tên'}</Tag>
+            ))}
+          </Space>
+        </div>
+      ) : null}
+    </Space>
+  );
 };
 
 const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) => {
@@ -50,7 +98,6 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
   const [detail, setDetail] = useState<IAiRecommendationRunDetail>();
   const [systemic, setSystemic] = useState<SystemicPlanData>(emptySystemic);
   const [local, setLocal] = useState<LocalPlanData>(emptyLocal);
-  const [care, setCare] = useState<AntibioticCarePlanData>(emptyCare);
   const [notes, setNotes] = useState('');
   const [revision, setRevision] = useState(0);
   const [status, setStatus] = useState<'DRAFT' | 'SIGNED'>();
@@ -59,7 +106,6 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
 
   const aiSystemic = detail ? itemOf<SystemicPlanData>(detail, 'SYSTEMIC_ANTIBIOTIC') : undefined;
   const aiLocal = detail ? itemOf<LocalPlanData>(detail, 'LOCAL_ANTIBIOTIC') : undefined;
-  const aiCare = detail ? itemOf<AntibioticCarePlanData>(detail, 'ANTIBIOTIC_CARE_PLAN') : undefined;
   const runId = detail?.run?.id ? String(detail.run.id) : undefined;
 
   useEffect(() => {
@@ -76,7 +122,6 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
         const decision = response.data?.pharmacistDecision;
         setSystemic(clone(decision?.systemicAntibioticPlanJson ?? emptySystemic()));
         setLocal(clone(decision?.localAntibioticPlanJson ?? emptyLocal()));
-        setCare(clone(decision?.carePlanJson ?? emptyCare()));
         setNotes(decision?.notes ?? '');
         setRevision(decision?.revision ?? 0);
         setStatus(decision?.status);
@@ -95,7 +140,6 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
   const copyAi = () => {
     setSystemic(clone(aiSystemic ?? emptySystemic()));
     setLocal(clone(aiLocal ?? emptyLocal()));
-    setCare(clone(aiCare ?? emptyCare()));
     setEditorKey((value) => value + 1);
     message.success('Đã sao chép đề xuất AI vào bản nháp của dược sĩ.');
   };
@@ -105,7 +149,7 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
     const response = await callSavePharmacistClinicalDecision(runId, {
       systemicAntibioticPlanJson: systemicRef.current?.getData() as Record<string, any>,
       localAntibioticPlanJson: localRef.current?.getData() as Record<string, any>,
-      carePlanJson: care as unknown as Record<string, any>, notes, revision,
+      notes, revision,
     });
     const decision = response.data?.pharmacistDecision;
     if (!decision) throw new Error('Không nhận được quyết định đã lưu.');
@@ -150,31 +194,73 @@ const PharmacistDecisionStep: React.FC<Props> = ({ onPrev, onBackToFirstStep }) 
       </Card>
       <div style={{ maxWidth: 1600, margin: '0 auto', padding: 24 }}>
         {!canEdit ? <Alert showIcon type="info" message="Chế độ chỉ xem" description={status === 'SIGNED' ? 'Quyết định đã ký và không thể sửa.' : 'Phiên bản này thuộc dược sĩ khác.'} style={{ marginBottom: 16 }} /> : null}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} xl={10}>
-            <Card size="small" title={<Space><RobotOutlined />Đề xuất AI · chỉ đọc</Space>} extra={canEdit && status !== 'SIGNED' ? <Button icon={<CopyOutlined />} onClick={copyAi}>Sao chép sang quyết định</Button> : null}>
-              <AntibioticCarePlanPanel plan={aiCare} />
+        <Row gutter={[20, 20]} align="top">
+          <Col xs={24} xl={8}>
+            <Card
+              size="small"
+              className="overflow-hidden"
+              title={<Space><RobotOutlined className="text-sky-600" /><span>Đề xuất AI · chỉ đọc</span></Space>}
+              extra={canEdit && status !== 'SIGNED' ? <Button icon={<CopyOutlined />} onClick={copyAi}>Sao chép</Button> : null}
+              styles={{ body: { padding: 16 } }}
+            >
+              <Paragraph type="secondary" style={{ marginTop: 0 }}>
+                Hai phác đồ là dữ liệu tham chiếu. Sao chép để tạo bản quyết định độc lập của dược sĩ.
+              </Paragraph>
+              <ProposalSummary systemic={aiSystemic} local={aiLocal} />
             </Card>
           </Col>
-          <Col xs={24} xl={14}>
-            <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
-              <Card size="small" title="Phác đồ chính thức do dược sĩ sở hữu">
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} xxl={12}><SystemicAntibioticTreatment key={`s-${editorKey}`} ref={systemicRef} guidelinePlan={systemic} readOnly={!canEdit || status === 'SIGNED'} /></Col>
-                  <Col xs={24} xxl={12}><LocalAntibioticTreatment key={`l-${editorKey}`} ref={localRef} localPlan={local} readOnly={!canEdit || status === 'SIGNED'} /></Col>
-                </Row>
+          <Col xs={24} xl={16}>
+            <Card
+              size="small"
+              className="overflow-hidden"
+              title={(
+                <div>
+                  <Title level={5} style={{ margin: 0 }}>Phác đồ chính thức do dược sĩ sở hữu</Title>
+                  <Text type="secondary" style={{ fontWeight: 400 }}>Chỉ gồm quyết định dùng thuốc toàn thân và tại chỗ</Text>
+                </div>
+              )}
+              extra={<Tag color={status === 'SIGNED' ? 'green' : 'gold'}>{status === 'SIGNED' ? 'Đã ký' : 'Bản nháp'}</Tag>}
+              styles={{ body: { padding: 16, background: '#f8fafc' } }}
+            >
+              <Row gutter={[16, 16]}>
+                <Col xs={24} xxl={12}>
+                  <SystemicAntibioticTreatment
+                    key={`s-${editorKey}`}
+                    ref={systemicRef}
+                    guidelinePlan={systemic}
+                    readOnly={!canEdit || status === 'SIGNED'}
+                    showSupportingDetails={false}
+                  />
+                </Col>
+                <Col xs={24} xxl={12}>
+                  <LocalAntibioticTreatment
+                    key={`l-${editorKey}`}
+                    ref={localRef}
+                    localPlan={local}
+                    readOnly={!canEdit || status === 'SIGNED'}
+                    showSupportingDetails={false}
+                  />
+                </Col>
+              </Row>
+              <Card
+                size="small"
+                style={{
+                  marginTop: 16,
+                  borderRadius: 12,
+                  borderColor: '#e2e8f0',
+                  background: '#ffffff',
+                }}
+                title={<Text strong style={{ fontSize: 14 }}>Nhận xét dược lâm sàng & Biện luận</Text>}
+              >
+                <Input.TextArea
+                  value={notes}
+                  disabled={!canEdit || status === 'SIGNED'}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="Nhập ghi chú dược lâm sàng về lựa chọn kháng sinh, chỉnh liều theo chức năng thận/gan, tương tác thuốc hoặc lưu ý theo dõi..."
+                  autoSize={{ minRows: 3, maxRows: 8 }}
+                />
               </Card>
-              <Card size="small" title="Kế hoạch chăm sóc và theo dõi">
-                <Form layout="vertical">
-                  <Row gutter={12}>
-                    <Col xs={24} md={8}><Form.Item label="Ngày dự kiến dừng"><DatePicker style={{ width: '100%' }} disabled={!canEdit || status === 'SIGNED'} value={care.plannedStopDate ? dayjs(care.plannedStopDate) : null} onChange={(date) => setCare((value) => ({ ...value, plannedStopDate: date?.format('YYYY-MM-DD') }))} /></Form.Item></Col>
-                    <Col xs={24} md={16}><Form.Item label="Đánh giá chỉnh liều theo thận"><Input disabled={!canEdit || status === 'SIGNED'} value={care.renalDosing?.assessment} onChange={(event) => setCare((value) => ({ ...value, renalDosing: { ...value.renalDosing, assessment: event.target.value } }))} /></Form.Item></Col>
-                  </Row>
-                  <Form.Item label="Nhận xét dược lâm sàng"><Input.TextArea autoSize={{ minRows: 3, maxRows: 7 }} disabled={!canEdit || status === 'SIGNED'} value={notes} onChange={(event) => setNotes(event.target.value)} /></Form.Item>
-                </Form>
-                <AntibioticCarePlanPanel plan={care} compact />
-              </Card>
-            </Space>
+            </Card>
           </Col>
         </Row>
         {status === 'SIGNED' ? <div style={{ marginTop: 20, textAlign: 'right' }}><Button type="primary" onClick={onBackToFirstStep}>Hoàn tất</Button></div> : null}

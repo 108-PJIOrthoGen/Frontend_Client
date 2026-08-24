@@ -1,250 +1,684 @@
 import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Input } from 'antd';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
-import { LocalPlanData, TemplateAntibiotic } from '@/types/treatmentType';
+import {
+  Card,
+  Button,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Tag,
+  Typography,
+  Popconfirm,
+  Row,
+  Col,
+  Tooltip,
+  Empty,
+  Form,
+  Alert,
+  Divider,
+} from 'antd';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  CheckOutlined,
+  MedicineBoxOutlined,
+  InfoCircleOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
+import type { LocalPlanData, TemplateAntibiotic } from '@/types/treatmentType';
+
+const { Text, Title, Paragraph } = Typography;
 
 export interface LocalAntibioticTreatmentHandle {
-    getData: () => LocalPlanData;
+  getData: () => LocalPlanData;
 }
 
 interface LocalAntibioticTreatmentProps {
-    localPlan: LocalPlanData;
-    readOnly?: boolean;
+  localPlan: LocalPlanData;
+  readOnly?: boolean;
+  showSupportingDetails?: boolean;
 }
-const LocalAntibioticIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-        <path d="M15 11.25l1.5 1.5.75-.75V8.758l2.276-.61a3 3 0 10-3.675-3.675l-.61 2.277H12l-.75.75 1.5 1.5M15 11.25l-8.47 8.47c-.34.34-.8.53-1.28.53s-.94.19-1.28.53l-.97.97-.75-.75.97-.97c.34-.34.53-.8.53-1.28s.19-.94.53-1.28L12.75 9M15 11.25L12.75 9" />
-    </svg>
 
-)
+const ROUTE_OPTIONS = [
+  { value: 'LOCAL_CEMENT', label: 'LOCAL_CEMENT (Xi măng)' },
+  { value: 'INTRA_ARTICULAR', label: 'INTRA_ARTICULAR (Khớp)' },
+  { value: 'IRRIGATION', label: 'IRRIGATION (Rửa)' },
+  { value: 'BEADS', label: 'BEADS (Hạt chuỗi)' },
+  { value: 'SPACER', label: 'SPACER (Spacer)' },
+  { value: 'COLLAGEN_SPONGE', label: 'COLLAGEN_SPONGE (Xốp collagen)' },
+];
 
-const LocalAntibioticTreatment = forwardRef<LocalAntibioticTreatmentHandle, LocalAntibioticTreatmentProps>(({ localPlan, readOnly = false }, ref) => {
-    const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(() => localPlan.antibiotics ?? []);
-    const [editingIndex, setEditingIndex] = useState<number | null>(null);
-    const deliveryInfo = localPlan.deliveryInfo;
+const ROLE_OPTIONS = [
+  { value: 'PRIMARY', label: 'PRIMARY (Chính)' },
+  { value: 'ADJUNCT', label: 'ADJUNCT (Bổ trợ)' },
+  { value: 'SYNERGISTIC', label: 'SYNERGISTIC (Hiệp đồng)' },
+];
 
-    useImperativeHandle(ref, () => ({
-        getData: () => ({ ...localPlan, antibiotics }),
-    }), [localPlan, antibiotics]);
+const LocalAntibioticTreatment = forwardRef<
+  LocalAntibioticTreatmentHandle,
+  LocalAntibioticTreatmentProps
+>(({ localPlan, readOnly = false, showSupportingDetails = true }, ref) => {
+  const [plan, setPlan] = useState<LocalPlanData>(() => ({
+    ...localPlan,
+    regimenName: localPlan.regimenName || 'Phác đồ kháng sinh tại chỗ',
+    indication: localPlan.indication || '',
+    durationDays: localPlan.durationDays ?? 0,
+    durationNote: localPlan.durationNote || '',
+    deliveryInfo: {
+      deliveryMethod: localPlan.deliveryInfo?.deliveryMethod || '',
+      spacerType: localPlan.deliveryInfo?.spacerType || '',
+      cementBrandSuggestion: localPlan.deliveryInfo?.cementBrandSuggestion || '',
+      mixingRatio: localPlan.deliveryInfo?.mixingRatio || '',
+    },
+  }));
+  const [antibiotics, setAntibiotics] = useState<TemplateAntibiotic[]>(
+    () => localPlan.antibiotics ?? [],
+  );
 
-    const toggleEdit = useCallback((index: number) => {
-        if (readOnly) return;
-        setEditingIndex(prev => (prev === index ? null : index));
-    }, [readOnly]);
+  const [editingGeneral, setEditingGeneral] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-    const handleFieldChange = useCallback(
-        (index: number, field: keyof TemplateAntibiotic, value: string) => {
-            if (readOnly) return;
-            setAntibiotics(prev =>
-                prev.map((a, i) => (i === index ? { ...a, [field]: value } : a))
-            );
+  useImperativeHandle(
+    ref,
+    () => ({
+      getData: () => ({
+        ...plan,
+        category: 'LOCAL_ANTIBIOTIC',
+        antibiotics,
+      }),
+    }),
+    [plan, antibiotics],
+  );
+
+  // --- Plan Level Handlers ---
+  const handlePlanFieldChange = (
+    field: keyof Pick<LocalPlanData, 'regimenName' | 'indication' | 'durationNote' | 'notes'>,
+    value: string,
+  ) => {
+    if (readOnly) return;
+    setPlan((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDurationDaysChange = (value: number | null) => {
+    if (readOnly) return;
+    setPlan((prev) => ({ ...prev, durationDays: value ?? 0 }));
+  };
+
+  const handleDeliveryInfoChange = (
+    field: 'deliveryMethod' | 'spacerType' | 'cementBrandSuggestion' | 'mixingRatio',
+    value: string,
+  ) => {
+    if (readOnly) return;
+    setPlan((prev) => ({
+      ...prev,
+      deliveryInfo: {
+        ...(prev.deliveryInfo ?? {}),
+        [field]: value,
+      },
+    }));
+  };
+
+  // --- Antibiotic Handlers ---
+  const toggleEdit = useCallback(
+    (index: number) => {
+      if (readOnly) return;
+      setEditingIndex((prev) => (prev === index ? null : index));
+    },
+    [readOnly],
+  );
+
+  const handleFieldChange = useCallback(
+    (index: number, field: keyof TemplateAntibiotic, value: string) => {
+      if (readOnly) return;
+      setAntibiotics((prev) =>
+        prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)),
+      );
+    },
+    [readOnly],
+  );
+
+  const handleDelete = useCallback(
+    (index: number) => {
+      if (readOnly) return;
+      setAntibiotics((prev) => prev.filter((_, i) => i !== index));
+      setEditingIndex(null);
+    },
+    [readOnly],
+  );
+
+  const handleAdd = useCallback(() => {
+    if (readOnly) return;
+    const newAbx: TemplateAntibiotic = {
+      antibioticName: '',
+      dosage: '',
+      frequency: '',
+      route: 'LOCAL_CEMENT',
+      role: 'PRIMARY',
+      notes: '',
+    };
+    setAntibiotics((prev) => [...prev, newAbx]);
+    setEditingIndex(antibiotics.length);
+  }, [readOnly, antibiotics.length]);
+
+  const deliveryInfo = plan.deliveryInfo;
+
+  return (
+    <Card
+      size="small"
+      style={{
+        borderRadius: 12,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        border: '1px solid #e2e8f0',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      styles={{
+        header: {
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '12px 16px',
         },
-        [readOnly]
-    );
-
-    const handleDelete = useCallback((index: number) => {
-        if (readOnly) return;
-        setAntibiotics(prev => prev.filter((_, i) => i !== index));
-        setEditingIndex(null);
-    }, [readOnly]);
-
-    const handleAdd = useCallback(() => {
-        if (readOnly) return;
-        setAntibiotics(prev => [
-            ...prev,
-            { antibioticName: '', dosage: '', frequency: '', route: '', role: '', notes: '' },
-        ]);
-    }, [readOnly]);
-
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '40px', height: '40px', borderRadius: '8px', padding: '4px',
-                        background: 'linear-gradient(135deg, #eaecf3, #2ee19a)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 10px rgba(226, 229, 237, 0.35)',
-                    }}>
-                        <LocalAntibioticIcon />
-                    </div>
-                    <div>
-                        <h3 className="text-base font-bold text-slate-900">Phác đồ kháng sinh tại chỗ</h3>
-                        <p className="text-slate-800 mt-0.5">{localPlan.regimenName}</p>
-                    </div>
-                </div>
-
-                <span className="text-[10px] uppercase tracking-wide font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded-full">
-                    {localPlan.durationDays} ngày
-                </span>
-            </div>
-
-            <div className="p-4 space-y-4">
-                <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-[12px] uppercase tracking-wide font-semibold text-red-500">Chẩn đoán/chỉ định</p>
-                    <p className=" text-slate-900 mt-1">{localPlan.indication}</p>
-                    <p className="text-slate-600 mt-2">{localPlan.durationNote}</p>
-                </div>
-                {/* Antibiotics list */}
-                <div className="space-y-2">
-                    {antibiotics.map((abx, index) => {
-                        const isEditing = editingIndex === index;
-
-                        return (
-                            <div key={index} className="rounded-lg border border-slate-200 p-3 bg-white group">
-                                {isEditing ? (
-                                    <div className="space-y-2">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-[10px] uppercase font-semibold text-slate-500">Chỉnh sửa kháng sinh</p>
-                                            {!readOnly && <div className="flex gap-1">
-                                                <button
-                                                    title="Đóng chỉnh sửa"
-                                                    onClick={() => toggleEdit(index)}
-                                                    className="p-1 text-blue-600 bg-blue-50 rounded-md transition-colors"
-                                                >
-                                                    <EditOutlined className="text-sm" />
-                                                </button>
-                                                <button
-                                                    title="Xóa kháng sinh"
-                                                    onClick={() => handleDelete(index)}
-                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                >
-                                                    <DeleteOutlined className="text-sm" />
-                                                </button>
-                                            </div>}
-                                        </div>
-                                        <Input
-                                            size="small"
-                                            placeholder="Tên kháng sinh"
-                                            value={abx.antibioticName}
-                                            onChange={e => handleFieldChange(index, 'antibioticName', e.target.value)}
-                                        />
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                size="small"
-                                                placeholder="Đường dùng (LOCAL_CEMENT...)"
-                                                value={abx.route}
-                                                onChange={e => handleFieldChange(index, 'route', e.target.value)}
-                                            />
-                                            <Input
-                                                size="small"
-                                                placeholder="Vai trò (PRIMARY...)"
-                                                value={abx.role}
-                                                onChange={e => handleFieldChange(index, 'role', e.target.value)}
-                                            />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                size="small"
-                                                placeholder="Liều lượng"
-                                                value={abx.dosage}
-                                                onChange={e => handleFieldChange(index, 'dosage', e.target.value)}
-                                            />
-                                            <Input
-                                                size="small"
-                                                placeholder="Tần suất"
-                                                value={abx.frequency}
-                                                onChange={e => handleFieldChange(index, 'frequency', e.target.value)}
-                                            />
-                                        </div>
-                                        <Input.TextArea
-                                            size="small"
-                                            placeholder="Ghi chú"
-                                            value={abx.notes}
-                                            onChange={e => handleFieldChange(index, 'notes', e.target.value)}
-                                            autoSize={{ minRows: 1, maxRows: 3 }}
-                                        />
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="flex flex-wrap items-center gap-2">
-                                            <h4 className="text-md font-semibold text-slate-900">
-                                                {abx.antibioticName || 'Tên kháng sinh'}
-                                            </h4>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-50 text-cyan-700 border border-cyan-200">
-                                                {abx.route || 'Đường dùng'}
-                                            </span>
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                                                {abx.role || 'Vai trò'}
-                                            </span>
-
-                                            {!readOnly && <div className="ml-auto flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    title="Chỉnh sửa kháng sinh"
-                                                    onClick={() => toggleEdit(index)}
-                                                    className="p-1 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors"
-                                                >
-                                                    <EditOutlined className="text-[12px]" />
-                                                </button>
-                                                <button
-                                                    title="Xóa kháng sinh"
-                                                    onClick={() => handleDelete(index)}
-                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                >
-                                                    <DeleteOutlined className="text-[12px]" />
-                                                </button>
-                                            </div>}
-                                        </div>
-                                        <p className="text-md text-slate-700 mt-1">
-                                            Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
-                                        </p>
-                                        {abx.notes && (
-                                            <p className="text-md text-cyan-500 mt-1">Note: {abx.notes}</p>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        );
-                    })}
-
-                    {/* Add antibiotic button */}
-                    {!readOnly && <div className="mt-6">
-                        <button
-                            type="button"
-                            onClick={handleAdd}
-                            className="w-full border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl py-3 flex items-center justify-center text-sm font-medium text-slate-500 hover:text-blue-600 bg-slate-50/40 transition-colors"
-                        >
-                            <PlusOutlined className="mr-2" />
-                            Thêm kháng sinh mới
-                        </button>
-                    </div>}
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                        <p className="text-[11px] uppercase font-semibold tracking-wide text-blue-700 mb-2">Gợi ý về spacer</p>
-                        <div className="space-y-1.5 text-blue-900">
-                            <p><span className="font-semibold">Delivery:</span> {deliveryInfo?.deliveryMethod || '—'}</p>
-                            <p><span className="font-semibold">Spacer:</span> {deliveryInfo?.spacerType || '—'}</p>
-                            <p><span className="font-semibold">Xi măng gợi ý:</span> {deliveryInfo?.cementBrandSuggestion || '—'}</p>
-                            <p><span className="font-semibold">Tỉ lệ trộn:</span> {deliveryInfo?.mixingRatio || '—'}</p>
-                        </div>
-                    </div>
-
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                        <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
-                        <ul className="space-y-1">
-                            {(localPlan.monitoring ?? []).map((item) => (
-                                <li key={item} className="text-amber-800">- {item}</li>
-                            ))}
-                        </ul>
-                    </div>
-                </div>
-
-
-
-                <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
-                    <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
-                    <ul className="space-y-1">
-                        {(localPlan.contraindications ?? []).map((item) => (
-                            <li key={item} className=" text-rose-800">- {item}</li>
-                        ))}
-                    </ul>
-                    <p className="text-md text-rose-900 mt-2 leading-relaxed">{localPlan.notes}</p>
-                </div>
-            </div>
+        body: {
+          padding: 16,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+        },
+      }}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #ecfdf5 0%, #a7f3d0 100%)',
+              border: '1px solid #6ee7b7',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#059669',
+              fontSize: 18,
+            }}
+          >
+            <MedicineBoxOutlined />
+          </div>
+          <div>
+            <Title level={5} style={{ margin: 0, fontSize: 15, color: '#0f172a' }}>
+              Phác đồ kháng sinh tại chỗ
+            </Title>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {plan.regimenName || 'Phác đồ dược sĩ'}
+            </Text>
+          </div>
         </div>
-    );
+      }
+      extra={
+        <Space size={8}>
+          <Tag color="cyan" style={{ margin: 0, fontWeight: 600, padding: '2px 8px' }}>
+            {plan.durationDays || 0} NGÀY
+          </Tag>
+          {!readOnly && (
+            <Tooltip title={editingGeneral ? 'Đóng chỉnh sửa chung' : 'Chỉnh sửa thông tin chung'}>
+              <Button
+                size="small"
+                type={editingGeneral ? 'primary' : 'text'}
+                icon={<SettingOutlined />}
+                onClick={() => setEditingGeneral((prev) => !prev)}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      }
+    >
+      {/* General Settings / Indication */}
+      {editingGeneral ? (
+        <Card
+          size="small"
+          style={{ background: '#f0fdfa', borderColor: '#99f6e4', borderRadius: 8 }}
+          title={<Text strong style={{ fontSize: 13, color: '#0f766e' }}>Hiệu chỉnh thông tin chung</Text>}
+          extra={
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckOutlined />}
+              onClick={() => setEditingGeneral(false)}
+            >
+              Xong
+            </Button>
+          }
+        >
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={16}>
+              <Form.Item label="Tên phác đồ" style={{ marginBottom: 8 }}>
+                <Input
+                  value={plan.regimenName}
+                  onChange={(e) => handlePlanFieldChange('regimenName', e.target.value)}
+                  placeholder="VD: Spacer kháng sinh tạm thời với Gentamicin + Vancomycin"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Thời gian (ngày)" style={{ marginBottom: 8 }}>
+                <InputNumber
+                  min={0}
+                  value={plan.durationDays}
+                  onChange={handleDurationDaysChange}
+                  addonAfter="ngày"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Chẩn đoán / Chỉ định" style={{ marginBottom: 8 }}>
+                <Input.TextArea
+                  rows={2}
+                  value={plan.indication}
+                  onChange={(e) => handlePlanFieldChange('indication', e.target.value)}
+                  placeholder="Nhập chẩn đoán hoặc chỉ định..."
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Ghi chú thời gian sử dụng" style={{ marginBottom: 0 }}>
+                <Input
+                  value={plan.durationNote}
+                  onChange={(e) => handlePlanFieldChange('durationNote', e.target.value)}
+                  placeholder="VD: 6-8 tuần trước khi thay khớp lần hai"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ) : (
+        <div
+          style={{
+            borderRadius: 8,
+            border: '1px solid #e2e8f0',
+            background: '#f8fafc',
+            padding: '10px 14px',
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 11,
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              color: '#ef4444',
+              letterSpacing: '0.05em',
+            }}
+          >
+            CHẨN ĐOÁN / CHỈ ĐỊNH
+          </Text>
+          <Paragraph style={{ margin: '4px 0 0', color: '#1e293b', fontSize: 13 }}>
+            {plan.indication || 'Chưa có thông tin chỉ định.'}
+          </Paragraph>
+          {plan.durationNote ? (
+            <Paragraph
+              type="secondary"
+              style={{ margin: '6px 0 0', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              <InfoCircleOutlined style={{ color: '#0891b2' }} />
+              {plan.durationNote}
+            </Paragraph>
+          ) : null}
+        </div>
+      )}
+
+      {/* Antibiotics list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {antibiotics.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Chưa có kháng sinh tại chỗ nào."
+            style={{ margin: '16px 0' }}
+          />
+        ) : (
+          antibiotics.map((abx, index) => {
+            const isEditing = editingIndex === index;
+
+            if (isEditing) {
+              return (
+                <Card
+                  key={index}
+                  size="small"
+                  style={{
+                    background: '#f0fdf4',
+                    borderColor: '#86efac',
+                    borderRadius: 8,
+                  }}
+                  styles={{ body: { padding: 12 } }}
+                  title={
+                    <Text strong style={{ fontSize: 12, color: '#166534' }}>
+                      Chỉnh sửa kháng sinh tại chỗ #{index + 1}
+                    </Text>
+                  }
+                  extra={
+                    <Space size={4}>
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<CheckOutlined />}
+                        onClick={() => setEditingIndex(null)}
+                      >
+                        Xong
+                      </Button>
+                      <Popconfirm
+                        title="Xóa kháng sinh này?"
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDelete(index)}
+                      >
+                        <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </Space>
+                  }
+                >
+                  <Row gutter={[8, 8]}>
+                    <Col xs={24} md={12}>
+                      <Form.Item label="Tên kháng sinh" style={{ marginBottom: 0 }}>
+                        <Input
+                          size="small"
+                          placeholder="VD: Gentamicin"
+                          value={abx.antibioticName}
+                          onChange={(e) => handleFieldChange(index, 'antibioticName', e.target.value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} md={6}>
+                      <Form.Item label="Đường dùng" style={{ marginBottom: 0 }}>
+                        <Select
+                          size="small"
+                          placeholder="Chọn"
+                          value={abx.route || undefined}
+                          onChange={(val) => handleFieldChange(index, 'route', val)}
+                          options={ROUTE_OPTIONS}
+                          allowClear
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} md={6}>
+                      <Form.Item label="Vai trò" style={{ marginBottom: 0 }}>
+                        <Select
+                          size="small"
+                          placeholder="Chọn"
+                          value={abx.role || undefined}
+                          onChange={(val) => handleFieldChange(index, 'role', val)}
+                          options={ROLE_OPTIONS}
+                          allowClear
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} md={12}>
+                      <Form.Item label="Liều lượng" style={{ marginBottom: 0 }}>
+                        <Input
+                          size="small"
+                          placeholder="VD: 1g/40g xi măng"
+                          value={abx.dosage}
+                          onChange={(e) => handleFieldChange(index, 'dosage', e.target.value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={12} md={12}>
+                      <Form.Item label="Tần suất" style={{ marginBottom: 0 }}>
+                        <Input
+                          size="small"
+                          placeholder="VD: Đặt cố định"
+                          value={abx.frequency}
+                          onChange={(e) => handleFieldChange(index, 'frequency', e.target.value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                    <Col xs={24}>
+                      <Form.Item label="Ghi chú thêm" style={{ marginBottom: 0 }}>
+                        <Input
+                          size="small"
+                          placeholder="VD: Phối hợp cùng Vancomycin..."
+                          value={abx.notes}
+                          onChange={(e) => handleFieldChange(index, 'notes', e.target.value)}
+                        />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                </Card>
+              );
+            }
+
+            return (
+              <Card
+                key={index}
+                size="small"
+                style={{
+                  background: '#ffffff',
+                  borderColor: '#e2e8f0',
+                  borderRadius: 8,
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                }}
+                styles={{ body: { padding: '10px 14px' } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <Space size={6} wrap>
+                    <Text strong style={{ fontSize: 14, color: '#0f172a' }}>
+                      {abx.antibioticName || 'Chưa đặt tên'}
+                    </Text>
+                    {abx.route && <Tag color="cyan" style={{ margin: 0 }}>{abx.route}</Tag>}
+                    {abx.role && <Tag color="purple" style={{ margin: 0 }}>{abx.role}</Tag>}
+                  </Space>
+                  {!readOnly && (
+                    <Space size={2}>
+                      <Tooltip title="Sửa kháng sinh">
+                        <Button
+                          size="small"
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => toggleEdit(index)}
+                        />
+                      </Tooltip>
+                      <Popconfirm
+                        title="Xóa kháng sinh này?"
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDelete(index)}
+                      >
+                        <Tooltip title="Xóa kháng sinh">
+                          <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    </Space>
+                  )}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 13, color: '#475569' }}>
+                  <span>Liều: </span>
+                  <Text strong style={{ fontSize: 13 }}>{abx.dosage || '—'}</Text>
+                  <span style={{ margin: '0 6px' }}>|</span>
+                  <span>Tần suất: </span>
+                  <Text strong style={{ fontSize: 13 }}>{abx.frequency || '—'}</Text>
+                </div>
+                {abx.notes ? (
+                  <div style={{ marginTop: 4, fontSize: 12, color: '#0891b2' }}>
+                    <Text type="secondary">Note: {abx.notes}</Text>
+                  </div>
+                ) : null}
+              </Card>
+            );
+          })
+        )}
+
+        {/* Add Antibiotic Button */}
+        {!readOnly && (
+          <Button
+            type="dashed"
+            icon={<PlusOutlined />}
+            onClick={handleAdd}
+            style={{ borderRadius: 8, height: 38, marginTop: 4 }}
+            block
+          >
+            Thêm kháng sinh mới
+          </Button>
+        )}
+      </div>
+
+      {/* Spacer & Delivery Info */}
+      <Card
+        size="small"
+        style={{
+          background: '#f0f9ff',
+          borderColor: '#bae6fd',
+          borderRadius: 8,
+          marginTop: 'auto',
+        }}
+        styles={{
+          header: {
+            background: 'transparent',
+            borderBottom: '1px dashed #bae6fd',
+            padding: '8px 12px',
+          },
+          body: { padding: 12 },
+        }}
+        title={
+          <Text strong style={{ fontSize: 11, textTransform: 'uppercase', color: '#0369a1', letterSpacing: '0.05em' }}>
+            GỢI Ý VỀ SPACER
+          </Text>
+        }
+        extra={
+          !readOnly ? (
+            <Tooltip title={editingDelivery ? 'Đóng' : 'Chỉnh sửa thông tin spacer'}>
+              <Button
+                size="small"
+                type={editingDelivery ? 'primary' : 'text'}
+                icon={editingDelivery ? <CheckOutlined /> : <EditOutlined />}
+                onClick={() => setEditingDelivery((prev) => !prev)}
+              >
+                {editingDelivery ? 'Xong' : 'Sửa'}
+              </Button>
+            </Tooltip>
+          ) : null
+        }
+      >
+        {editingDelivery ? (
+          <Row gutter={[8, 8]}>
+            <Col xs={24} md={12}>
+              <Form.Item label="Delivery" style={{ marginBottom: 0 }}>
+                <Input
+                  size="small"
+                  placeholder="VD: PMMA cement"
+                  value={deliveryInfo?.deliveryMethod}
+                  onChange={(e) => handleDeliveryInfoChange('deliveryMethod', e.target.value)}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Loại Spacer" style={{ marginBottom: 0 }}>
+                <Input
+                  size="small"
+                  placeholder="VD: Static spacer / Articulating spacer"
+                  value={deliveryInfo?.spacerType}
+                  onChange={(e) => handleDeliveryInfoChange('spacerType', e.target.value)}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Xi măng gợi ý" style={{ marginBottom: 0 }}>
+                <Input
+                  size="small"
+                  placeholder="VD: Palacos R+G"
+                  value={deliveryInfo?.cementBrandSuggestion}
+                  onChange={(e) => handleDeliveryInfoChange('cementBrandSuggestion', e.target.value)}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Tỉ lệ trộn" style={{ marginBottom: 0 }}>
+                <Input
+                  size="small"
+                  placeholder="VD: 1g kháng sinh / 40g xi măng"
+                  value={deliveryInfo?.mixingRatio}
+                  onChange={(e) => handleDeliveryInfoChange('mixingRatio', e.target.value)}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13, color: '#0369a1' }}>
+            <div>
+              <Text strong style={{ color: '#0c4a6e' }}>Delivery: </Text>
+              <span>{deliveryInfo?.deliveryMethod || '—'}</span>
+            </div>
+            <div>
+              <Text strong style={{ color: '#0c4a6e' }}>Spacer: </Text>
+              <span>{deliveryInfo?.spacerType || '—'}</span>
+            </div>
+            <div>
+              <Text strong style={{ color: '#0c4a6e' }}>Xi măng gợi ý: </Text>
+              <span>{deliveryInfo?.cementBrandSuggestion || '—'}</span>
+            </div>
+            <div>
+              <Text strong style={{ color: '#0c4a6e' }}>Tỉ lệ trộn: </Text>
+              <span>{deliveryInfo?.mixingRatio || '—'}</span>
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Supporting details */}
+      {showSupportingDetails && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Divider style={{ margin: '8px 0' }} />
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={12}>
+              <Card
+                size="small"
+                style={{ background: '#fffbeb', borderColor: '#fde68a', borderRadius: 8 }}
+                title={<Text strong style={{ fontSize: 12, color: '#b45309' }}>Theo dõi</Text>}
+              >
+                {(plan.monitoring ?? []).length > 0 ? (
+                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#78350f' }}>
+                    {plan.monitoring?.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text type="secondary" style={{ fontSize: 12 }}>Không có lưu ý theo dõi riêng.</Text>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card
+                size="small"
+                style={{ background: '#fff1f2', borderColor: '#fecdd3', borderRadius: 8 }}
+                title={<Text strong style={{ fontSize: 12, color: '#be123c' }}>Thận trọng / Chống chỉ định</Text>}
+              >
+                {(plan.contraindications ?? []).length > 0 ? (
+                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#881337' }}>
+                    {plan.contraindications?.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text type="secondary" style={{ fontSize: 12 }}>Không có chống chỉ định đặc biệt.</Text>
+                )}
+              </Card>
+            </Col>
+          </Row>
+          {plan.notes ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={<Text strong style={{ fontSize: 12 }}>Lưu ý</Text>}
+              description={<Text style={{ fontSize: 12 }}>{plan.notes}</Text>}
+              style={{ borderRadius: 6 }}
+            />
+          ) : null}
+        </div>
+      )}
+    </Card>
+  );
 });
 
 export default LocalAntibioticTreatment;

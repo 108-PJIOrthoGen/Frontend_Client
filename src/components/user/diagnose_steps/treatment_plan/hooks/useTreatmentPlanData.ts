@@ -23,7 +23,7 @@ const MAX_POLL_ATTEMPTS = 300;
 const treatmentCategories = (scope: RecommendationScope) => scope === 'SURGERY'
   ? ['SURGERY_PROCEDURE']
   : scope === 'ANTIBIOTIC'
-    ? ['SYSTEMIC_ANTIBIOTIC', 'LOCAL_ANTIBIOTIC', 'ANTIBIOTIC_CARE_PLAN']
+    ? ['SYSTEMIC_ANTIBIOTIC', 'LOCAL_ANTIBIOTIC']
     : ['SURGERY_PROCEDURE', 'SYSTEMIC_ANTIBIOTIC', 'LOCAL_ANTIBIOTIC'];
 
 export const hasTreatmentItems = (detail: IAiRecommendationRunDetail | null, scope: RecommendationScope = 'SURGERY'): boolean => {

@@ -1,428 +1,848 @@
 import React, { useState, useCallback, useImperativeHandle, forwardRef } from 'react';
-import { Input } from 'antd';
-import { DeleteOutlined, EditOutlined, PlusOutlined } from '@ant-design/icons';
 import {
-    SystemicPlanData,
-    SystemicPhaseData,
-    TemplateAntibiotic,
+  Card,
+  Button,
+  Input,
+  InputNumber,
+  Select,
+  Space,
+  Tag,
+  Typography,
+  Popconfirm,
+  Row,
+  Col,
+  Tooltip,
+  Empty,
+  Form,
+  Alert,
+  Divider,
+} from 'antd';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  CheckOutlined,
+  ExperimentOutlined,
+  InfoCircleOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
+import type {
+  SystemicPlanData,
+  SystemicPhaseData,
+  TemplateAntibiotic,
 } from '@/types/treatmentType';
 
+const { Text, Title, Paragraph } = Typography;
+
 export interface SystemicAntibioticTreatmentHandle {
-    getData: () => SystemicPlanData;
+  getData: () => SystemicPlanData;
 }
 
 interface SystemicAntibioticTreatmentProps {
-    guidelinePlan: SystemicPlanData;
-    readOnly?: boolean;
+  guidelinePlan: SystemicPlanData;
+  readOnly?: boolean;
+  showSupportingDetails?: boolean;
 }
-const AntibioticIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
-    </svg>
-)
 
+const ROUTE_OPTIONS = [
+  { value: 'IV', label: 'IV (Tĩnh mạch)' },
+  { value: 'ORAL', label: 'ORAL (Uống)' },
+  { value: 'PO', label: 'PO (Uống)' },
+  { value: 'IM', label: 'IM (Tiêm bắp)' },
+  { value: 'SC', label: 'SC (Dưới da)' },
+];
 
-export const SystemicAntibioticTreatment = forwardRef<SystemicAntibioticTreatmentHandle, SystemicAntibioticTreatmentProps>(({
-    guidelinePlan,
-    readOnly = false,
-}, ref) => {
-    const [phases, setPhases] = useState<SystemicPhaseData[]>(() => guidelinePlan.phases ?? []);
-    const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
-    const [editingAbxKey, setEditingAbxKey] = useState<string | null>(null);
+const ROLE_OPTIONS = [
+  { value: 'PRIMARY', label: 'PRIMARY (Chính)' },
+  { value: 'ADJUNCT', label: 'ADJUNCT (Bổ trợ)' },
+  { value: 'EMPIRIC', label: 'EMPIRIC (Kinh nghiệm)' },
+  { value: 'DEFINITIVE', label: 'DEFINITIVE (Đích)' },
+  { value: 'TARGETED', label: 'TARGETED (Nhắm trúng đích)' },
+];
 
-    useImperativeHandle(ref, () => ({
-        getData: () => ({ ...guidelinePlan, phases }),
-    }), [guidelinePlan, phases]);
+export const SystemicAntibioticTreatment = forwardRef<
+  SystemicAntibioticTreatmentHandle,
+  SystemicAntibioticTreatmentProps
+>(({ guidelinePlan, readOnly = false, showSupportingDetails = true }, ref) => {
+  const [plan, setPlan] = useState<SystemicPlanData>(() => ({
+    ...guidelinePlan,
+    regimenName: guidelinePlan.regimenName || 'Phác đồ kháng sinh toàn thân',
+    indication: guidelinePlan.indication || '',
+    totalDurationWeeks: guidelinePlan.totalDurationWeeks ?? 0,
+  }));
+  const [phases, setPhases] = useState<SystemicPhaseData[]>(
+    () => guidelinePlan.phases ?? [],
+  );
 
-    // --- Phase handlers ---
-    const toggleEditPhase = useCallback((phaseOrder: number) => {
-        if (readOnly) return;
-        setEditingPhaseId(prev => (prev === phaseOrder ? null : phaseOrder));
-    }, [readOnly]);
+  const [editingGeneral, setEditingGeneral] = useState(false);
+  const [editingPhaseId, setEditingPhaseId] = useState<number | null>(null);
+  const [editingAbxKey, setEditingAbxKey] = useState<string | null>(null);
 
-    const handlePhaseFieldChange = useCallback(
-        (phaseOrder: number, field: keyof Pick<SystemicPhaseData, 'phaseName' | 'durationNote'>, value: string) => {
-            if (readOnly) return;
-            setPhases(prev =>
-                prev.map(p => (p.phaseOrder === phaseOrder ? { ...p, [field]: value } : p))
-            );
+  useImperativeHandle(
+    ref,
+    () => ({
+      getData: () => ({
+        ...plan,
+        category: 'SYSTEMIC_ANTIBIOTIC',
+        phases,
+        totalDurationWeeks:
+          plan.totalDurationWeeks ||
+          phases.reduce((sum, p) => sum + (Number(p.durationWeeks) || 0), 0),
+      }),
+    }),
+    [plan, phases],
+  );
+
+  // --- General Plan Handlers ---
+  const handlePlanFieldChange = (
+    field: keyof Pick<SystemicPlanData, 'regimenName' | 'indication' | 'notes'>,
+    value: string,
+  ) => {
+    if (readOnly) return;
+    setPlan((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleTotalDurationChange = (value: number | null) => {
+    if (readOnly) return;
+    setPlan((prev) => ({ ...prev, totalDurationWeeks: value ?? 0 }));
+  };
+
+  // --- Phase Handlers ---
+  const toggleEditPhase = useCallback(
+    (phaseOrder: number) => {
+      if (readOnly) return;
+      setEditingPhaseId((prev) => (prev === phaseOrder ? null : phaseOrder));
+    },
+    [readOnly],
+  );
+
+  const handlePhaseFieldChange = useCallback(
+    (
+      phaseOrder: number,
+      field: keyof Pick<SystemicPhaseData, 'phaseName' | 'durationNote'>,
+      value: string,
+    ) => {
+      if (readOnly) return;
+      setPhases((prev) =>
+        prev.map((p) =>
+          p.phaseOrder === phaseOrder ? { ...p, [field]: value } : p,
+        ),
+      );
+    },
+    [readOnly],
+  );
+
+  const handlePhaseDurationChange = useCallback(
+    (phaseOrder: number, value: number | null) => {
+      if (readOnly) return;
+      setPhases((prev) =>
+        prev.map((p) =>
+          p.phaseOrder === phaseOrder
+            ? { ...p, durationWeeks: value ?? 0 }
+            : p,
+        ),
+      );
+    },
+    [readOnly],
+  );
+
+  const handleDeletePhase = useCallback(
+    (phaseOrder: number) => {
+      if (readOnly) return;
+      setPhases((prev) => {
+        const filtered = prev.filter((p) => p.phaseOrder !== phaseOrder);
+        return filtered.map((p, idx) => ({ ...p, phaseOrder: idx + 1 }));
+      });
+      setEditingPhaseId(null);
+      setEditingAbxKey(null);
+    },
+    [readOnly],
+  );
+
+  const handleAddPhase = useCallback(() => {
+    if (readOnly) return;
+    setPhases((prev) => {
+      const nextOrder = prev.length + 1;
+      const newPhase: SystemicPhaseData = {
+        phaseName: `Giai đoạn ${nextOrder}`,
+        phaseOrder: nextOrder,
+        durationWeeks: 2,
+        durationNote: '',
+        antibiotics: [
+          {
+            antibioticName: '',
+            dosage: '',
+            frequency: '',
+            route: 'IV',
+            role: 'PRIMARY',
+            notes: '',
+          },
+        ],
+      };
+      return [...prev, newPhase];
+    });
+    setEditingPhaseId(phases.length + 1);
+  }, [readOnly, phases.length]);
+
+  // --- Antibiotic Handlers ---
+  const abxKey = (phaseOrder: number, abxIndex: number) =>
+    `${phaseOrder}-${abxIndex}`;
+
+  const toggleEditAbx = useCallback(
+    (key: string) => {
+      if (readOnly) return;
+      setEditingAbxKey((prev) => (prev === key ? null : key));
+    },
+    [readOnly],
+  );
+
+  const handleAbxFieldChange = useCallback(
+    (
+      phaseOrder: number,
+      abxIndex: number,
+      field: keyof TemplateAntibiotic,
+      value: string,
+    ) => {
+      if (readOnly) return;
+      setPhases((prev) =>
+        prev.map((p) => {
+          if (p.phaseOrder !== phaseOrder) return p;
+          const updatedAbx = (p.antibiotics ?? []).map((a, i) =>
+            i === abxIndex ? { ...a, [field]: value } : a,
+          );
+          return { ...p, antibiotics: updatedAbx };
+        }),
+      );
+    },
+    [readOnly],
+  );
+
+  const handleDeleteAbx = useCallback(
+    (phaseOrder: number, abxIndex: number) => {
+      if (readOnly) return;
+      setPhases((prev) =>
+        prev.map((p) => {
+          if (p.phaseOrder !== phaseOrder) return p;
+          return {
+            ...p,
+            antibiotics: (p.antibiotics ?? []).filter((_, i) => i !== abxIndex),
+          };
+        }),
+      );
+      setEditingAbxKey(null);
+    },
+    [readOnly],
+  );
+
+  const handleAddAntibiotic = useCallback(
+    (phaseOrder: number) => {
+      if (readOnly) return;
+      let newIdx = 0;
+      setPhases((prev) =>
+        prev.map((p) => {
+          if (p.phaseOrder !== phaseOrder) return p;
+          const currentList = p.antibiotics ?? [];
+          newIdx = currentList.length;
+          const newAbx: TemplateAntibiotic = {
+            antibioticName: '',
+            dosage: '',
+            frequency: '',
+            route: 'IV',
+            role: 'PRIMARY',
+            notes: '',
+          };
+          return { ...p, antibiotics: [...currentList, newAbx] };
+        }),
+      );
+      setEditingAbxKey(abxKey(phaseOrder, newIdx));
+    },
+    [readOnly],
+  );
+
+  const calculatedTotalWeeks =
+    plan.totalDurationWeeks ||
+    phases.reduce((sum, p) => sum + (Number(p.durationWeeks) || 0), 0);
+
+  return (
+    <Card
+      size="small"
+      style={{
+        borderRadius: 12,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+        border: '1px solid #e2e8f0',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      styles={{
+        header: {
+          background: '#f8fafc',
+          borderBottom: '1px solid #e2e8f0',
+          padding: '12px 16px',
         },
-        [readOnly]
-    );
-
-    const handlePhaseDurationChange = useCallback((phaseOrder: number, value: string) => {
-        if (readOnly) return;
-        const num = parseInt(value, 10);
-        setPhases(prev =>
-            prev.map(p =>
-                p.phaseOrder === phaseOrder ? { ...p, durationWeeks: isNaN(num) ? 0 : num } : p
-            )
-        );
-    }, [readOnly]);
-
-    const handleDeletePhase = useCallback((phaseOrder: number) => {
-        if (readOnly) return;
-        setPhases(prev => {
-            const filtered = prev.filter(p => p.phaseOrder !== phaseOrder);
-            return filtered.map((p, idx) => ({ ...p, phaseOrder: idx + 1 }));
-        });
-        setEditingPhaseId(null);
-    }, [readOnly]);
-
-    const handleAddPhase = useCallback(() => {
-        if (readOnly) return;
-        setPhases(prev => {
-            const nextOrder = prev.length + 1;
-            const newPhase: SystemicPhaseData = {
-                phaseName: '',
-                phaseOrder: nextOrder,
-                durationWeeks: 0,
-                durationNote: '',
-                antibiotics: [
-                    {
-                        antibioticName: '',
-                        dosage: '',
-                        frequency: '',
-                        route: '',
-                        role: '',
-                        notes: '',
-                    },
-                ],
-            };
-            return [...prev, newPhase];
-        });
-    }, [readOnly]);
-
-    // --- Antibiotic handlers ---
-    const abxKey = (phaseOrder: number, abxIndex: number) => `${phaseOrder}-${abxIndex}`;
-
-    const toggleEditAbx = useCallback((key: string) => {
-        if (readOnly) return;
-        setEditingAbxKey(prev => (prev === key ? null : key));
-    }, [readOnly]);
-
-    const handleAbxFieldChange = useCallback(
-        (phaseOrder: number, abxIndex: number, field: keyof TemplateAntibiotic, value: string) => {
-            if (readOnly) return;
-            setPhases(prev =>
-                prev.map(p => {
-                    if (p.phaseOrder !== phaseOrder) return p;
-                    const updatedAbx = (p.antibiotics ?? []).map((a, i) =>
-                        i === abxIndex ? { ...a, [field]: value } : a
-                    );
-                    return { ...p, antibiotics: updatedAbx };
-                })
-            );
+        body: {
+          padding: 16,
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
         },
-        [readOnly]
-    );
-
-    const handleDeleteAbx = useCallback((phaseOrder: number, abxIndex: number) => {
-        if (readOnly) return;
-        setPhases(prev =>
-            prev.map(p => {
-                if (p.phaseOrder !== phaseOrder) return p;
-                return { ...p, antibiotics: (p.antibiotics ?? []).filter((_, i) => i !== abxIndex) };
-            })
-        );
-        setEditingAbxKey(null);
-    }, [readOnly]);
-
-    const handleAddAntibiotic = useCallback((phaseOrder: number) => {
-        if (readOnly) return;
-        setPhases(prev =>
-            prev.map(p => {
-                if (p.phaseOrder !== phaseOrder) return p;
-                const newAbx: TemplateAntibiotic = {
-                    antibioticName: '',
-                    dosage: '',
-                    frequency: '',
-                    route: '',
-                    role: '',
-                    notes: '',
-                };
-                return { ...p, antibiotics: [...(p.antibiotics ?? []), newAbx] };
-            })
-        );
-    }, [readOnly]);
-
-    return (
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        width: '40px', height: '40px', borderRadius: '8px', padding: '4px',
-                        background: 'linear-gradient(135deg, #b3b8c5, #4be5f0)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        boxShadow: '0 2px 10px rgba(37,99,235,0.35)',
-                    }}>
-                        <AntibioticIcon />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-900">Điều trị kháng sinh toàn thân</h3>
-                        <p className=" text-slate-700">{guidelinePlan.regimenName}</p>
-                    </div>
-                </div>
-
-                <span className="text-[10px] uppercase tracking-wide font-semibold bg-blue-50 text-blue-700 border border-blue-200 px-2 py-1 rounded-full">
-                    {guidelinePlan.totalDurationWeeks} tuần
-                </span>
-            </div>
-            <div className="p-4 relative">
-                {/* Indication */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-4">
-                    <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-900">Chỉ định</p>
-                    <p className="text-slate-900">{guidelinePlan.indication}</p>
-                </div>
-
-                {/* Phases */}
-                <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
-                    <div className="space-y-3">
-                        {phases.map((phase) => {
-                            const isPhaseEditing = editingPhaseId === phase.phaseOrder;
-
-                            return (
-                                <div key={phase.phaseOrder} className="rounded-lg border border-slate-200 bg-white p-3 group/phase">
-                                    {/* Phase header */}
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="font-semibold px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                            Giai đoạn {phase.phaseOrder}
-                                        </span>
-
-                                        {isPhaseEditing ? (
-                                            <Input
-                                                size="small"
-                                                placeholder="Tên giai đoạn"
-                                                value={phase.phaseName}
-                                                onChange={e => handlePhaseFieldChange(phase.phaseOrder, 'phaseName', e.target.value)}
-                                                className="flex-1 font-semibold"
-                                            />
-                                        ) : (
-                                            <p className=" font-semibold text-slate-900">{phase.phaseName || 'Tên giai đoạn'}</p>
-                                        )}
-
-                                        {isPhaseEditing ? (
-                                            <Input
-                                                size="small"
-                                                placeholder="Số tuần"
-                                                value={phase.durationWeeks || ''}
-                                                onChange={e => handlePhaseDurationChange(phase.phaseOrder, e.target.value)}
-                                                className="w-20 text-xs"
-                                                suffix="tuần"
-                                            />
-                                        ) : (
-                                            <span className="ml-auto text-slate-500">{phase.durationWeeks} tuần</span>
-                                        )}
-
-                                        {/* Edit & Delete phase buttons */}
-                                        {!readOnly && (
-                                            <div className="flex gap-1 ml-2 opacity-0 group-hover/phase:opacity-100 transition-opacity">
-                                                <button
-                                                    title={isPhaseEditing ? 'Đóng chỉnh sửa' : 'Chỉnh sửa giai đoạn'}
-                                                    onClick={() => toggleEditPhase(phase.phaseOrder)}
-                                                    className={`p-1 rounded-md transition-colors ${isPhaseEditing
-                                                        ? 'text-blue-600 bg-blue-50'
-                                                        : 'text-slate-400 hover:text-yellow-600 hover:bg-yellow-50'
-                                                        }`}
-                                                >
-                                                    <EditOutlined className="text-sm" />
-                                                </button>
-                                                <button
-                                                    title="Xóa giai đoạn"
-                                                    onClick={() => handleDeletePhase(phase.phaseOrder)}
-                                                    className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                >
-                                                    <DeleteOutlined className="text-sm" />
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Phase duration note */}
-                                    {isPhaseEditing ? (
-                                        <Input
-                                            size="small"
-                                            placeholder="Ghi chú thời gian"
-                                            value={phase.durationNote}
-                                            onChange={e => handlePhaseFieldChange(phase.phaseOrder, 'durationNote', e.target.value)}
-                                            className="text-xs mb-2"
-                                        />
-                                    ) : (
-                                        <p className=" text-slate-600 mb-2">{phase.durationNote}</p>
-                                    )}
-
-                                    {/* Antibiotics list */}
-                                    <div className="space-y-2">
-                                        {(phase.antibiotics ?? []).map((abx, index) => {
-                                            const key = abxKey(phase.phaseOrder, index);
-                                            const isAbxEditing = editingAbxKey === key;
-
-                                            return (
-                                                <div key={key} className="rounded-md bg-slate-50 border border-slate-200 px-2.5 py-2 group/abx">
-                                                    {isAbxEditing ? (
-                                                        /* Editing mode */
-                                                        <div className="space-y-2">
-                                                            <div className="flex items-center justify-between">
-                                                                <p className="text-[10px] uppercase font-semibold text-slate-500">Chỉnh sửa kháng sinh</p>
-                                                                {!readOnly && <div className="flex gap-1">
-                                                                    <button
-                                                                        title="Đóng chỉnh sửa"
-                                                                        onClick={() => toggleEditAbx(key)}
-                                                                        className="p-1 text-blue-600 bg-blue-50 rounded-md transition-colors"
-                                                                    >
-                                                                        <EditOutlined className="text-sm" />
-                                                                    </button>
-                                                                    <button
-                                                                        title="Xóa kháng sinh"
-                                                                        onClick={() => handleDeleteAbx(phase.phaseOrder, index)}
-                                                                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                                    >
-                                                                        <DeleteOutlined className="text-sm" />
-                                                                    </button>
-                                                                </div>}
-                                                            </div>
-                                                            <Input
-                                                                size="small"
-                                                                placeholder="Tên kháng sinh"
-                                                                value={abx.antibioticName}
-                                                                onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'antibioticName', e.target.value)}
-                                                            />
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <Input
-                                                                    size="small"
-                                                                    placeholder="Đường dùng (IV, ORAL...)"
-                                                                    value={abx.route}
-                                                                    onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'route', e.target.value)}
-                                                                />
-                                                                <Input
-                                                                    size="small"
-                                                                    placeholder="Vai trò (PRIMARY...)"
-                                                                    value={abx.role}
-                                                                    onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'role', e.target.value)}
-                                                                />
-                                                            </div>
-                                                            <div className="grid grid-cols-2 gap-2">
-                                                                <Input
-                                                                    size="small"
-                                                                    placeholder="Liều lượng"
-                                                                    value={abx.dosage}
-                                                                    onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'dosage', e.target.value)}
-                                                                />
-                                                                <Input
-                                                                    size="small"
-                                                                    placeholder="Tần suất"
-                                                                    value={abx.frequency}
-                                                                    onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'frequency', e.target.value)}
-                                                                />
-                                                            </div>
-                                                            <Input.TextArea
-                                                                size="small"
-                                                                placeholder="Ghi chú"
-                                                                value={abx.notes}
-                                                                onChange={e => handleAbxFieldChange(phase.phaseOrder, index, 'notes', e.target.value)}
-                                                                autoSize={{ minRows: 1, maxRows: 3 }}
-                                                            />
-                                                        </div>
-                                                    ) : (
-                                                        /* Display mode */
-                                                        <>
-                                                            <div className="flex flex-wrap gap-2 items-center">
-                                                                <p className=" font-semibold text-slate-900">
-                                                                    {abx.antibioticName || 'Tên kháng sinh'}
-                                                                </p>
-                                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700">
-                                                                    {abx.route || 'Đường dùng'}
-                                                                </span>
-                                                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-100 border border-slate-200 text-slate-600">
-                                                                    {abx.role || 'Vai trò'}
-                                                                </span>
-
-                                                                {/* Edit & Delete abx buttons */}
-                                                                {!readOnly && <div className="ml-auto flex gap-1 opacity-0 group-hover/abx:opacity-100 transition-opacity">
-                                                                    <button
-                                                                        title="Chỉnh sửa kháng sinh"
-                                                                        onClick={() => toggleEditAbx(key)}
-                                                                        className="p-1 text-slate-400 hover:text-yellow-600 hover:bg-yellow-50 rounded-md transition-colors"
-                                                                    >
-                                                                        <EditOutlined className="text-[12px]" />
-                                                                    </button>
-                                                                    <button
-                                                                        title="Xóa kháng sinh"
-                                                                        onClick={() => handleDeleteAbx(phase.phaseOrder, index)}
-                                                                        className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                                                    >
-                                                                        <DeleteOutlined className="text-[12px]" />
-                                                                    </button>
-                                                                </div>}
-                                                            </div>
-                                                            <p className=" text-slate-700 mt-1">
-                                                                Liều: {abx.dosage || '—'} | Tần suất: {abx.frequency || '—'}
-                                                            </p>
-                                                            {abx.notes && (
-                                                                <p className="text-md text-slate-500 mt-1">{abx.notes}</p>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Add antibiotic button */}
-                                    {!readOnly && <div className="mt-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleAddAntibiotic(phase.phaseOrder)}
-                                            className="w-full border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl py-3 flex items-center justify-center text-sm font-medium text-slate-500 hover:text-blue-600 bg-slate-50/40 transition-colors"
-                                        >
-                                            <PlusOutlined className="mr-2" />
-                                            Thêm kháng sinh
-                                        </button>
-                                    </div>}
-                                </div>
-                            );
-                        })}
-
-                        {/* Add phase button */}
-                        {!readOnly && <div className="mt-6">
-                            <button
-                                type="button"
-                                onClick={handleAddPhase}
-                                className="w-full border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl py-3 flex items-center justify-center text-sm font-medium text-slate-500 hover:text-blue-600 bg-slate-50/40 transition-colors"
-                            >
-                                <PlusOutlined className="mr-2" />
-                                Thêm phase điều trị mới
-                            </button>
-                        </div>}
-                    </div>
-                </div>
-
-                {/* Monitoring & Contraindications */}
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-4 mt-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
-                            <p className="text-[11px] uppercase font-semibold tracking-wide text-amber-700 mb-1">Theo dõi</p>
-                            <ul className="space-y-1">
-                                {(guidelinePlan.monitoring ?? []).map((item) => (
-                                    <li key={item} className="text-md text-slate-800">- {item}</li>
-                                ))}
-                            </ul>
-                        </div>
-                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-3">
-                            <p className="text-[11px] uppercase font-semibold tracking-wide text-rose-700 mb-1">Thận trọng / chống chỉ định</p>
-                            <ul className="space-y-1">
-                                {(guidelinePlan.contraindications ?? []).map((item) => (
-                                    <li key={item} className="text-md text-slate-800">- {item}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </div>
-
-                    <p className=" leading-relaxed text-amber-900 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                        <span className="font-semibold text-red-700">Lưu ý:</span> {guidelinePlan.notes}
-                    </p>
-                </div>
-            </div>
+      }}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)',
+              border: '1px solid #7dd3fc',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#0284c7',
+              fontSize: 18,
+            }}
+          >
+            <ExperimentOutlined />
+          </div>
+          <div>
+            <Title level={5} style={{ margin: 0, fontSize: 15, color: '#0f172a' }}>
+              Điều trị kháng sinh toàn thân
+            </Title>
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {plan.regimenName || 'Phác đồ dược sĩ'}
+            </Text>
+          </div>
         </div>
-    );
+      }
+      extra={
+        <Space size={8}>
+          <Tag color="blue" style={{ margin: 0, fontWeight: 600, padding: '2px 8px' }}>
+            {calculatedTotalWeeks} TUẦN
+          </Tag>
+          {!readOnly && (
+            <Tooltip title={editingGeneral ? 'Đóng chỉnh sửa chung' : 'Chỉnh sửa thông tin chung'}>
+              <Button
+                size="small"
+                type={editingGeneral ? 'primary' : 'text'}
+                icon={<SettingOutlined />}
+                onClick={() => setEditingGeneral((prev) => !prev)}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      }
+    >
+      {/* General Settings / Indication */}
+      {editingGeneral ? (
+        <Card
+          size="small"
+          style={{ background: '#f0f9ff', borderColor: '#bae6fd', borderRadius: 8 }}
+          title={<Text strong style={{ fontSize: 13, color: '#0369a1' }}>Hiệu chỉnh thông tin chung</Text>}
+          extra={
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckOutlined />}
+              onClick={() => setEditingGeneral(false)}
+            >
+              Xong
+            </Button>
+          }
+        >
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={16}>
+              <Form.Item label="Tên phác đồ" style={{ marginBottom: 8 }}>
+                <Input
+                  value={plan.regimenName}
+                  onChange={(e) => handlePlanFieldChange('regimenName', e.target.value)}
+                  placeholder="VD: Ceftriaxone IV sau đó Ciprofloxacin uống"
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={8}>
+              <Form.Item label="Tổng thời gian (tuần)" style={{ marginBottom: 8 }}>
+                <InputNumber
+                  min={0}
+                  value={plan.totalDurationWeeks}
+                  onChange={handleTotalDurationChange}
+                  addonAfter="tuần"
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Chỉ định lâm sàng" style={{ marginBottom: 0 }}>
+                <Input.TextArea
+                  rows={2}
+                  value={plan.indication}
+                  onChange={(e) => handlePlanFieldChange('indication', e.target.value)}
+                  placeholder="Nhập chỉ định..."
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Card>
+      ) : (
+        <div
+          style={{
+            borderRadius: 8,
+            border: '1px solid #e2e8f0',
+            background: '#f8fafc',
+            padding: '10px 14px',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text
+              style={{
+                fontSize: 11,
+                textTransform: 'uppercase',
+                fontWeight: 700,
+                color: '#64748b',
+                letterSpacing: '0.05em',
+              }}
+            >
+              CHỈ ĐỊNH
+            </Text>
+          </div>
+          <Paragraph style={{ margin: '4px 0 0', color: '#1e293b', fontSize: 13 }}>
+            {plan.indication || 'Chưa có chỉ định cụ thể.'}
+          </Paragraph>
+        </div>
+      )}
+
+      {/* Phases List */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {phases.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="Chưa có giai đoạn điều trị nào."
+            style={{ margin: '16px 0' }}
+          />
+        ) : (
+          phases.map((phase) => {
+            const isPhaseEditing = editingPhaseId === phase.phaseOrder;
+
+            return (
+              <Card
+                key={phase.phaseOrder}
+                size="small"
+                style={{
+                  borderRadius: 8,
+                  borderColor: isPhaseEditing ? '#93c5fd' : '#e2e8f0',
+                  background: '#ffffff',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                }}
+                styles={{
+                  header: {
+                    background: '#f1f5f9',
+                    padding: '8px 12px',
+                    minHeight: 40,
+                  },
+                  body: {
+                    padding: 12,
+                  },
+                }}
+                title={
+                  <Space size={8} wrap>
+                    <Tag color="green" style={{ margin: 0, fontWeight: 600 }}>
+                      Giai đoạn {phase.phaseOrder}
+                    </Tag>
+                    {!isPhaseEditing ? (
+                      <>
+                        <Text strong style={{ fontSize: 13, color: '#1e293b' }}>
+                          {phase.phaseName || `Giai đoạn ${phase.phaseOrder}`}
+                        </Text>
+                        <Tag color="blue" style={{ margin: 0 }}>
+                          {phase.durationWeeks} tuần
+                        </Tag>
+                      </>
+                    ) : null}
+                  </Space>
+                }
+                extra={
+                  !readOnly ? (
+                    <Space size={4}>
+                      <Tooltip title={isPhaseEditing ? 'Xong' : 'Sửa giai đoạn'}>
+                        <Button
+                          size="small"
+                          type={isPhaseEditing ? 'primary' : 'text'}
+                          icon={isPhaseEditing ? <CheckOutlined /> : <EditOutlined />}
+                          onClick={() => toggleEditPhase(phase.phaseOrder)}
+                        />
+                      </Tooltip>
+                      <Popconfirm
+                        title="Xóa giai đoạn này?"
+                        description="Toàn bộ kháng sinh trong giai đoạn này cũng sẽ bị xóa."
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => handleDeletePhase(phase.phaseOrder)}
+                      >
+                        <Tooltip title="Xóa giai đoạn">
+                          <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                        </Tooltip>
+                      </Popconfirm>
+                    </Space>
+                  ) : null
+                }
+              >
+                {/* Phase inline editor */}
+                {isPhaseEditing && (
+                  <div
+                    style={{
+                      background: '#f8fafc',
+                      padding: 10,
+                      borderRadius: 6,
+                      marginBottom: 12,
+                      border: '1px dashed #cbd5e1',
+                    }}
+                  >
+                    <Row gutter={[8, 8]}>
+                      <Col xs={24} md={12}>
+                        <Form.Item label="Tên giai đoạn" style={{ marginBottom: 0 }}>
+                          <Input
+                            size="small"
+                            placeholder="VD: Khởi đầu tĩnh mạch"
+                            value={phase.phaseName}
+                            onChange={(e) =>
+                              handlePhaseFieldChange(phase.phaseOrder, 'phaseName', e.target.value)
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} md={6}>
+                        <Form.Item label="Thời gian" style={{ marginBottom: 0 }}>
+                          <InputNumber
+                            size="small"
+                            min={0}
+                            placeholder="Số tuần"
+                            value={phase.durationWeeks}
+                            onChange={(val) => handlePhaseDurationChange(phase.phaseOrder, val)}
+                            addonAfter="tuần"
+                            style={{ width: '100%' }}
+                          />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={12} md={6}>
+                        <Form.Item label="Ghi chú thời gian" style={{ marginBottom: 0 }}>
+                          <Input
+                            size="small"
+                            placeholder="VD: Tối thiểu 2 tuần"
+                            value={phase.durationNote}
+                            onChange={(e) =>
+                              handlePhaseFieldChange(phase.phaseOrder, 'durationNote', e.target.value)
+                            }
+                          />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+                  </div>
+                )}
+
+                {/* Phase Duration Note */}
+                {!isPhaseEditing && phase.durationNote && (
+                  <Paragraph
+                    type="secondary"
+                    style={{ marginBottom: 8, fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}
+                  >
+                    <InfoCircleOutlined style={{ color: '#0284c7' }} />
+                    {phase.durationNote}
+                  </Paragraph>
+                )}
+
+                {/* Antibiotics List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(phase.antibiotics ?? []).map((abx, index) => {
+                    const key = abxKey(phase.phaseOrder, index);
+                    const isAbxEditing = editingAbxKey === key;
+
+                    if (isAbxEditing) {
+                      return (
+                        <Card
+                          key={key}
+                          size="small"
+                          style={{
+                            background: '#f0fdf4',
+                            borderColor: '#86efac',
+                            borderRadius: 6,
+                          }}
+                          styles={{ body: { padding: 10 } }}
+                          title={
+                            <Text strong style={{ fontSize: 12, color: '#166534' }}>
+                              Chỉnh sửa kháng sinh #{index + 1}
+                            </Text>
+                          }
+                          extra={
+                            <Space size={4}>
+                              <Button
+                                size="small"
+                                type="primary"
+                                icon={<CheckOutlined />}
+                                onClick={() => setEditingAbxKey(null)}
+                              >
+                                Xong
+                              </Button>
+                              <Popconfirm
+                                title="Xóa kháng sinh này?"
+                                okText="Xóa"
+                                cancelText="Hủy"
+                                okButtonProps={{ danger: true }}
+                                onConfirm={() => handleDeleteAbx(phase.phaseOrder, index)}
+                              >
+                                <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                              </Popconfirm>
+                            </Space>
+                          }
+                        >
+                          <Row gutter={[8, 8]}>
+                            <Col xs={24} md={12}>
+                              <Form.Item label="Tên kháng sinh" style={{ marginBottom: 0 }}>
+                                <Input
+                                  size="small"
+                                  placeholder="VD: Ceftriaxone"
+                                  value={abx.antibioticName}
+                                  onChange={(e) =>
+                                    handleAbxFieldChange(
+                                      phase.phaseOrder,
+                                      index,
+                                      'antibioticName',
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col xs={12} md={6}>
+                              <Form.Item label="Đường dùng" style={{ marginBottom: 0 }}>
+                                <Select
+                                  size="small"
+                                  placeholder="Chọn"
+                                  value={abx.route || undefined}
+                                  onChange={(val) =>
+                                    handleAbxFieldChange(phase.phaseOrder, index, 'route', val)
+                                  }
+                                  options={ROUTE_OPTIONS}
+                                  allowClear
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col xs={12} md={6}>
+                              <Form.Item label="Vai trò" style={{ marginBottom: 0 }}>
+                                <Select
+                                  size="small"
+                                  placeholder="Chọn"
+                                  value={abx.role || undefined}
+                                  onChange={(val) =>
+                                    handleAbxFieldChange(phase.phaseOrder, index, 'role', val)
+                                  }
+                                  options={ROLE_OPTIONS}
+                                  allowClear
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col xs={12} md={12}>
+                              <Form.Item label="Liều lượng" style={{ marginBottom: 0 }}>
+                                <Input
+                                  size="small"
+                                  placeholder="VD: 2g"
+                                  value={abx.dosage}
+                                  onChange={(e) =>
+                                    handleAbxFieldChange(
+                                      phase.phaseOrder,
+                                      index,
+                                      'dosage',
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col xs={12} md={12}>
+                              <Form.Item label="Tần suất" style={{ marginBottom: 0 }}>
+                                <Input
+                                  size="small"
+                                  placeholder="VD: 1 lần/ngày"
+                                  value={abx.frequency}
+                                  onChange={(e) =>
+                                    handleAbxFieldChange(
+                                      phase.phaseOrder,
+                                      index,
+                                      'frequency',
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </Form.Item>
+                            </Col>
+                            <Col xs={24}>
+                              <Form.Item label="Ghi chú thêm" style={{ marginBottom: 0 }}>
+                                <Input
+                                  size="small"
+                                  placeholder="VD: Chỉnh liều theo ClCr..."
+                                  value={abx.notes}
+                                  onChange={(e) =>
+                                    handleAbxFieldChange(
+                                      phase.phaseOrder,
+                                      index,
+                                      'notes',
+                                      e.target.value,
+                                    )
+                                  }
+                                />
+                              </Form.Item>
+                            </Col>
+                          </Row>
+                        </Card>
+                      );
+                    }
+
+                    return (
+                      <Card
+                        key={key}
+                        size="small"
+                        style={{
+                          background: '#f8fafc',
+                          borderColor: '#e2e8f0',
+                          borderRadius: 6,
+                        }}
+                        styles={{ body: { padding: '8px 12px' } }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <Space size={6} wrap>
+                            <Text strong style={{ fontSize: 13, color: '#0f172a' }}>
+                              {abx.antibioticName || 'Chưa đặt tên'}
+                            </Text>
+                            {abx.route && <Tag color="blue" style={{ margin: 0 }}>{abx.route}</Tag>}
+                            {abx.role && <Tag color="purple" style={{ margin: 0 }}>{abx.role}</Tag>}
+                          </Space>
+                          {!readOnly && (
+                            <Space size={2}>
+                              <Tooltip title="Sửa kháng sinh">
+                                <Button
+                                  size="small"
+                                  type="text"
+                                  icon={<EditOutlined />}
+                                  onClick={() => toggleEditAbx(key)}
+                                />
+                              </Tooltip>
+                              <Popconfirm
+                                title="Xóa kháng sinh này?"
+                                okText="Xóa"
+                                cancelText="Hủy"
+                                okButtonProps={{ danger: true }}
+                                onConfirm={() => handleDeleteAbx(phase.phaseOrder, index)}
+                              >
+                                <Tooltip title="Xóa kháng sinh">
+                                  <Button size="small" danger type="text" icon={<DeleteOutlined />} />
+                                </Tooltip>
+                              </Popconfirm>
+                            </Space>
+                          )}
+                        </div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: '#475569' }}>
+                          <span>Liều: </span>
+                          <Text strong style={{ fontSize: 12 }}>{abx.dosage || '—'}</Text>
+                          <span style={{ margin: '0 6px' }}>|</span>
+                          <span>Tần suất: </span>
+                          <Text strong style={{ fontSize: 12 }}>{abx.frequency || '—'}</Text>
+                        </div>
+                        {abx.notes ? (
+                          <div style={{ marginTop: 4, fontSize: 12, color: '#64748b' }}>
+                            <Text type="secondary" italic>{abx.notes}</Text>
+                          </div>
+                        ) : null}
+                      </Card>
+                    );
+                  })}
+
+                  {/* Add Antibiotic to Phase */}
+                  {!readOnly && (
+                    <Button
+                      type="dashed"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={() => handleAddAntibiotic(phase.phaseOrder)}
+                      style={{ borderRadius: 6 }}
+                      block
+                    >
+                      Thêm kháng sinh vào giai đoạn {phase.phaseOrder}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })
+        )}
+
+        {/* Add Phase Button */}
+        {!readOnly && (
+          <Button
+            type="dashed"
+            icon={<PlusOutlined />}
+            onClick={handleAddPhase}
+            style={{ borderRadius: 8, height: 40 }}
+            block
+          >
+            Thêm phase điều trị mới
+          </Button>
+        )}
+      </div>
+
+      {/* Supporting details */}
+      {showSupportingDetails && (
+        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Divider style={{ margin: '8px 0' }} />
+          <Row gutter={[12, 12]}>
+            <Col xs={24} md={12}>
+              <Card
+                size="small"
+                style={{ background: '#fffbeb', borderColor: '#fde68a', borderRadius: 8 }}
+                title={<Text strong style={{ fontSize: 12, color: '#b45309' }}>Theo dõi</Text>}
+              >
+                {(plan.monitoring ?? []).length > 0 ? (
+                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#78350f' }}>
+                    {plan.monitoring?.map((m, i) => (
+                      <li key={i}>{m}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text type="secondary" style={{ fontSize: 12 }}>Không có lưu ý theo dõi riêng.</Text>
+                )}
+              </Card>
+            </Col>
+            <Col xs={24} md={12}>
+              <Card
+                size="small"
+                style={{ background: '#fff1f2', borderColor: '#fecdd3', borderRadius: 8 }}
+                title={<Text strong style={{ fontSize: 12, color: '#be123c' }}>Thận trọng / Chống chỉ định</Text>}
+              >
+                {(plan.contraindications ?? []).length > 0 ? (
+                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#881337' }}>
+                    {plan.contraindications?.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Text type="secondary" style={{ fontSize: 12 }}>Không có chống chỉ định đặc biệt.</Text>
+                )}
+              </Card>
+            </Col>
+          </Row>
+          {plan.notes ? (
+            <Alert
+              type="warning"
+              showIcon
+              message={<Text strong style={{ fontSize: 12 }}>Lưu ý</Text>}
+              description={<Text style={{ fontSize: 12 }}>{plan.notes}</Text>}
+              style={{ borderRadius: 6 }}
+            />
+          ) : null}
+        </div>
+      )}
+    </Card>
+  );
 });
+
+export default SystemicAntibioticTreatment;

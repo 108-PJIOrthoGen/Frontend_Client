@@ -523,6 +523,26 @@ export interface IClinicalDecisionWorkspace {
     runs: IRunClinicalDecision[];
 }
 
+export interface IAntibioticCarePlanGeneration {
+    requestId: string;
+    status: 'SUCCESS';
+    model?: {
+        name?: string;
+        version?: string;
+    };
+    latencyMs?: number;
+    episodeId: number;
+    sourceRunId: number;
+    sourceRunNo?: number;
+    pharmacistName?: string;
+    carePlan: Record<string, any>;
+    citations?: Array<{
+        sourceTitle?: string;
+        sourceUri?: string;
+        snippet?: string;
+    }>;
+}
+
 export interface IDoctorRecommendationReview {
     id?: string;
     episode?: IEpisode;

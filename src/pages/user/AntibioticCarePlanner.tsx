@@ -1,19 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Breadcrumb, Button, Card, Empty, Popconfirm, Space, Spin, Steps, Tag, Typography } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Alert, Breadcrumb, Button, Card, Popconfirm, Space, Steps, Tag, Typography } from 'antd';
 import {
   ArrowLeftOutlined, CalendarOutlined, HomeOutlined, LogoutOutlined,
   MedicineBoxOutlined, RightOutlined, SwapOutlined, UserOutlined,
 } from '@ant-design/icons';
-import { callFetchAiRecommendationRunDetail, callFetchClinicalDecisionWorkspace } from '@/apis/api';
-import type { IAiRecommendationRunDetail, IRunClinicalDecision } from '@/types/backend';
-import type { AntibioticCarePlanData } from '@/types/treatmentType';
-import { parseItemJson } from '@/components/user/diagnose_steps/treatment_plan/utils/itemJson';
 import { Step1PatientSelection } from '@/components/user/diagnose_steps/select_object/PatientSelection';
 import { S5AssessmentPji } from '@/components/user/diagnose_steps/assessment_pji/AssessmentPji';
 import { TreatmentPlan } from '@/components/user/diagnose_steps/treatment_plan/TreatmentPlan';
 import DataCompletenessStep from '@/components/user/diagnose_steps/check_completeness/DataCompletenessStep';
 import PharmacistDecisionStep from '@/components/user/diagnose_steps/pharmacist_decision/PharmacistDecisionStep';
-import AntibioticCarePlanPanel from '@/components/user/antibiotic/AntibioticCarePlanPanel';
+import AntibioticCarePlanWorkspace from '@/components/user/antibiotic/AntibioticCarePlanWorkspace';
 import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
 import antibioticRecommendationImage from '@/assets/images/antibio-logo1.png';
 import antibioticMonitoringImage from '@/assets/images/antibio-logo2.png';
@@ -21,64 +17,8 @@ import antibioticMonitoringImage from '@/assets/images/antibio-logo2.png';
 const { Paragraph, Text, Title } = Typography;
 type WorkspaceMode = 'GENERATE' | 'MONITOR' | null;
 
-const parseCarePlan = (detail?: IAiRecommendationRunDetail): AntibioticCarePlanData | undefined => {
-  const item = detail?.items?.find((candidate) => candidate.category === 'ANTIBIOTIC_CARE_PLAN');
-  return item ? parseItemJson(item) as AntibioticCarePlanData : undefined;
-};
-
-const MonitoringWorkspace: React.FC<{ episodeId?: string | number; onBack: () => void }> = ({ episodeId, onBack }) => {
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<IRunClinicalDecision>();
-  const [detail, setDetail] = useState<IAiRecommendationRunDetail>();
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      try {
-        if (!episodeId) return;
-        const workspace = await callFetchClinicalDecisionWorkspace(String(episodeId));
-        const antibioticRuns = (workspace.data?.runs ?? []).filter((run) => (
-          run.run.recommendationScope === 'ANTIBIOTIC' || run.run.recommendationScope === 'LEGACY_COMBINED'
-        ));
-        const run = antibioticRuns.find((candidate) => candidate.finalSelection)
-          ?? antibioticRuns.find((candidate) => candidate.pharmacistDecision?.status === 'SIGNED')
-          ?? antibioticRuns[0];
-        if (!run?.run.id || cancelled) return;
-        setSelected(run);
-        const response = await callFetchAiRecommendationRunDetail(String(run.run.id));
-        if (!cancelled) setDetail(response.data);
-      } catch {
-        if (!cancelled) setSelected(undefined);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    void load();
-    return () => { cancelled = true; };
-  }, [episodeId]);
-
-  const plan = selected?.pharmacistDecision?.carePlanJson ?? parseCarePlan(detail);
-  return (
-    <div className="min-h-full bg-slate-50 p-6">
-      <div className="mx-auto max-w-[1600px]">
-        <Space style={{ marginBottom: 16 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>Chọn bệnh án khác</Button>
-          <Tag color={selected?.pharmacistDecision?.status === 'SIGNED' ? 'green' : 'gold'}>
-            {selected?.pharmacistDecision?.status === 'SIGNED' ? 'Kế hoạch dược sĩ đã ký' : 'Đề xuất chưa được ký'}
-          </Tag>
-          {selected?.run.id ? <Text type="secondary">Phiên bản #{selected.run.runNo ?? selected.run.id}</Text> : null}
-        </Space>
-        {loading ? <div style={{ minHeight: 440, display: 'grid', placeItems: 'center' }}><Spin size="large" /></div>
-          : plan ? <AntibioticCarePlanPanel plan={plan} />
-            : <Card><Empty description="Bệnh án chưa có kế hoạch chăm sóc kháng sinh để theo dõi." /></Card>}
-      </div>
-    </div>
-  );
-};
-
 const AntibioticCarePlanner: React.FC = () => {
   const [mode, setMode] = useState<WorkspaceMode>(null);
-  const [monitorReady, setMonitorReady] = useState(false);
   const workflow = useDiagnosisWorkflow();
   const { currentCase, currentStep } = workflow;
 
@@ -92,7 +32,6 @@ const AntibioticCarePlanner: React.FC = () => {
 
   const leaveWorkspace = () => {
     workflow.backToFirstStep();
-    setMonitorReady(false);
     setMode(null);
   };
 
@@ -144,15 +83,7 @@ const AntibioticCarePlanner: React.FC = () => {
   }
 
   if (mode === 'MONITOR') {
-    if (monitorReady) return <MonitoringWorkspace episodeId={currentCase?.episode?.id} onBack={() => { workflow.backToFirstStep(); setMonitorReady(false); }} />;
-    return (
-      <div className="h-full overflow-y-auto bg-slate-50 p-6">
-        <Button icon={<ArrowLeftOutlined />} onClick={leaveWorkspace} style={{ marginBottom: 16 }}>Về workspace dược sĩ</Button>
-        <Card title="Chọn bệnh án cần theo dõi">
-          <Step1PatientSelection recommendationScope="ANTIBIOTIC" onNext={() => setMonitorReady(true)} />
-        </Card>
-      </div>
-    );
+    return <AntibioticCarePlanWorkspace onBack={leaveWorkspace} />;
   }
 
   const items = generationSteps.map((step, index) => ({ title: step.title, disabled: index > currentStep }));

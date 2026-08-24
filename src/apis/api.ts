@@ -443,6 +443,12 @@ export const callFetchClinicalDecisionWorkspace = (
     return instance.get(`/api/v1/episodes/${episodeId}/clinical-decisions/workspace`);
 }
 
+export const callGenerateAntibioticCarePlan = (
+    episodeId: string,
+): Promise<IBackendRes<import('@/types/backend').IAntibioticCarePlanGeneration>> => {
+    return instance.post(`/api/v1/episodes/${episodeId}/antibiotic-care-plan/generate`);
+}
+
 export const callFetchRunClinicalDecision = (
     runId: string,
 ): Promise<IBackendRes<IRunClinicalDecision>> => {
@@ -472,7 +478,6 @@ export const callSavePharmacistClinicalDecision = (
     data: {
         systemicAntibioticPlanJson?: Record<string, any>;
         localAntibioticPlanJson?: Record<string, any>;
-        carePlanJson?: Record<string, any>;
         notes?: string;
         revision: number;
     },
