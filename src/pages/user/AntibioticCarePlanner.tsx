@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Breadcrumb, Button, Card, Empty, Popconfirm, Space, Spin, Steps, Tag, Typography } from 'antd';
 import {
-  ArrowLeftOutlined, CalendarOutlined, ExperimentOutlined, HomeOutlined, LogoutOutlined,
-  MedicineBoxOutlined, RightOutlined, SafetyCertificateOutlined, SwapOutlined, UserOutlined,
+  ArrowLeftOutlined, CalendarOutlined, HomeOutlined, LogoutOutlined,
+  MedicineBoxOutlined, RightOutlined, SwapOutlined, UserOutlined,
 } from '@ant-design/icons';
 import { callFetchAiRecommendationRunDetail, callFetchClinicalDecisionWorkspace } from '@/apis/api';
 import type { IAiRecommendationRunDetail, IRunClinicalDecision } from '@/types/backend';
@@ -15,6 +15,8 @@ import DataCompletenessStep from '@/components/user/diagnose_steps/check_complet
 import PharmacistDecisionStep from '@/components/user/diagnose_steps/pharmacist_decision/PharmacistDecisionStep';
 import AntibioticCarePlanPanel from '@/components/user/antibiotic/AntibioticCarePlanPanel';
 import { useDiagnosisWorkflow } from './hooks/useDiagnosisWorkflow';
+import antibioticRecommendationImage from '@/assets/images/antibio-logo1.png';
+import antibioticMonitoringImage from '@/assets/images/antibio-logo2.png';
 
 const { Paragraph, Text, Title } = Typography;
 type WorkspaceMode = 'GENERATE' | 'MONITOR' | null;
@@ -106,19 +108,33 @@ const AntibioticCarePlanner: React.FC = () => {
             </Paragraph>
           </div>
           <div className="grid gap-6 lg:grid-cols-2">
-            <Card hoverable styles={{ body: { padding: 30 } }} onClick={() => setMode('GENERATE')}>
-              <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-2xl text-cyan-700"><ExperimentOutlined /></div>
-                <div><Title level={3}>Sinh phác đồ kháng sinh</Title><Paragraph type="secondary">Quy trình 5 bước: chọn hồ sơ, đánh giá, sinh đề xuất kháng sinh, rà soát dữ liệu và quyết định dược sĩ.</Paragraph></div>
-                <Button type="primary" size="large" icon={<RightOutlined />}>Bắt đầu sinh phác đồ</Button>
-              </Space>
+            <Card hoverable className="h-full overflow-hidden" styles={{ body: { height: '100%', padding: 0 } }} onClick={() => setMode('GENERATE')}>
+              <div className="grid h-full min-h-[292px] grid-cols-[minmax(120px,0.85fr)_minmax(0,1.35fr)] sm:grid-cols-[minmax(160px,0.85fr)_minmax(0,1.35fr)]">
+                <div className="flex min-w-0 items-center justify-center bg-[#f0edff] p-4 sm:p-6">
+                  <img className="h-full max-h-[250px] w-full object-contain" src={antibioticRecommendationImage} alt="Minh họa khuyến nghị phác đồ kháng sinh" decoding="async" />
+                </div>
+                <div className="flex min-w-0 flex-col justify-between gap-6 p-5 sm:p-7">
+                  <div>
+                    <Title level={3} style={{ marginTop: 0 }}>Khuyến nghị phác đồ kháng sinh</Title>
+                    <Paragraph type="secondary">Quy trình 5 bước: chọn hồ sơ, đánh giá, sinh đề xuất kháng sinh, rà soát dữ liệu và quyết định dược sĩ.</Paragraph>
+                  </div>
+                  <Button type="primary" size="large" icon={<RightOutlined />}>Bắt đầu sinh phác đồ</Button>
+                </div>
+              </div>
             </Card>
-            <Card hoverable styles={{ body: { padding: 30 } }} onClick={() => setMode('MONITOR')}>
-              <Space orientation="vertical" size="large" style={{ width: '100%' }}>
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-2xl text-emerald-700"><SafetyCertificateOutlined /></div>
-                <div><Title level={3}>Theo dõi điều trị</Title><Paragraph type="secondary">Xem 3 giai đoạn, ngày dừng thuốc, chỉnh liều theo thận, TDM, tương tác và lịch xét nghiệm an toàn.</Paragraph></div>
-                <Button size="large" icon={<CalendarOutlined />}>Mở kế hoạch theo dõi</Button>
-              </Space>
+            <Card hoverable className="h-full overflow-hidden" styles={{ body: { height: '100%', padding: 0 } }} onClick={() => setMode('MONITOR')}>
+              <div className="grid h-full min-h-[292px] grid-cols-[minmax(120px,0.85fr)_minmax(0,1.35fr)] sm:grid-cols-[minmax(160px,0.85fr)_minmax(0,1.35fr)]">
+                <div className="min-w-0 overflow-hidden bg-emerald-50">
+                  <img className="h-full w-full object-cover" src={antibioticMonitoringImage} alt="Minh họa theo dõi điều trị kháng sinh" decoding="async" />
+                </div>
+                <div className="flex min-w-0 flex-col justify-between gap-6 p-5 sm:p-7">
+                  <div>
+                    <Title level={3} style={{ marginTop: 0 }}>Theo dõi điều trị</Title>
+                    <Paragraph type="secondary">Xem 3 giai đoạn, ngày dừng thuốc, chỉnh liều theo thận, TDM, tương tác và lịch xét nghiệm an toàn.</Paragraph>
+                  </div>
+                  <Button size="large" icon={<CalendarOutlined />}>Mở kế hoạch theo dõi</Button>
+                </div>
+              </div>
             </Card>
           </div>
           <Alert style={{ marginTop: 24 }} showIcon type="info" message="Ranh giới an toàn" description="AI chỉ tạo đề xuất. Dược sĩ là người sao chép, hiệu chỉnh và ký; hệ thống không tự phát hành y lệnh hoặc tự đổi liều." />
