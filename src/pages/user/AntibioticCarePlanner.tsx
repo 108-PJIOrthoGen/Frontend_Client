@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Alert, Breadcrumb, Button, Card, Popconfirm, Space, Steps, Tag, Typography } from 'antd';
 import {
   ArrowLeftOutlined, CalendarOutlined, HomeOutlined, LogoutOutlined,
@@ -18,9 +19,18 @@ const { Paragraph, Text, Title } = Typography;
 type WorkspaceMode = 'GENERATE' | 'MONITOR' | null;
 
 const AntibioticCarePlanner: React.FC = () => {
-  const [mode, setMode] = useState<WorkspaceMode>(null);
-  const workflow = useDiagnosisWorkflow();
+  const location = useLocation();
+  const linkedRunId = useMemo(
+    () => new URLSearchParams(location.search).get('runId'),
+    [location.search],
+  );
+  const [mode, setMode] = useState<WorkspaceMode>(() => linkedRunId ? 'GENERATE' : null);
+  const workflow = useDiagnosisWorkflow('ANTIBIOTIC');
   const { currentCase, currentStep } = workflow;
+
+  useEffect(() => {
+    if (linkedRunId) setMode('GENERATE');
+  }, [linkedRunId]);
 
   const generationSteps = useMemo(() => [
     { title: 'Chọn hồ sơ', content: <Step1PatientSelection recommendationScope="ANTIBIOTIC" onNext={workflow.next} autoOpenSearch={workflow.autoOpenSearch} onAutoSearchConsumed={workflow.consumeAutoOpenSearch} /> },

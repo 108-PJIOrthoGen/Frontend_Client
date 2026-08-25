@@ -1,4 +1,6 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createSlice } from '@reduxjs/toolkit';
+import type { PayloadAction } from '@reduxjs/toolkit';
+import type { RecommendationScope } from '@/types/backend';
 
 export type RegimenTaskStatus = 'QUEUED' | 'PROCESSING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
 
@@ -9,6 +11,7 @@ export interface IAiRegimenTask {
   patientName: string;
   patientCode?: string;
   medicalRecordCode?: string;
+  recommendationScope?: RecommendationScope;
   status: RegimenTaskStatus;
   progressMessage?: string;
   stage?: string;
@@ -64,13 +67,13 @@ export const aiRegimenTaskSlice = createSlice({
     addOrUpdateTask: (state, action: PayloadAction<IAiRegimenTask>) => {
       if (action.payload.status !== 'PROCESSING' && action.payload.status !== 'QUEUED') {
         state.tasks = state.tasks.filter(
-          (t) => t.id !== action.payload.id && Number(t.episodeId) !== Number(action.payload.episodeId)
+          (t) => String(t.id) !== String(action.payload.id)
         );
         saveTasks(state.tasks);
         return;
       }
       const existingIdx = state.tasks.findIndex(
-        (t) => t.id === action.payload.id || (Number(t.episodeId) === Number(action.payload.episodeId) && (t.status === 'PROCESSING' || t.status === 'QUEUED'))
+        (t) => String(t.id) === String(action.payload.id)
       );
       if (existingIdx >= 0) {
         state.tasks[existingIdx] = { ...state.tasks[existingIdx], ...action.payload };
@@ -84,7 +87,9 @@ export const aiRegimenTaskSlice = createSlice({
       action: PayloadAction<{ id?: string; episodeId?: number; progressMessage?: string; stage?: string }>
     ) => {
       const { id, episodeId, progressMessage, stage } = action.payload;
-      const task = state.tasks.find((t) => (id && t.id === id) || (episodeId && Number(t.episodeId) === Number(episodeId)));
+      const task = state.tasks.find((t) => id
+        ? String(t.id) === String(id)
+        : episodeId != null && Number(t.episodeId) === Number(episodeId));
       if (task) {
         if (progressMessage !== undefined) task.progressMessage = progressMessage;
         if (stage !== undefined) task.stage = stage;
@@ -98,7 +103,9 @@ export const aiRegimenTaskSlice = createSlice({
       const { id, episodeId } = action.payload;
       // When recommendation finishes, automatically remove it
       state.tasks = state.tasks.filter(
-        (t) => !( (id && (t.id === id || String(t.id) === String(id))) || (episodeId && Number(t.episodeId) === Number(episodeId)) )
+        (t) => id
+          ? String(t.id) !== String(id)
+          : episodeId == null || Number(t.episodeId) !== Number(episodeId)
       );
       saveTasks(state.tasks);
     },

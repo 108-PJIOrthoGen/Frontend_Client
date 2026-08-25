@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { Badge, Progress, Tag, Tooltip } from 'antd';
 import {
   RobotOutlined,
@@ -13,18 +14,57 @@ import { RootState } from '@/redux/store';
 import {
   IAiRegimenTask,
   cancelTask,
+  completeTask,
 } from '@/redux/slice/aiRegimenTaskSlice';
-import { callCancelAiRun } from '@/apis/api';
+import { callCancelAiRun, callFetchAiRecommendationRunDetail } from '@/apis/api';
+
+const TERMINAL_RUN_STATUSES = new Set(['SUCCESS', 'PARTIAL', 'FAILED', 'TIMEOUT', 'CANCELLED']);
+const STATUS_POLL_INTERVAL_MS = 5_000;
 
 export const CurrentCaseAndAiMonitor: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const tasks = useSelector((state: RootState) => state.aiRegimenTask?.tasks ?? []);
   const [cancellingIds, setCancellingIds] = useState<Record<string, boolean>>({});
   const [now, setNow] = useState(Date.now());
 
-  const activeTasks = tasks.filter(
-    (t) => t.status === 'PROCESSING' || t.status === 'QUEUED'
+  const activeTasks = useMemo(
+    () => tasks.filter((t) => t.status === 'PROCESSING' || t.status === 'QUEUED'),
+    [tasks],
   );
+
+  useEffect(() => {
+    if (activeTasks.length === 0) return;
+    let disposed = false;
+
+    const reconcileTerminalRuns = async () => {
+      const results = await Promise.allSettled(
+        activeTasks.map((task) => callFetchAiRecommendationRunDetail(task.id)),
+      );
+      if (disposed) return;
+
+      results.forEach((result, index) => {
+        if (result.status !== 'fulfilled') return;
+        const runStatus = result.value?.data?.run?.status;
+        if (!runStatus || !TERMINAL_RUN_STATUSES.has(runStatus)) return;
+
+        const task = activeTasks[index];
+        dispatch(completeTask({
+          id: task.id,
+          episodeId: task.episodeId,
+          status: runStatus === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
+          errorMessage: result.value?.data?.run?.errorMessage,
+        }));
+      });
+    };
+
+    void reconcileTerminalRuns();
+    const timer = window.setInterval(reconcileTerminalRuns, STATUS_POLL_INTERVAL_MS);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [activeTasks, dispatch]);
 
   // Tick for live elapsed seconds counter
   useEffect(() => {
@@ -54,6 +94,17 @@ export const CurrentCaseAndAiMonitor: React.FC = () => {
         return next;
       });
     }
+  };
+
+  const handleOpenTask = (task: IAiRegimenTask) => {
+    const pathname = task.recommendationScope === 'ANTIBIOTIC'
+      ? '/antibiotic-planner'
+      : '/';
+    const search = new URLSearchParams({
+      episodeId: String(task.episodeId),
+      runId: task.id,
+    });
+    navigate(`${pathname}?${search.toString()}`);
   };
 
   const formatElapsed = (startedAt: number) => {
@@ -145,7 +196,17 @@ export const CurrentCaseAndAiMonitor: React.FC = () => {
             return (
               <div
                 key={task.id}
-                className="relative flex flex-col gap-1 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 transition-all shadow-xs"
+                role="button"
+                tabIndex={0}
+                onClick={() => handleOpenTask(task)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleOpenTask(task);
+                  }
+                }}
+                aria-label={`Mở tiến trình sinh phác đồ của ${task.patientName}`}
+                className="relative flex cursor-pointer flex-col gap-1 rounded-lg border border-emerald-200 bg-emerald-50/70 p-2.5 shadow-xs transition-all hover:border-emerald-300 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex min-w-0 items-center gap-1.5">

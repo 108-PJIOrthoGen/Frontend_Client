@@ -4,6 +4,11 @@ import { useLocation } from 'react-router-dom';
 import { callFetchEpisodeById } from '@/apis/api';
 import { useAppDispatch, useAppSelector } from '@/redux/hook';
 import { clearCurrentCase, setCurrentCase } from '@/redux/features/patients/patientSlice';
+import {
+  activateDiagnosisWorkflow,
+  createDiagnosisWorkflowScope,
+} from '@/features/diagnosis/diagnosisWorkflowSession';
+import type { RecommendationScope } from '@/types/backend';
 
 const FIRST_STEP = 0;
 const TREATMENT_PLAN_STEP = 2;
@@ -16,7 +21,7 @@ const initialStepFromLocation = (search: string): number => {
   return FIRST_STEP;
 };
 
-export const useDiagnosisWorkflow = () => {
+export const useDiagnosisWorkflow = (recommendationScope: RecommendationScope = 'SURGERY') => {
   const dispatch = useAppDispatch();
   const location = useLocation();
   const currentCase = useAppSelector(state => state.patient.currentCase);
@@ -45,6 +50,12 @@ export const useDiagnosisWorkflow = () => {
       currentCase?.episode?.id != null
       && Number(currentCase.episode.id) === episodeId
     ) {
+      const scope = createDiagnosisWorkflowScope(
+        currentCase.patient?.id,
+        currentCase.episode.id,
+        recommendationScope,
+      );
+      if (scope) activateDiagnosisWorkflow(scope);
       return;
     }
 
@@ -59,6 +70,8 @@ export const useDiagnosisWorkflow = () => {
         const patient = episode?.patient;
         if (episode && patient) {
           dispatch(setCurrentCase({ patient, episode }));
+          const scope = createDiagnosisWorkflowScope(patient.id, episode.id, recommendationScope);
+          if (scope) activateDiagnosisWorkflow(scope);
           return;
         }
 
@@ -75,7 +88,7 @@ export const useDiagnosisWorkflow = () => {
     return () => {
       cancelled = true;
     };
-  }, [currentCase?.episode?.id, dispatch, searchParams]);
+  }, [currentCase?.episode?.id, currentCase?.patient?.id, dispatch, recommendationScope, searchParams]);
 
   const next = useCallback(() => {
     setCurrentStep(previousStep => previousStep + 1);

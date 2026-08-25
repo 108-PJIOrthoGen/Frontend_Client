@@ -24,7 +24,7 @@ const AiDiagnosisSuggestion = () => {
         next,
         prev,
         selectStep,
-    } = useDiagnosisWorkflow();
+    } = useDiagnosisWorkflow('SURGERY');
 
     const steps = [
         {

@@ -295,8 +295,13 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext, recommenda
   useEffect(() => {
     if (!workflowScope) return;
     const snapshot = getDiagnosisWorkflowSnapshot(workflowScope);
-    const urlRunId = new URLSearchParams(location.search).get('runId');
+    const searchParams = new URLSearchParams(location.search);
+    const urlRunId = searchParams.get('runId');
+    const requestedEpisodeId = searchParams.get('episodeId');
     if (urlRunId) {
+      if (requestedEpisodeId && String(episodeId ?? '') !== requestedEpisodeId) {
+        return;
+      }
       navigate(location.pathname, { replace: true });
       const logs = snapshot?.thoughtLogs ?? [];
       thoughtLogsRef.current = logs;
@@ -312,7 +317,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext, recommenda
       setThoughtLogs(logs);
       void resumeRun(pendingRunId);
     }
-  }, [location.pathname, location.search, navigate, resumeRun, workflowScope]);
+  }, [episodeId, location.pathname, location.search, navigate, resumeRun, workflowScope]);
 
   useEffect(() => {
     return () => {
@@ -372,6 +377,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext, recommenda
           patientName: currentCase?.patient?.fullName || `Bệnh nhân #${patientId ?? '?'}`,
           patientCode: currentCase?.patient?.patientCode,
           medicalRecordCode: currentCase?.episode?.medicalRecordCode || `#${episodeId}`,
+          recommendationScope,
           status: 'PROCESSING',
           startedAt: Date.now(),
           progressMessage: 'Đang khởi tạo tiến trình phân tích AI...',
@@ -400,7 +406,7 @@ export const TreatmentPlan: React.FC<Step5Props> = ({ onPrev, onNext, recommenda
       if (episodeId) {
         dispatch(
           completeTask({
-            id: currentRunIdRef.current || 'unknown',
+            id: currentRunIdRef.current || undefined,
             episodeId: Number(episodeId),
             status: 'FAILED',
             errorMessage: msg,

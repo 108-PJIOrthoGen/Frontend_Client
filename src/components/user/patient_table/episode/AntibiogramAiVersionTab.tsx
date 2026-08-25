@@ -123,10 +123,14 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
   const [localPlan, setLocalPlan] = useState<LocalPlanData>(emptyLocalPlan);
   const [carePlan, setCarePlan] = useState<AntibioticCarePlanData>();
   const [editorKey, setEditorKey] = useState(0);
+  const successfulRuns = useMemo(
+    () => runs.filter((candidate) => candidate.run.status === 'SUCCESS'),
+    [runs],
+  );
 
   const selected = useMemo(
-    () => runs.find((candidate) => String(candidate.run.id) === selectedRunId) ?? runs[0],
-    [runs, selectedRunId],
+    () => successfulRuns.find((candidate) => String(candidate.run.id) === selectedRunId) ?? successfulRuns[0],
+    [selectedRunId, successfulRuns],
   );
   const runId = selected?.run.id != null ? String(selected.run.id) : undefined;
   const detail = runId ? runDetails[runId] : undefined;
@@ -222,7 +226,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
   };
 
   return (
-    <DecisionVersionRail runs={runs} selectedRunId={runId} onRunChange={onRunChange}>
+    <DecisionVersionRail runs={successfulRuns} selectedRunId={runId} onRunChange={onRunChange}>
       {selected ? (
         <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
           <Card size="small">
