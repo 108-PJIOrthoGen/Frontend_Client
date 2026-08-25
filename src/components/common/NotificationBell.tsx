@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Badge,
   Button,
@@ -103,12 +102,11 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
     notifications,
     unreadCount,
     loading,
-    markRead,
     markAllRead,
     deleteNotifications,
     refresh,
+    openNotification,
   } = useNotifications();
-  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState<'ALL' | 'UNREAD'>('ALL');
   const [selectedNotificationIds, setSelectedNotificationIds] = useState<Set<number>>(() => new Set());
@@ -171,14 +169,9 @@ const NotificationBell = ({ inline = false, compact = false }: Props) => {
     }
   };
 
-  const handleItemClick = async (n: INotification) => {
-    if (!n.isRead) {
-      void markRead(n.id);
-    }
+  const handleItemClick = (n: INotification) => {
     setOpen(false);
-    if (n.linkUrl) {
-      navigate(n.linkUrl);
-    }
+    void openNotification(n);
   };
 
   const renderList = () => {

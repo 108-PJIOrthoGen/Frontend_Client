@@ -22,6 +22,11 @@ import { openSse, type SseConnection } from '@/utils/sseClient';
 import type { INotification } from '@/types/notification';
 import { getAccessToken } from '@/security/accessToken';
 import { completeTask } from '@/redux/slice/aiRegimenTaskSlice';
+import { callFetchAiRecommendationRunDetail } from '@/apis/api';
+import {
+  buildRecommendationRunLink,
+  isAiRecommendationNotification,
+} from '@/features/notifications/notificationNavigation';
 
 interface NotificationContextValue {
   notifications: INotification[];
@@ -31,6 +36,7 @@ interface NotificationContextValue {
   markRead: (id: number) => Promise<void>;
   markAllRead: () => Promise<void>;
   deleteNotifications: (ids: number[]) => Promise<boolean>;
+  openNotification: (notification: INotification) => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
@@ -136,6 +142,46 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
     }
   }, [notifications, refresh]);
 
+  const openNotification = useCallback(async (item: INotification) => {
+    if (!item.isRead) {
+      void markRead(item.id);
+    }
+
+    if (isAiRecommendationNotification(item)) {
+      if (!item.referenceId) {
+        antdNotification.error({
+          message: 'Không thể mở phác đồ AI',
+          description: 'Thông báo không chứa mã lần chạy AI.',
+        });
+        return;
+      }
+
+      try {
+        const response = await callFetchAiRecommendationRunDetail(String(item.referenceId));
+        const run = response?.data?.run;
+        if (run?.id == null || run.episodeId == null) {
+          throw new Error('Recommendation run is missing its identity or episode.');
+        }
+        navigate(buildRecommendationRunLink({
+          runId: run.id,
+          episodeId: run.episodeId,
+          recommendationScope: run.recommendationScope,
+        }));
+      } catch (error) {
+        console.warn('Failed to resolve AI recommendation notification', error);
+        antdNotification.error({
+          message: 'Không thể mở phác đồ AI',
+          description: 'Không tải được lần chạy được tham chiếu. Vui lòng thử lại.',
+        });
+      }
+      return;
+    }
+
+    if (item.linkUrl) {
+      navigate(item.linkUrl);
+    }
+  }, [markRead, navigate]);
+
   // Prepend a single notification that arrived via SSE.
   const handleIncoming = useCallback((incoming: INotification) => {
     setNotifications((prev) => {
@@ -172,16 +218,11 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
       placement: 'topRight',
       duration: 7,
       onClick: () => {
-        if (incoming.linkUrl) {
-          if (!incoming.isRead) {
-            void markRead(incoming.id);
-          }
-          navigate(incoming.linkUrl);
-        }
+        void openNotification(incoming);
       },
       style: { cursor: incoming.linkUrl ? 'pointer' : 'default' },
     });
-  }, [dispatch, markRead, navigate]);
+  }, [dispatch, openNotification]);
 
   // (Re)open the SSE stream. Caller is responsible for clearing any previous connection.
   const openConnection = useCallback(() => {
@@ -256,7 +297,8 @@ export const NotificationProvider = ({ children }: ProviderProps) => {
     markRead,
     markAllRead,
     deleteNotifications,
-  }), [notifications, unreadCount, loading, refresh, markRead, markAllRead, deleteNotifications]);
+    openNotification,
+  }), [notifications, unreadCount, loading, refresh, markRead, markAllRead, deleteNotifications, openNotification]);
 
   return (
     <NotificationContext.Provider value={value}>
