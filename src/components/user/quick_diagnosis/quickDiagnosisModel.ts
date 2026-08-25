@@ -1,3 +1,5 @@
+import { calculateBmi } from '../../../utils/medicalCalculation.ts';
+
 export type PjiDiagnosisConclusion =
   | 'INCOMPLETE'
   | 'NOT_APPLICABLE'
@@ -716,6 +718,8 @@ export type PjiRiskSurgery =
 export type PjiRiskPriorProcedures = 'none' | 'one' | 'two' | 'threeOrMore';
 
 export interface PjiRiskInput {
+  heightCm?: number;
+  weightKg?: number;
   bmi?: number;
   sex?: PjiRiskSex;
   insurance?: PjiRiskInsurance;
@@ -782,26 +786,37 @@ const findPoints = <T extends string>(
   value: T,
 ) => options.find(option => option.value === value);
 
+export const resolvePjiRiskBmi = (input: PjiRiskInput): number | undefined => {
+  if (typeof input.bmi === 'number' && Number.isFinite(input.bmi) && input.bmi > 0) {
+    return input.bmi;
+  }
+  return calculateBmi(input.heightCm, input.weightKg);
+};
+
 export const hasCompletePjiRiskInput = (
   input: PjiRiskInput,
-): input is Required<Omit<PjiRiskInput, 'comorbidities'>> & Pick<PjiRiskInput, 'comorbidities'> => (
-  typeof input.bmi === 'number'
-  && Number.isFinite(input.bmi)
-  && input.bmi > 0
-  && input.sex != null
-  && input.insurance != null
-  && input.smoker != null
-  && input.drugAbuse != null
-  && input.surgery != null
-  && input.priorProcedures != null
-);
+): boolean => {
+  const bmi = resolvePjiRiskBmi(input);
+  return (
+    typeof bmi === 'number'
+    && Number.isFinite(bmi)
+    && bmi > 0
+    && input.sex != null
+    && input.insurance != null
+    && input.smoker != null
+    && input.drugAbuse != null
+    && input.surgery != null
+    && input.priorProcedures != null
+  );
+};
 
 export const calculatePjiRisk = (input: PjiRiskInput): PjiRiskResult | null => {
   if (!hasCompletePjiRiskInput(input)) return null;
+  const effectiveBmi = resolvePjiRiskBmi(input)!;
 
   const bmiPoints = Math.max(
     0,
-    Math.round((0.0865 * input.bmi * input.bmi) - (5.072 * input.bmi) + 74.35),
+    Math.round((0.0865 * effectiveBmi * effectiveBmi) - (5.072 * effectiveBmi) + 74.35),
   );
   const surgery = findPoints(PJI_RISK_SURGERIES, input.surgery);
   const priorProcedures = findPoints(PJI_RISK_PRIOR_PROCEDURES, input.priorProcedures);
@@ -810,7 +825,7 @@ export const calculatePjiRisk = (input: PjiRiskInput): PjiRiskResult | null => {
   );
 
   const contributions: PjiRiskContribution[] = [
-    { key: 'bmi', label: `BMI ${input.bmi}`, points: bmiPoints },
+    { key: 'bmi', label: `BMI ${effectiveBmi}`, points: bmiPoints },
     { key: 'sex', label: input.sex === 'male' ? 'Nam' : 'Nữ', points: input.sex === 'male' ? 18 : 0 },
     {
       key: 'insurance',

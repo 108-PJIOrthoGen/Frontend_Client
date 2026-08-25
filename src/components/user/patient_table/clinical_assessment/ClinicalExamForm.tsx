@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Form, Input, InputNumber, Select, Tag } from 'antd';
 import { useClinicForm } from '@/redux/hook';
 import { IClinicalRecord } from '@/types/backend';
+import { calculateBmi, classifyBmi } from '@/utils/medicalCalculation';
 
 const ONSET_TIMING_OPTIONS = [
   { value: 'EARLY', label: 'Sớm (3 tháng)' },
@@ -15,16 +16,6 @@ const TRANSMISSION_ROUTE_OPTIONS = [
   { value: 'CONTIGUOUS_SPREAD', label: 'Lan từ mô kế cận' },
   { value: 'UNKNOWN', label: 'Chưa rõ' },
 ];
-
-// WHO international BMI classification (kg/m²).
-const classifyBmi = (bmi: number): { label: string; color: string } => {
-  if (bmi < 18.5) return { label: 'Thiếu cân', color: 'blue' };
-  if (bmi < 25) return { label: 'Bình thường', color: 'green' };
-  if (bmi < 30) return { label: 'Thừa cân', color: 'gold' };
-  if (bmi < 35) return { label: 'Béo phì độ I', color: 'orange' };
-  if (bmi < 40) return { label: 'Béo phì độ II', color: 'volcano' };
-  return { label: 'Béo phì độ III', color: 'red' };
-};
 
 const ClinicalExamForm: React.FC = () => {
   const { form: clinicForm, setForm } = useClinicForm();
@@ -43,18 +34,15 @@ const ClinicalExamForm: React.FC = () => {
 
   // Auto-calculate BMI
   useEffect(() => {
-    if (heightCm && weightKg && heightCm > 0) {
-      const meters = heightCm / 100;
-      const bmi = Math.round((weightKg / (meters * meters)) * 100) / 100;
-      if (Number.isFinite(bmi) && bmi !== clinicForm.clinicalRecord.bmi) {
-        handleChange('bmi', bmi);
-      }
+    const computedBmi = calculateBmi(heightCm, weightKg);
+    if (computedBmi !== undefined && computedBmi !== clinicForm.clinicalRecord.bmi) {
+      handleChange('bmi', computedBmi);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [heightCm, weightKg]);
 
   const bmiValue = clinicForm.clinicalRecord.bmi;
-  const bmiCategory = typeof bmiValue === 'number' ? classifyBmi(bmiValue) : null;
+  const bmiCategory = classifyBmi(bmiValue);
 
   return (
     <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">

@@ -9,11 +9,14 @@ import {
     InputNumber,
     Select,
     TimePicker,
+    Tooltip,
 } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import locale from 'antd/es/date-picker/locale/vi_VN';
 import { IEpisode } from '@/types/backend';
 import { stringToDayjs } from '@/config/utils';
 import { episodeToFormData } from '@/utils/apiToForm';
+import { recalculateAllTreatmentDays, parseDateToDayjs } from '@/utils/medicalCalculation';
 
 export interface DepartmentTransferFormData {
     department: string;
@@ -125,11 +128,78 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
 
     useEffect(() => {
         const data = episodeData ? episodeToFormData(episodeData) : emptyFormData;
-        form.setFieldsValue(data);
+        const updates = recalculateAllTreatmentDays(data);
+        const mergedData: EpisodeFormData = {
+            ...data,
+            treatmentDays: data.treatmentDays || updates.treatmentDays || '',
+            initialDepartmentTreatmentDays:
+                data.initialDepartmentTreatmentDays || updates.initialDepartmentTreatmentDays || '',
+            departmentTransfers: (data.departmentTransfers || []).map((t, idx) => ({
+                ...t,
+                treatmentDays: t.treatmentDays || updates.departmentTransfers?.[idx]?.treatmentDays || '',
+            })),
+        };
+        form.setFieldsValue(mergedData);
+        onFormChange?.(mergedData);
     }, [episodeData, form]);
 
-    const handleValuesChange = (_changedValues: Partial<EpisodeFormData>, allValues: EpisodeFormData) => {
-        onFormChange?.(allValues);
+    const handleValuesChange = (changedValues: Partial<EpisodeFormData>, allValues: EpisodeFormData) => {
+        const updatedValues: EpisodeFormData = { ...allValues };
+        let hasCalculatedChanges = false;
+
+        const isAdmissionChanged = 'admissionDate' in changedValues;
+        const isDischargeChanged = 'dischargeDate' in changedValues;
+        const isInitialAdmissionChanged = 'initialDepartmentAdmissionDate' in changedValues;
+        const isTransfersChanged = 'departmentTransfers' in changedValues;
+
+        // Tự động đồng bộ Ngày vào khoa nếu chưa nhập và đã có Ngày vào viện
+        if (isAdmissionChanged && changedValues.admissionDate && !updatedValues.initialDepartmentAdmissionDate) {
+            updatedValues.initialDepartmentAdmissionDate = changedValues.admissionDate;
+            hasCalculatedChanges = true;
+        }
+
+        // Tự động tính toán lại số ngày điều trị theo chuẩn Bộ Y tế khi ngày thay đổi
+        if (isAdmissionChanged || isDischargeChanged || isInitialAdmissionChanged || isTransfersChanged) {
+            const calculated = recalculateAllTreatmentDays(updatedValues);
+
+            if (calculated.treatmentDays !== undefined && calculated.treatmentDays !== updatedValues.treatmentDays) {
+                updatedValues.treatmentDays = calculated.treatmentDays;
+                hasCalculatedChanges = true;
+            }
+
+            if (
+                calculated.initialDepartmentTreatmentDays !== undefined &&
+                calculated.initialDepartmentTreatmentDays !== updatedValues.initialDepartmentTreatmentDays
+            ) {
+                updatedValues.initialDepartmentTreatmentDays = calculated.initialDepartmentTreatmentDays;
+                hasCalculatedChanges = true;
+            }
+
+            if (calculated.departmentTransfers) {
+                const newTransfers = calculated.departmentTransfers.map((t, idx) => ({
+                    ...(updatedValues.departmentTransfers?.[idx] || {
+                        department: '',
+                        admissionDate: '',
+                        admissionTime: '',
+                        treatmentDays: '',
+                    }),
+                    ...t,
+                }));
+                const transferDaysChanged = newTransfers.some(
+                    (nt, idx) => nt.treatmentDays !== updatedValues.departmentTransfers?.[idx]?.treatmentDays
+                );
+                if (transferDaysChanged) {
+                    updatedValues.departmentTransfers = newTransfers;
+                    hasCalculatedChanges = true;
+                }
+            }
+        }
+
+        if (hasCalculatedChanges) {
+            form.setFieldsValue(updatedValues);
+        }
+
+        onFormChange?.(updatedValues);
     };
 
     const requiredRule = { required: true, message: 'Trường này bắt buộc điền' };
@@ -245,6 +315,20 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                             label={<span className="font-medium text-slate-700">Ngày vào khoa</span>}
                                             getValueFromEvent={pickerValue}
                                             getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                            rules={[
+                                                ({ getFieldValue }) => ({
+                                                    validator(_, value) {
+                                                        const admissionDate = getFieldValue('admissionDate');
+                                                        if (!value || !admissionDate) return Promise.resolve();
+                                                        const start = parseDateToDayjs(admissionDate)?.startOf('day');
+                                                        const current = parseDateToDayjs(value)?.startOf('day');
+                                                        if (start && current && current.isBefore(start)) {
+                                                            return Promise.reject(new Error('Ngày vào khoa không được trước ngày vào viện'));
+                                                        }
+                                                        return Promise.resolve();
+                                                    },
+                                                }),
+                                            ]}
                                         >
                                             <DatePicker
                                                 locale={locale}
@@ -255,10 +339,17 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                         </Form.Item>
                                         <Form.Item
                                             name="initialDepartmentTreatmentDays"
-                                            label={<span className="font-medium text-slate-700">Ngày điều trị</span>}
+                                            label={
+                                                <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                                                    <span>Ngày điều trị</span>
+                                                    <Tooltip title="Tự động tính theo chuẩn y tế từ Ngày vào khoa đến Ngày chuyển khoa tiếp theo (hoặc Ngày ra viện).">
+                                                        <InfoCircleOutlined className="text-slate-400 hover:text-blue-500 cursor-pointer text-xs" />
+                                                    </Tooltip>
+                                                </span>
+                                            }
                                             rules={integerRules}
                                         >
-                                            <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                            <InputNumber min={0} controls={false} stringMode placeholder="Tự động tính" className="h-11 w-full" />
                                         </Form.Item>
                                     </div>
 
@@ -283,6 +374,20 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                                             label="Ngày chuyển"
                                                             getValueFromEvent={pickerValue}
                                                             getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                                            rules={[
+                                                                ({ getFieldValue }) => ({
+                                                                    validator(_, value) {
+                                                                        const admissionDate = getFieldValue('admissionDate');
+                                                                        if (!value || !admissionDate) return Promise.resolve();
+                                                                        const start = parseDateToDayjs(admissionDate)?.startOf('day');
+                                                                        const current = parseDateToDayjs(value)?.startOf('day');
+                                                                        if (start && current && current.isBefore(start)) {
+                                                                            return Promise.reject(new Error('Ngày chuyển khoa không được trước ngày vào viện'));
+                                                                        }
+                                                                        return Promise.resolve();
+                                                                    },
+                                                                }),
+                                                            ]}
                                                             className="mb-0 lg:col-span-3"
                                                         >
                                                             <DatePicker
@@ -303,11 +408,18 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                                         </Form.Item>
                                                         <Form.Item
                                                             name={[field.name, 'treatmentDays']}
-                                                            label="Ngày điều trị"
+                                                            label={
+                                                                <span className="flex items-center gap-1.5">
+                                                                    <span>Ngày điều trị</span>
+                                                                    <Tooltip title="Tự động tính từ Ngày chuyển đến Ngày chuyển khoa tiếp theo (hoặc Ngày ra viện).">
+                                                                        <InfoCircleOutlined className="text-slate-400 hover:text-blue-500 cursor-pointer text-xs" />
+                                                                    </Tooltip>
+                                                                </span>
+                                                            }
                                                             rules={integerRules}
                                                             className="mb-0 lg:col-span-2"
                                                         >
-                                                            <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                                            <InputNumber min={0} controls={false} stringMode placeholder="Tự động tính" className="h-11 w-full" />
                                                         </Form.Item>
                                                         <div className="flex items-end lg:col-span-1">
                                                             <Button danger type="text" onClick={() => remove(field.name)}>
@@ -365,6 +477,20 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                     label={<span className="font-medium text-slate-700">18. Ngày ra viện</span>}
                                     getValueFromEvent={pickerValue}
                                     getValueProps={(value) => ({ value: stringToDayjs(value) })}
+                                    rules={[
+                                        ({ getFieldValue }) => ({
+                                            validator(_, value) {
+                                                const admissionDate = getFieldValue('admissionDate');
+                                                if (!value || !admissionDate) return Promise.resolve();
+                                                const start = parseDateToDayjs(admissionDate)?.startOf('day');
+                                                const end = parseDateToDayjs(value)?.startOf('day');
+                                                if (start && end && end.isBefore(start)) {
+                                                    return Promise.reject(new Error('Ngày ra viện phải bằng hoặc sau ngày vào viện'));
+                                                }
+                                                return Promise.resolve();
+                                            },
+                                        }),
+                                    ]}
                                 >
                                     <DatePicker
                                         locale={locale}
@@ -391,10 +517,23 @@ export const MedicalExamination = forwardRef<MedicalExaminationHandle, MedicalEx
                                 </Form.Item>
                                 <Form.Item
                                     name="treatmentDays"
-                                    label={<span className="font-medium text-slate-700">20. Tổng số ngày điều trị</span>}
+                                    label={
+                                        <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                                            <span>20. Tổng số ngày điều trị</span>
+                                            <Tooltip title="Tự động tính theo chuẩn Bộ Y tế (QĐ 4069/1998/QĐ-BYT): Vào và ra cùng ngày tính 1 ngày; khác ngày tính Ngày ra - Ngày vào. Bạn vẫn có thể chỉnh sửa nếu cần.">
+                                                <InfoCircleOutlined className="text-slate-400 hover:text-blue-500 cursor-pointer text-xs" />
+                                            </Tooltip>
+                                        </span>
+                                    }
                                     rules={integerRules}
                                 >
-                                    <InputNumber min={0} controls={false} stringMode className="h-11 w-full" />
+                                    <InputNumber
+                                        min={0}
+                                        controls={false}
+                                        stringMode
+                                        placeholder="Tự động tính"
+                                        className="h-11 w-full"
+                                    />
                                 </Form.Item>
                             </div>
                         </div>

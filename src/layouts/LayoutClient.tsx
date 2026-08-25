@@ -374,7 +374,6 @@ export const LayoutClient = () => {
     if (key.startsWith('/') && key !== location.pathname) {
       navigate(key);
     }
-    setSidebarOpen(false);
   };
 
   return (
@@ -383,7 +382,7 @@ export const LayoutClient = () => {
       style={{ height: '100dvh' }}
     >
       <header className="app-header">
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             className="app-header-icon-button"
@@ -411,7 +410,7 @@ export const LayoutClient = () => {
 
         <GlobalMedicalSearch />
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
           <Popover
             open={tourDiscoveryOpen && !tourOpen}
             onOpenChange={setTourDiscoveryOpen}

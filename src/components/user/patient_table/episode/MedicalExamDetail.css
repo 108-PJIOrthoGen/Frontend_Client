@@ -1,0 +1,15 @@
+.medical-exam-tabs > .ant-tabs-nav {
+  position: sticky;
+  top: -24px;
+  z-index: 10;
+  background: #ffffff;
+  margin-left: -24px;
+  margin-right: -24px;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-top: 16px;
+  padding-bottom: 6px;
+  margin-top: -8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}

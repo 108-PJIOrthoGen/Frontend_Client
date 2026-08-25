@@ -1,9 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Flex, Result, Spin, message } from 'antd';
 import {
-  CloseCircleOutlined,
-  ReloadOutlined,
-  RobotOutlined,
   StopOutlined,
 } from '@ant-design/icons';
 import { useDispatch, useSelector } from 'react-redux';

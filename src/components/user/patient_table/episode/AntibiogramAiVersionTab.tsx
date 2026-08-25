@@ -16,7 +16,6 @@ import type {
   IAiRecommendationRunDetail, ICultureResult, IRunClinicalDecision, ISensitivityResult,
 } from '@/types/backend';
 import type { AntibioticCarePlanData, LocalPlanData, SystemicPlanData, TemplateAntibiotic } from '@/types/treatmentType';
-import AntibioticCarePlanPanel from '../../antibiotic/AntibioticCarePlanPanel';
 import { parseItemJson } from '../../diagnose_steps/treatment_plan/utils/itemJson';
 import LocalAntibioticTreatment, {
   type LocalAntibioticTreatmentHandle,
@@ -271,9 +270,7 @@ const AntibiogramAiVersionTab: React.FC<AntibiogramAiVersionTabProps> = ({
             </Spin>
           </Card>
 
-          <Card title="Kế hoạch chăm sóc kháng sinh" size="small">
-            <AntibioticCarePlanPanel plan={carePlan ?? aiCare} />
-          </Card>
+
 
           <Card title="Quyết định của dược sĩ" size="small">
             <Row gutter={[16, 16]}>

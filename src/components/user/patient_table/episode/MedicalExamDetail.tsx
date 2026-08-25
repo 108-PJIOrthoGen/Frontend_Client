@@ -41,6 +41,7 @@ import {
     EPISODE_AGGREGATE_WRITE_PERMISSION,
     hasPermission,
 } from '@/components/user/diagnose_steps/treatment_plan/utils/permissions';
+import './MedicalExamDetail.css';
 
 interface MedicalExamDetailProps {
     open: boolean;

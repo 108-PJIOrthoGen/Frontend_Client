@@ -791,56 +791,7 @@ export const SystemicAntibioticTreatment = forwardRef<
       </div>
 
       {/* Supporting details */}
-      {showSupportingDetails && (
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Divider style={{ margin: '8px 0' }} />
-          <Row gutter={[12, 12]}>
-            <Col xs={24} md={12}>
-              <Card
-                size="small"
-                style={{ background: '#fffbeb', borderColor: '#fde68a', borderRadius: 8 }}
-                title={<Text strong style={{ fontSize: 12, color: '#b45309' }}>Theo dõi</Text>}
-              >
-                {(plan.monitoring ?? []).length > 0 ? (
-                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#78350f' }}>
-                    {plan.monitoring?.map((m, i) => (
-                      <li key={i}>{m}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <Text type="secondary" style={{ fontSize: 12 }}>Không có lưu ý theo dõi riêng.</Text>
-                )}
-              </Card>
-            </Col>
-            <Col xs={24} md={12}>
-              <Card
-                size="small"
-                style={{ background: '#fff1f2', borderColor: '#fecdd3', borderRadius: 8 }}
-                title={<Text strong style={{ fontSize: 12, color: '#be123c' }}>Thận trọng / Chống chỉ định</Text>}
-              >
-                {(plan.contraindications ?? []).length > 0 ? (
-                  <ul style={{ paddingLeft: 18, margin: 0, fontSize: 12, color: '#881337' }}>
-                    {plan.contraindications?.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <Text type="secondary" style={{ fontSize: 12 }}>Không có chống chỉ định đặc biệt.</Text>
-                )}
-              </Card>
-            </Col>
-          </Row>
-          {plan.notes ? (
-            <Alert
-              type="warning"
-              showIcon
-              message={<Text strong style={{ fontSize: 12 }}>Lưu ý</Text>}
-              description={<Text style={{ fontSize: 12 }}>{plan.notes}</Text>}
-              style={{ borderRadius: 6 }}
-            />
-          ) : null}
-        </div>
-      )}
+
     </Card>
   );
 });
