@@ -1,10 +1,10 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  calculatePjiDiagnosis,
   calculatePjiGenomicInterpretation,
   calculatePjiRisk,
   hasCompletePjiRiskInput,
+  mapBackendPjiDiagnosis,
   resolvePjiRiskBmi,
   type PjiRiskInput,
 } from './quickDiagnosisModel.ts';
@@ -82,35 +82,43 @@ describe('PJI Risk Calculator (Tan et al. JBJS 2018 / ICM)', () => {
 });
 
 describe('PJI Diagnosis Calculator (ICM 2018 Criteria)', () => {
-  it('Chẩn đoán INFECTED khi có sinus tract (tiêu chuẩn Major)', () => {
-    const result = calculatePjiDiagnosis({
-      previousArthroplasty: true,
-      sinusTract: true,
-      culturesPerformed: false,
-      daysSinceArthroplasty: 120,
-    });
+  it('Chỉ ánh xạ kết luận và tiêu chí do Backend trả về', () => {
+    const result = mapBackendPjiDiagnosis({ itemJson: {
+      scoring_system: {
+        interpretation: 'INFECTED',
+        decision_stage: 'MAJOR',
+        preoperative_score: 0,
+        combined_score: 0,
+      },
+      data_completeness: { is_complete: true, preoperative_complete: false, missing_evidence: [], limitations: [] },
+      major_criteria: {
+        major_criteria_met: true,
+        items: [{ criterion: 'Đường rò thông với khớp giả', result: true, result_detail: 'Có đường rò.' }],
+      },
+      minor_criteria_scoring: { items: [] },
+    } }, { previousArthroplasty: true, sinusTract: true, daysSinceArthroplasty: 120 });
 
     assert.equal(result.conclusion, 'INFECTED');
     assert.equal(result.phase, 'major');
+    assert.equal(result.positiveCriteria.length, 1);
   });
 
-  it('Chẩn đoán NOT_INFECTED khi tiền phẫu <= 1 điểm', () => {
-    const result = calculatePjiDiagnosis({
-      previousArthroplasty: true,
-      sinusTract: false,
-      culturesPerformed: true,
-      cultureResult: 'negative',
-      daysSinceArthroplasty: 100,
-      serumTests: { crp: 2, esr: 10, dDimer: 200 },
-      synovialTests: { wbc: 500, pmn: 40 },
-      leukocyteEsterase: 'negative',
-      alphaDefensin: 'negative',
-      histology: 'negative',
-      purulence: 'negative',
-    });
+  it('Giữ INCOMPLETE và danh sách bằng chứng thiếu từ Backend', () => {
+    const result = mapBackendPjiDiagnosis({ itemJson: {
+      scoring_system: { interpretation: 'INCOMPLETE', preoperative_score: 0, combined_score: 0 },
+      data_completeness: {
+        is_complete: false,
+        preoperative_complete: false,
+        missing_evidence: ['preoperative.Synovial PMN%'],
+        limitations: [],
+      },
+      major_criteria: { major_criteria_met: false, items: [] },
+      minor_criteria_scoring: { items: [] },
+    } }, { previousArthroplasty: true });
 
-    assert.equal(result.conclusion, 'NOT_INFECTED');
-    assert.equal(result.preoperativeScore, 0);
+    assert.equal(result.conclusion, 'INCOMPLETE');
+    assert.equal(result.isComplete, false);
+    assert.deepEqual(result.missingEvidence, ['preoperative.Synovial PMN%']);
   });
 });
 

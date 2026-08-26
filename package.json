@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "test:doctor-diagnosis": "node --test src/components/user/diagnose_steps/doctor_diagnosis/doctorDiagnosisValues.test.ts",
-    "test:pji": "node --test src/components/user/quick_diagnosis/quickDiagnosisModel.test.ts",
+    "test:pji": "node --test src/components/user/quick_diagnosis/quickDiagnosisModel.test.ts src/components/user/diagnose_steps/assessment_pji/utils/assessmentPresentation.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

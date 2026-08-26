@@ -19,6 +19,10 @@ export const conclusionLabel = (interpretation: unknown): string => {
       return 'KHÔNG CÓ BẰNG CHỨNG NHIỄM TRÙNG PJI';
     case 'INCONCLUSIVE':
       return 'CHƯA KẾT LUẬN ĐƯỢC PJI';
+    case 'INCOMPLETE':
+      return 'DỮ LIỆU CHƯA ĐỦ ĐỂ PHÂN LOẠI PJI';
+    case 'NOT_APPLICABLE':
+      return 'KHÔNG ÁP DỤNG ĐỊNH NGHĨA PJI NÀY';
     default:
       return interpretation ? String(interpretation) : 'CHƯA CÓ';
   }
@@ -77,6 +81,9 @@ export const conclusionTone = (interpretation: unknown) => {
   }
   if (interpretation === 'INCONCLUSIVE') {
     return { color: '#d97706', border: '#ffe58f', background: '#fffbe6' };
+  }
+  if (interpretation === 'INCOMPLETE' || interpretation === 'NOT_APPLICABLE') {
+    return { color: '#475569', border: '#cbd5e1', background: '#f8fafc' };
   }
   return { color: '#16a34a', border: '#b7eb8f', background: '#f6ffed' };
 };

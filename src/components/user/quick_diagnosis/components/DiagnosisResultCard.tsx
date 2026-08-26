@@ -34,7 +34,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Text type="secondary" className="text-xs font-semibold uppercase tracking-wide">
-              Kết quả phân loại theo định nghĩa PJI 2018
+              Kết quả từ Backend · hồ sơ PJI_ICM_2018_VALIDATED_V1
             </Text>
             <Title level={2} style={{ color: conclusion.color, margin: '6px 0 0' }}>
               {conclusion.label}
@@ -104,6 +104,20 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
         {result.cautions.map(caution => (
           <Alert key={caution} className="mt-4" showIcon type="warning" message={caution} />
         ))}
+
+        {result.missingEvidence.length > 0 ? (
+          <Alert
+            className="mt-4"
+            showIcon
+            type="info"
+            message="Bằng chứng còn thiếu"
+            description={(
+              <ul className="mb-0 pl-5">
+                {result.missingEvidence.map(item => <li key={item}>{item}</li>)}
+              </ul>
+            )}
+          />
+        ) : null}
       </Card>
 
       {/* SYNTHESIS & CROSS-VALIDATION CARD (If MicroGen Testing was performed) */}
@@ -182,7 +196,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
 
       <Card className="border-slate-200 bg-slate-50 shadow-none" styles={{ body: { padding: 20 } }}>
         <Paragraph type="secondary" className="!mb-3 text-xs leading-5">
-          Kết quả là công cụ hỗ trợ quyết định lâm sàng theo chuẩn PJIDx và ICM 2018, không phải chẩn đoán tự động và không thay thế đánh giá toàn diện của bác sĩ phẫu thuật và bác sĩ truyền nhiễm.
+          Kết quả là công cụ hỗ trợ quyết định lâm sàng theo định nghĩa điểm PJI 2018, không phải chẩn đoán tự động và không thay thế đánh giá toàn diện của bác sĩ phẫu thuật và bác sĩ truyền nhiễm. Ngưỡng ca cấp là đề xuất chưa được thẩm định trong định nghĩa điểm 2018.
         </Paragraph>
         <Space wrap size={16}>
           <Button icon={<ArrowLeftOutlined />} onClick={onBack}>

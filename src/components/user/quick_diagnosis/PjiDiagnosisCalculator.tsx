@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Tag, Typography } from 'antd';
+import { Alert, Tag, Typography } from 'antd';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 import {
-  calculatePjiDiagnosis,
+  mapBackendPjiDiagnosis,
   type PjiDiagnosisInput,
+  type PjiDiagnosisResult,
 } from './quickDiagnosisModel';
+import { callEvaluateStatelessPjiDiagnostic } from '@/apis/api';
 import {
   BASE_DIAGNOSIS_QUESTIONS,
   BASE_GENOMIC_DIAGNOSIS_QUESTIONS,
@@ -24,6 +26,9 @@ export const PjiDiagnosisCalculator = () => {
   const [answers, setAnswers] = useState<PjiDiagnosisInput>({});
   const [questionIndex, setQuestionIndex] = useState(0);
   const [showResult, setShowResult] = useState(false);
+  const [result, setResult] = useState<PjiDiagnosisResult | null>(null);
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluationError, setEvaluationError] = useState<string | null>(null);
 
   // Dynamic question list depending on mode & whether cultures were performed
   const questions = useMemo<DiagnosisQuestionId[]>(() => {
@@ -44,15 +49,16 @@ export const PjiDiagnosisCalculator = () => {
     return baseList;
   }, [mode, answers.culturesPerformed]);
 
-  const result = useMemo(() => calculatePjiDiagnosis(answers), [answers]);
   const activeQuestion = questions[questionIndex] ?? questions[0];
-  const conclusion = CONCLUSION_COPY[result.conclusion];
+  const conclusion = CONCLUSION_COPY[result?.conclusion ?? 'INCOMPLETE'];
 
   const reset = () => {
     setMode(null);
     setAnswers({});
     setQuestionIndex(0);
     setShowResult(false);
+    setResult(null);
+    setEvaluationError(null);
   };
 
   const handleSelectMode = (selectedMode: CalculatorMode) => {
@@ -60,6 +66,8 @@ export const PjiDiagnosisCalculator = () => {
     setAnswers({});
     setQuestionIndex(0);
     setShowResult(false);
+    setResult(null);
+    setEvaluationError(null);
   };
 
   const goBack = () => {
@@ -74,9 +82,27 @@ export const PjiDiagnosisCalculator = () => {
     setQuestionIndex(idx => idx - 1);
   };
 
-  const goNext = () => {
-    if (questionIndex >= questions.length - 1) {
+  const evaluate = async (input: PjiDiagnosisInput) => {
+    if (evaluating) return;
+    setEvaluating(true);
+    setEvaluationError(null);
+    try {
+      const { microgenTesting: _supportingGenomicData, ...diagnosticInput } = input;
+      const response = await callEvaluateStatelessPjiDiagnostic(diagnosticInput);
+      if (!response.data) throw new Error('Backend không trả về kết quả chẩn đoán.');
+      setResult(mapBackendPjiDiagnosis(response.data, input));
       setShowResult(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không thể đánh giá PJI lúc này.';
+      setEvaluationError(message);
+    } finally {
+      setEvaluating(false);
+    }
+  };
+
+  const goNext = (currentAnswers: PjiDiagnosisInput = answers) => {
+    if (questionIndex >= questions.length - 1) {
+      void evaluate(currentAnswers);
     } else {
       setQuestionIndex(idx => idx + 1);
     }
@@ -89,19 +115,29 @@ export const PjiDiagnosisCalculator = () => {
     setAnswers(prev => ({ ...prev, [key]: value }));
   };
 
+  const answerAndGoNext = <Key extends keyof PjiDiagnosisInput>(
+    key: Key,
+    value: PjiDiagnosisInput[Key],
+  ) => {
+    const nextAnswers = { ...answers, [key]: value };
+    setAnswers(nextAnswers);
+    goNext(nextAnswers);
+  };
+
   const answerBinary = (
     key: 'previousArthroplasty' | 'sinusTract' | 'culturesPerformed',
     value: boolean,
   ) => {
-    setAnswers(prev => ({
-      ...prev,
+    const nextAnswers: PjiDiagnosisInput = {
+      ...answers,
       [key]: value,
       ...(key === 'culturesPerformed' && !value ? { cultureResult: undefined } : {}),
-    }));
+    };
+    setAnswers(nextAnswers);
 
     // Early termination if not applicable or sinus tract present
     if ((key === 'previousArthroplasty' && !value) || (key === 'sinusTract' && value)) {
-      setShowResult(true);
+      void evaluate(nextAnswers);
       return;
     }
     goNext();
@@ -126,7 +162,7 @@ export const PjiDiagnosisCalculator = () => {
 
         {mode == null ? (
           <ModeSelector onSelectMode={handleSelectMode} />
-        ) : showResult ? (
+        ) : showResult && result ? (
           <DiagnosisResultCard
             result={result}
             onReset={reset}
@@ -143,10 +179,17 @@ export const PjiDiagnosisCalculator = () => {
             onBack={goBack}
             onReset={reset}
           >
+            {evaluationError ? (
+              <Alert className="mb-4" showIcon type="error" message={evaluationError} />
+            ) : null}
+            {evaluating ? (
+              <Alert className="mb-4" showIcon type="info" message="Backend đang đánh giá theo hồ sơ quy tắc PJI 2018…" />
+            ) : null}
             <DiagnosisQuestionStep
               activeQuestion={activeQuestion}
               answers={answers}
               onUpdateAnswer={updateAnswer}
+              onAnswerAndNext={answerAndGoNext}
               onAnswerBinary={answerBinary}
               onNext={goNext}
             />

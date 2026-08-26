@@ -4,7 +4,7 @@ import {
     IEpisode, IEpisodeRequest, IClinicalRecord, ILabResult, ICultureResult,
     IImageResult, ISensitivityResult, IMedicalHistory, ISurgery,
     IAiChatSession, IAiChatMessage, IAiRecommendationRun, IAiRecommendationRunDetail,
-    IDoctorRecommendationReview, IRuleBasedDiagnosticResult,
+    IDoctorRecommendationReview, IPjiDiagnosticEvaluationRequest, IRuleBasedDiagnosticResult,
     IClinicalDecisionWorkspace, IRunClinicalDecision,
     IEpisodeFullResponse, IEpisodeFullRequest
 } from '@/types/backend';
@@ -385,6 +385,12 @@ export const callGenerateAiRecommendation = (
 
 export const callEvaluatePjiDiagnostic = (episodeId: string): Promise<IBackendRes<IRuleBasedDiagnosticResult>> => {
     return instance.post(`/api/v1/episodes/${episodeId}/diagnostic-test/evaluate`);
+}
+
+export const callEvaluateStatelessPjiDiagnostic = (
+    data: IPjiDiagnosticEvaluationRequest,
+): Promise<IBackendRes<IRuleBasedDiagnosticResult>> => {
+    return instance.post('/api/v1/pji-diagnostics/evaluate', data);
 }
 
 export const callFetchAiRecommendationRuns = (episodeId: string, query: string): Promise<IBackendRes<IModelPaginate<IAiRecommendationRun>>> => {

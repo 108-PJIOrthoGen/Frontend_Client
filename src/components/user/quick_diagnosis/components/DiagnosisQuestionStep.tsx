@@ -29,6 +29,7 @@ export interface DiagnosisQuestionStepProps {
   activeQuestion: DiagnosisQuestionId;
   answers: PjiDiagnosisInput;
   onUpdateAnswer: <Key extends keyof PjiDiagnosisInput>(key: Key, value: PjiDiagnosisInput[Key]) => void;
+  onAnswerAndNext: <Key extends keyof PjiDiagnosisInput>(key: Key, value: PjiDiagnosisInput[Key]) => void;
   onAnswerBinary: (key: 'previousArthroplasty' | 'sinusTract' | 'culturesPerformed', value: boolean) => void;
   onNext: () => void;
 }
@@ -37,6 +38,7 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
   activeQuestion,
   answers,
   onUpdateAnswer,
+  onAnswerAndNext,
   onAnswerBinary,
   onNext,
 }) => {
@@ -252,8 +254,7 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
               key={option.value}
               className="h-auto min-h-14 !justify-start whitespace-normal !border-slate-300 !px-5 !py-3 !text-left !text-base"
               onClick={() => {
-                onUpdateAnswer('cultureResult', option.value);
-                onNext();
+                onAnswerAndNext('cultureResult', option.value);
               }}
             >
               {option.label}
@@ -327,8 +328,8 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
             className="mt-4"
             disabled={!serumReady}
             onClick={() => {
-              if (answers.serumTests == null) onUpdateAnswer('serumTests', {});
-              onNext();
+              if (answers.serumTests == null) onAnswerAndNext('serumTests', {});
+              else onNext();
             }}
           >
             Tiếp tục
@@ -375,8 +376,8 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
             className="mt-4"
             disabled={!synovialReady}
             onClick={() => {
-              if (answers.synovialTests == null) onUpdateAnswer('synovialTests', {});
-              onNext();
+              if (answers.synovialTests == null) onAnswerAndNext('synovialTests', {});
+              else onNext();
             }}
           >
             Tiếp tục
@@ -390,8 +391,7 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
           className="grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2"
           value={answers.leukocyteEsterase}
           onChange={event => {
-            onUpdateAnswer('leukocyteEsterase', event.target.value);
-            onNext();
+            onAnswerAndNext('leukocyteEsterase', event.target.value);
           }}
         >
           {LEUKOCYTE_ESTERASE_OPTIONS.map(option => (
@@ -414,8 +414,7 @@ export const DiagnosisQuestionStep: React.FC<DiagnosisQuestionStepProps> = ({
           className="grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-3"
           value={answers[activeQuestion] as PjiTernaryResult}
           onChange={event => {
-            onUpdateAnswer(activeQuestion, event.target.value);
-            onNext();
+            onAnswerAndNext(activeQuestion, event.target.value);
           }}
         >
           {TERNARY_OPTIONS.map(option => (

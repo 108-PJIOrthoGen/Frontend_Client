@@ -405,6 +405,20 @@ export interface IRuleBasedDiagnosticResult {
     updatedAt?: string;
 }
 
+export interface IPjiDiagnosticEvaluationRequest {
+    previousArthroplasty?: boolean;
+    sinusTract?: boolean;
+    culturesPerformed?: boolean;
+    cultureResult?: 'negative' | 'singlePositive' | 'multipleSameOrganism' | 'multipleDifferentOrganisms';
+    daysSinceArthroplasty?: number;
+    serumTests?: { esr?: number; crp?: number; dDimer?: number };
+    synovialTests?: { wbc?: number; pmn?: number };
+    leukocyteEsterase?: 'notDone' | 'negative' | 'trace' | 'onePlus' | 'twoPlus';
+    alphaDefensin?: 'notDone' | 'negative' | 'positive';
+    histology?: 'notDone' | 'negative' | 'positive';
+    purulence?: 'notDone' | 'negative' | 'positive';
+}
+
 export interface IDataCompleteness {
     is_complete?: boolean;
     missing_items?: IMissingItem[];

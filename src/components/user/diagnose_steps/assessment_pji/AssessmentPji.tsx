@@ -62,6 +62,7 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
   const scoringSystem = diagnosticData?.scoring_system;
   const majorCriteria = diagnosticData?.major_criteria;
   const minorCriteriaScoring = diagnosticData?.minor_criteria_scoring;
+  const dataCompleteness = diagnosticData?.data_completeness;
   const aiReasoning = diagnosticData?.ai_reasoning;
   const organism = aiReasoning?.identified_organism;
   const totalScore = toNumber(scoringSystem?.total_score ?? minorCriteriaScoring?.total_minor_score);
@@ -72,6 +73,10 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
   const warnings = asArray<Record<string, any>>(aiReasoning?.warnings)
     .filter(warning => warning?.type !== 'DATA_COMPLETENESS');
   const interpretation = scoringSystem?.interpretation;
+  const hasDecisionScore = interpretation !== 'INCOMPLETE' && interpretation !== 'NOT_APPLICABLE';
+  const availableEvidenceScore = toNumber(scoringSystem?.available_evidence_score ?? minorCriteriaScoring?.total_minor_score);
+  const missingEvidence = asArray<string>(dataCompleteness?.missing_evidence_labels ?? dataCompleteness?.missing_evidence);
+  const clinicalLimitations = asArray<string>(dataCompleteness?.limitations);
   const clinicianConclusion = scoringSystem?.interpretation_label ?? conclusionLabel(interpretation);
   const isInfected = interpretation === 'INFECTED';
   const tone = conclusionTone(interpretation);
@@ -164,7 +169,7 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                   </Text>
                 </div>
                 <div>
-                  <Text style={pageStyles.resultLabel}>Tổng điểm</Text>
+                  <Text style={pageStyles.resultLabel}>Điểm quyết định</Text>
                   <Text
                     strong
                     style={{
@@ -174,9 +179,9 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                       marginRight: 4,
                     }}
                   >
-                    {formatScore(totalScore)}
+                    {hasDecisionScore ? formatScore(totalScore) : '—'}
                   </Text>
-                  <Text type="secondary">điểm</Text>
+                  {hasDecisionScore ? <Text type="secondary">điểm</Text> : null}
                 </div>
 
               </div>
@@ -184,21 +189,46 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
           </Col>
         </Row>
 
-        <Card style={pageStyles.scoreCard} styles={{ body: pageStyles.scoreCardBody }}>
-          <Title level={4} style={pageStyles.scoreTitle}>Ngưỡng điểm tiêu chí phụ</Title>
+        {(missingEvidence.length > 0 || clinicalLimitations.length > 0) && (
+          <Alert
+            showIcon
+            type={interpretation === 'INCOMPLETE' ? 'warning' : 'info'}
+            message={interpretation === 'INCOMPLETE'
+              ? 'Chưa đủ dữ liệu để đưa ra kết luận âm tính hay dương tính'
+              : 'Giới hạn áp dụng lâm sàng'}
+            description={(
+              <Space direction="vertical" size={4}>
+                {missingEvidence.map(item => <Text key={item}>• {item}</Text>)}
+                {clinicalLimitations.map(item => <Text key={item}>• {item}</Text>)}
+              </Space>
+            )}
+            style={{ marginBottom: 16, borderRadius: 8 }}
+          />
+        )}
 
-          <div style={pageStyles.scoreRailArea}>
-            <div style={{ ...pageStyles.scoreMarker, left: `${scoreMarkerPercent}%` }}>
-              {formatScore(totalScore)} điểm
-              <div style={pageStyles.markerLine} />
+        <Card style={pageStyles.scoreCard} styles={{ body: pageStyles.scoreCardBody }}>
+          <Title level={4} style={pageStyles.scoreTitle}>Điểm theo giai đoạn quyết định</Title>
+
+          {hasDecisionScore ? (
+            <div style={pageStyles.scoreRailArea}>
+              <div style={{ ...pageStyles.scoreMarker, left: `${scoreMarkerPercent}%` }}>
+                {formatScore(totalScore)} điểm
+                <div style={pageStyles.markerLine} />
+              </div>
+              <div style={pageStyles.scoreRail} />
+              <div style={pageStyles.scoreLabels}>
+                <span>&le;{NOT_INFECTED_MAX_SCORE} không nhiễm</span>
+                <span>4-5 chưa rõ</span>
+                <span>&ge;{INFECTED_MIN_SCORE} nhiễm trùng</span>
+              </div>
             </div>
-            <div style={pageStyles.scoreRail} />
-            <div style={pageStyles.scoreLabels}>
-              <span>&le;{NOT_INFECTED_MAX_SCORE} không nhiễm</span>
-              <span>4-5 chưa rõ</span>
-              <span>&ge;{INFECTED_MIN_SCORE} nhiễm trùng</span>
-            </div>
-          </div>
+          ) : (
+            <Alert
+              showIcon
+              type="warning"
+              message={`${formatScore(availableEvidenceScore)} điểm từ bằng chứng hiện có; không phải điểm kết luận.`}
+            />
+          )}
 
           <Alert
             showIcon
@@ -264,8 +294,10 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                 </Space>
               )}
               extra={(
-                <Tag color={majorCriteria?.major_criteria_met ? 'success' : 'default'}>
-                  {majorCriteria?.major_criteria_met ? 'Đã thỏa' : 'Chưa thỏa'}
+                <Tag color={majorCriteria?.major_criteria_met ? 'success' : dataCompleteness?.major_criteria_complete ? 'default' : 'warning'}>
+                  {majorCriteria?.major_criteria_met
+                    ? 'Đã thỏa'
+                    : dataCompleteness?.major_criteria_complete ? 'Không thỏa' : 'Chưa đủ dữ liệu'}
                 </Tag>
               )}
             >
@@ -281,10 +313,12 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                         {item.result_detail}
                       </Text>
                     </div>
-                    {item.result ? (
+                    {item.result === true ? (
                       <CheckCircleFilled style={{ color: '#16a34a', fontSize: 16, marginTop: 2 }} />
-                    ) : (
+                    ) : item.result === false ? (
                       <CloseCircleOutlined style={{ color: '#ef4444', fontSize: 16, marginTop: 2 }} />
+                    ) : (
+                      <ExclamationCircleOutlined style={{ color: '#d97706', fontSize: 16, marginTop: 2 }} />
                     )}
                   </div>
                 </div>
@@ -314,7 +348,7 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                   </span>
                 </Space>
               )}
-              extra={<Tag color="success">{formatScore(totalScore)} điểm</Tag>}
+              extra={<Tag color="default">{formatScore(availableEvidenceScore)} điểm khả dụng</Tag>}
             >
               <Paragraph style={pageStyles.note}>{minorCriteriaScoring?.note}</Paragraph>
               <Divider style={pageStyles.dashedDivider} />
@@ -332,7 +366,9 @@ export const S5AssessmentPji = ({ onNext, onPrev, recommendationScope = 'SURGERY
                           - tối đa {item.score_weight}
                         </Text>
                       </div>
-                      <Tag color={scoreAwarded > 0 ? 'success' : 'default'}>+{formatScore(scoreAwarded)}</Tag>
+                      {item.result == null
+                        ? <Tag color="warning">Chưa có</Tag>
+                        : <Tag color={scoreAwarded > 0 ? 'success' : 'default'}>+{formatScore(scoreAwarded)}</Tag>}
                     </div>
                   </div>
                 );
