@@ -57,7 +57,16 @@ export function useClinicFormSync({
     } else {
       setForm((prev) => ({
         ...prev,
-        clinicalRecord: {},
+        // A new record has no positive symptoms selected yet. Keep explicit
+        // false values so the backend can distinguish negative evidence from
+        // an unanswered symptom checklist.
+        clinicalRecord: {
+          fever: false,
+          pain: false,
+          erythema: false,
+          swelling: false,
+          sinusTract: false,
+        },
       }));
     }
   }, [clinicalRecord, setForm]);

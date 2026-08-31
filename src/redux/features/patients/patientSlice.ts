@@ -31,7 +31,15 @@ export const fetchPatient = createAsyncThunk(
 )
 
 export const defaultClinicForm: IClinicFormState = {
-    clinicalRecord: {},
+    // Checkboxes express observed symptoms. An unchecked box is a documented
+    // negative finding, not missing evidence, so persist it as false.
+    clinicalRecord: {
+        fever: false,
+        pain: false,
+        erythema: false,
+        swelling: false,
+        sinusTract: false,
+    },
     medicalHistory: {},
     surgeries: [{ _tempId: '1', surgeryDate: '', surgeryType: '', findings: '' }],
     cultureResults: [{
