@@ -142,9 +142,12 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Số CCCD"
             name="identityCard"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
+            rules={[
+              { required: true, message: 'Vui lòng không bỏ trống!' },
+              { pattern: /^\d{12}$/, message: 'CCCD phải gồm đúng 12 chữ số!' },
+            ]}
           >
-            <Input placeholder="Nhập số CCCD" />
+            <Input maxLength={12} inputMode="numeric" placeholder="Nhập số CCCD" />
           </Form.Item>
         </Col>
         <Col span={8}>
@@ -208,9 +211,15 @@ const MPatientCreateAndUpdate = (props: IProps) => {
             labelCol={{ span: 24 }}
             label="Số thẻ BHYT"
             name="insuranceNumber"
-            rules={[{ required: true, message: 'Vui lòng không bỏ trống!' }]}
+            rules={[
+              { required: true, message: 'Vui lòng không bỏ trống!' },
+              {
+                pattern: /^(?:\d{15}|[A-Za-z0-9]{10})$/,
+                message: 'Số thẻ BHYT phải gồm 15 chữ số hoặc 10 ký tự chữ/số theo mẫu thẻ cũ!',
+              },
+            ]}
           >
-            <Input placeholder="Nhập số thẻ BHYT" />
+            <Input maxLength={15} placeholder="Nhập số thẻ BHYT" />
           </Form.Item>
         </Col>
       </Row>
