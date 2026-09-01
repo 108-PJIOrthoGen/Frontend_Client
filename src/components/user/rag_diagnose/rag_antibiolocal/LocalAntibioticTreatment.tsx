@@ -13,9 +13,7 @@ import {
   Col,
   Tooltip,
   Empty,
-  Form,
-  Alert,
-  Divider,
+  Form
 } from 'antd';
 import {
   DeleteOutlined,
@@ -104,20 +102,6 @@ const LocalAntibioticTreatment = forwardRef<
   const handleDurationDaysChange = (value: number | null) => {
     if (readOnly) return;
     setPlan((prev) => ({ ...prev, durationDays: value ?? 0 }));
-  };
-
-  const handleDeliveryInfoChange = (
-    field: 'deliveryMethod' | 'spacerType' | 'cementBrandSuggestion' | 'mixingRatio',
-    value: string,
-  ) => {
-    if (readOnly) return;
-    setPlan((prev) => ({
-      ...prev,
-      deliveryInfo: {
-        ...(prev.deliveryInfo ?? {}),
-        [field]: value,
-      },
-    }));
   };
 
   // --- Antibiotic Handlers ---
