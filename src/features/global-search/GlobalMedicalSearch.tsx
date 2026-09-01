@@ -19,7 +19,7 @@ import {
   type GlobalSearchFilters,
   type GlobalSearchKind,
   type UpdatedWithin,
-} from './globalMedicalSearch';
+} from './globalMedicalSearchUtils';
 import './GlobalMedicalSearch.css';
 
 const RECENT_SEARCH_STORAGE_KEY = 'pji_global_medical_search_recent_v1';
