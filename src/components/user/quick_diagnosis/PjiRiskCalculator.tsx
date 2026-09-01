@@ -97,23 +97,20 @@ export const PjiRiskCalculator = () => {
     <main className="h-full overflow-y-auto bg-slate-50 px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
       <div className="mx-auto max-w-7xl space-y-4">
         <div>
-          <Title level={2} className="!mb-1 !mt-0 !text-slate-950">PJI Risk Calculator</Title>
-          <Paragraph type="secondary" className="!mb-0">
-            Ước tính nguy cơ PJI trọn đời trước phẫu thuật thay khớp từ mô hình quần thể.
-          </Paragraph>
+          <Title level={2} className="!mb-1 !mt-0 !text-slate-950">Đánh giá nguy cơ nhiễm khuẩn</Title>
         </div>
         <Alert
           showIcon
           type="info"
           icon={<SafetyCertificateOutlined />}
-          message="Ước tính nguy cơ PJI trọn đời trước phẫu thuật thay khớp"
+          message="Ước tính nguy cơ PJI trước phẫu thuật thay khớp"
           description="Mô hình Tan và cộng sự (JBJS 2018). Dữ liệu chỉ được tính tại trình duyệt và không lưu vào hồ sơ."
         />
 
         <Row gutter={[16, 16]} align="top">
           <Col xs={24} xl={16}>
             <Card title="Thông tin đầu vào" styles={{ body: { padding: 20 } }}>
-              <Title level={5} className="!mb-4 !mt-0">1. Nhân khẩu học</Title>
+              <Title level={5} className="!mb-4 !mt-0">1. Thông tin chung</Title>
               <Row gutter={[16, 16]}>
                 <Col xs={24} sm={12} md={6}>
                   <Text strong className="mb-2 block text-slate-700">Chiều cao (cm)</Text>
@@ -177,8 +174,6 @@ export const PjiRiskCalculator = () => {
                 </Col>
               </Row>
 
-              <Divider />
-              <Title level={5} className="!mb-4 !mt-0">2. Yếu tố bệnh nhân</Title>
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={8}>
                   <Text strong className="mb-2 block text-slate-700">Loại bảo hiểm</Text>
@@ -196,14 +191,14 @@ export const PjiRiskCalculator = () => {
                 </Col>
                 <Col xs={24} md={8}>
                   <BinaryQuestion
-                    label="Đang hút thuốc"
+                    label="Hút thuốc"
                     value={input.smoker}
                     onChange={value => updateInput('smoker', value)}
                   />
                 </Col>
                 <Col xs={24} md={8}>
                   <BinaryQuestion
-                    label="Tiền sử lạm dụng chất"
+                    label="Sử dụng chất kích thích"
                     value={input.drugAbuse}
                     onChange={value => updateInput('drugAbuse', value)}
                   />
@@ -211,7 +206,7 @@ export const PjiRiskCalculator = () => {
               </Row>
 
               <Divider />
-              <Title level={5} className="!mb-4 !mt-0">3. Yếu tố phẫu thuật</Title>
+              <Title level={5} className="!mb-4 !mt-0">3. Thông tin phẫu thuật</Title>
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
                   <Text strong className="mb-2 block text-slate-700">Loại phẫu thuật dự kiến</Text>
@@ -286,7 +281,7 @@ export const PjiRiskCalculator = () => {
                     suffix="%"
                     valueStyle={{ color: '#2563eb', fontSize: 40, fontWeight: 800 }}
                   />
-                  <Text type="secondary">Nguy cơ PJI trọn đời ước tính</Text>
+                  <Text type="secondary">Nguy cơ PJI ước tính</Text>
                   <Progress
                     percent={Math.min(100, result.riskPercent)}
                     showInfo={false}
@@ -334,14 +329,7 @@ export const PjiRiskCalculator = () => {
                 và kiểm định trên dữ liệu thay khớp tại Hoa Kỳ.
               </Paragraph>
               <Space direction="vertical" size={0}>
-                <Link
-                  href="https://www.icmortho.org/pjiriskcal"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs"
-                >
-                  Tham chiếu ứng dụng PJI Risk của ICM
-                </Link>
+
                 <Link
                   href="https://pubmed.ncbi.nlm.nih.gov/29715226/"
                   target="_blank"

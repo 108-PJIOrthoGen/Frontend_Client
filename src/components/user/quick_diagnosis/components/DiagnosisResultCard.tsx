@@ -1,7 +1,6 @@
 import React from 'react';
 import { Alert, Button, Card, Divider, Space, Tag, Typography } from 'antd';
 import {
-  AlertOutlined,
   ArrowLeftOutlined,
   CheckCircleOutlined,
   ExperimentOutlined,
@@ -34,7 +33,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <Text type="secondary" className="text-xs font-semibold uppercase tracking-wide">
-              Kết quả từ Backend · hồ sơ PJI_ICM_2018_VALIDATED_V1
+              Kết quả · hồ sơ PJI_ICM_2018_VALIDATED_V1
             </Text>
             <Title level={2} style={{ color: conclusion.color, margin: '6px 0 0' }}>
               {conclusion.label}
@@ -66,8 +65,8 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
                 {result.timing === 'acute'
                   ? 'Cấp (<90 ngày)'
                   : result.timing === 'chronic'
-                  ? 'Mạn (≥90 ngày)'
-                  : 'Chưa xác định'}
+                    ? 'Mạn (≥90 ngày)'
+                    : 'Chưa xác định'}
               </Text>
             </div>
           </div>
@@ -202,9 +201,7 @@ export const DiagnosisResultCard: React.FC<DiagnosisResultCardProps> = ({
           <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
             Xem lại câu trả lời
           </Button>
-          <Link href="https://www.icmortho.org/pjidx" target="_blank" rel="noreferrer">
-            Tham chiếu thuật toán PJIDx (ICM Ortho)
-          </Link>
+
           <Link href="https://pubmed.ncbi.nlm.nih.gov/29551303/" target="_blank" rel="noreferrer">
             Định nghĩa PJI 2018 đã thẩm định
           </Link>

@@ -14,7 +14,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ onSelectMode }) => {
       <Alert
         showIcon
         type="info"
-        message="Công cụ chẩn đoán PJI theo chuẩn PJIDx và đồng thuận quốc tế ICM Ortho 2018."
+        message="Công cụ chẩn đoán PJI theo đồng thuận quốc tế ICM Ortho 2018."
         description="Lựa chọn phương thức đánh giá phù hợp với dữ liệu lâm sàng và xét nghiệm của người bệnh."
         className="mb-6"
       />
@@ -26,9 +26,9 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ onSelectMode }) => {
         >
           <span>
             <ExperimentOutlined className="mb-3 block text-2xl" />
-            <span className="block text-xl font-semibold sm:text-2xl">PJI Diagnosis Algorithm</span>
+            <span className="block text-xl font-semibold sm:text-2xl">Sàng lọc nhanh nhiễm trùng khớp</span>
             <span className="mt-2 block text-sm text-emerald-50">
-              Thuật toán chẩn đoán tiêu chuẩn ICM 2018 (không kèm xét nghiệm MicroGen)
+            Theo tiêu chuẩn ICM 2018
             </span>
           </span>
           <ArrowRightOutlined className="text-xl transition-transform group-hover:translate-x-1" />
@@ -41,7 +41,7 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({ onSelectMode }) => {
         >
           <span>
             <FileSearchOutlined className="mb-3 block text-2xl" />
-            <span className="block text-xl font-semibold sm:text-2xl">Interpret Genomic Results</span>
+            <span className="block text-xl font-semibold sm:text-2xl">Phiên giải kết quả gen</span>
             <span className="mt-2 block text-sm text-slate-600">
               Đánh giá MicroGen Testing kết hợp toàn bộ tiêu chuẩn ICM 2018 (Đối chiếu chéo)
             </span>

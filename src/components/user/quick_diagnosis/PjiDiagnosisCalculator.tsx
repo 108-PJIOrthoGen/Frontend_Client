@@ -89,7 +89,7 @@ export const PjiDiagnosisCalculator = () => {
     try {
       const { microgenTesting: _supportingGenomicData, ...diagnosticInput } = input;
       const response = await callEvaluateStatelessPjiDiagnostic(diagnosticInput);
-      if (!response.data) throw new Error('Backend không trả về kết quả chẩn đoán.');
+      if (!response.data) throw new Error('Lỗi trả về kết quả chẩn đoán.');
       setResult(mapBackendPjiDiagnosis(response.data, input));
       setShowResult(true);
     } catch (error) {
@@ -183,7 +183,7 @@ export const PjiDiagnosisCalculator = () => {
               <Alert className="mb-4" showIcon type="error" message={evaluationError} />
             ) : null}
             {evaluating ? (
-              <Alert className="mb-4" showIcon type="info" message="Backend đang đánh giá theo hồ sơ quy tắc PJI 2018…" />
+              <Alert className="mb-4" showIcon type="info" message="đánh giá theo hồ sơ quy tắc PJI 2018…" />
             ) : null}
             <DiagnosisQuestionStep
               activeQuestion={activeQuestion}

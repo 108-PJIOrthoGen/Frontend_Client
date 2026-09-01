@@ -570,6 +570,11 @@ export interface PjiRiskInput {
   comorbidities: string[];
 }
 
+type CompletePjiRiskInput = PjiRiskInput & Required<Pick<
+  PjiRiskInput,
+  'sex' | 'insurance' | 'smoker' | 'drugAbuse' | 'surgery' | 'priorProcedures'
+>>;
+
 export interface PjiRiskContribution {
   key: string;
   label: string;
@@ -587,39 +592,39 @@ export const PJI_RISK_SURGERIES: Array<{
   label: string;
   points: number;
 }> = [
-  { value: 'thaPrimary', label: 'THA nguyên phát', points: 18 },
-  { value: 'tkaPrimary', label: 'TKA nguyên phát', points: 28 },
-  { value: 'thaRevision', label: 'THA thay lại', points: 50 },
-  { value: 'tkaRevision', label: 'TKA thay lại', points: 81 },
-  { value: 'bothRevision', label: 'Thay lại cả THA và TKA', points: 87 },
-];
+    { value: 'thaPrimary', label: 'THA lần đầu', points: 18 },
+    { value: 'tkaPrimary', label: 'TKA lần đầu', points: 28 },
+    { value: 'thaRevision', label: 'THA thay lại', points: 50 },
+    { value: 'tkaRevision', label: 'TKA thay lại', points: 81 },
+    { value: 'bothRevision', label: 'Thay lại cả THA và TKA', points: 87 },
+  ];
 
 export const PJI_RISK_PRIOR_PROCEDURES: Array<{
   value: PjiRiskPriorProcedures;
   label: string;
   points: number;
 }> = [
-  { value: 'none', label: 'Chưa từng phẫu thuật', points: 0 },
-  { value: 'one', label: '1 lần trước đó', points: 60 },
-  { value: 'two', label: '2 lần trước đó', points: 87 },
-  { value: 'threeOrMore', label: 'Từ 3 lần trở lên', points: 100 },
-];
+    { value: 'none', label: 'Chưa từng phẫu thuật', points: 0 },
+    { value: 'one', label: '1 lần trước đó', points: 60 },
+    { value: 'two', label: '2 lần trước đó', points: 87 },
+    { value: 'threeOrMore', label: 'Từ 3 lần trở lên', points: 100 },
+  ];
 
 export const PJI_RISK_COMORBIDITIES: Array<{
   value: string;
   label: string;
   points: number;
 }> = [
-  { value: 'coagulopathy', label: 'Rối loạn đông máu', points: 38 },
-  { value: 'heartFailure', label: 'Suy tim sung huyết', points: 31 },
-  { value: 'deficiencyAnemia', label: 'Thiếu máu do thiếu hụt', points: 19 },
-  { value: 'diabetes', label: 'Đái tháo đường', points: 19 },
-  { value: 'hivAids', label: 'HIV/AIDS', points: 49 },
-  { value: 'liverDisease', label: 'Bệnh gan', points: 17 },
-  { value: 'psychosis', label: 'Rối loạn loạn thần', points: 31 },
-  { value: 'renalDisease', label: 'Bệnh thận', points: 35 },
-  { value: 'rheumatologicDisease', label: 'Bệnh lý thấp khớp', points: 30 },
-];
+    { value: 'coagulopathy', label: 'Rối loạn đông máu', points: 38 },
+    { value: 'heartFailure', label: 'Bệnh lý tim mạch', points: 31 },
+    { value: 'deficiencyAnemia', label: 'Thiếu máu', points: 19 },
+    { value: 'diabetes', label: 'Đái tháo đường', points: 19 },
+    { value: 'hivAids', label: 'HIV/AIDS', points: 49 },
+    { value: 'liverDisease', label: 'Bệnh gan', points: 17 },
+    { value: 'psychosis', label: 'Loạn thần', points: 31 },
+    { value: 'renalDisease', label: 'Suy thận', points: 35 },
+    { value: 'rheumatologicDisease', label: 'Bệnh lý xương khớp/thấp khớp', points: 30 },
+  ];
 
 const findPoints = <T extends string>(
   options: Array<{ value: T; label: string; points: number }>,
@@ -635,7 +640,7 @@ export const resolvePjiRiskBmi = (input: PjiRiskInput): number | undefined => {
 
 export const hasCompletePjiRiskInput = (
   input: PjiRiskInput,
-): boolean => {
+): input is CompletePjiRiskInput => {
   const bmi = resolvePjiRiskBmi(input);
   return (
     typeof bmi === 'number'
@@ -675,7 +680,7 @@ export const calculatePjiRisk = (input: PjiRiskInput): PjiRiskResult | null => {
     { key: 'smoker', label: input.smoker ? 'Có hút thuốc' : 'Không hút thuốc', points: input.smoker ? 10 : 0 },
     {
       key: 'drugAbuse',
-      label: input.drugAbuse ? 'Có tiền sử lạm dụng chất' : 'Không lạm dụng chất',
+      label: input.drugAbuse ? 'Có tiền sử dùng' : 'Không dùng',
       points: input.drugAbuse ? 62 : 0,
     },
     {
