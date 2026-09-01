@@ -253,7 +253,7 @@ const LocalAntibioticTreatment = forwardRef<
           }
         >
           <Row gutter={[12, 12]}>
-            <Col xs={24} md={16}>
+            <Col xs={24}>
               <Form.Item label="Tên phác đồ" style={{ marginBottom: 8 }}>
                 <Input
                   value={plan.regimenName}
@@ -262,7 +262,7 @@ const LocalAntibioticTreatment = forwardRef<
                 />
               </Form.Item>
             </Col>
-            <Col xs={24} md={8}>
+            <Col xs={24}>
               <Form.Item label="Thời gian (ngày)" style={{ marginBottom: 8 }}>
                 <InputNumber
                   min={0}
@@ -380,7 +380,7 @@ const LocalAntibioticTreatment = forwardRef<
                   }
                 >
                   <Row gutter={[8, 8]}>
-                    <Col xs={24} md={12}>
+                    <Col xs={24}>
                       <Form.Item label="Tên kháng sinh" style={{ marginBottom: 0 }}>
                         <Input
                           size="small"
@@ -390,7 +390,7 @@ const LocalAntibioticTreatment = forwardRef<
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={12} md={6}>
+                    <Col xs={24}>
                       <Form.Item label="Đường dùng" style={{ marginBottom: 0 }}>
                         <Select
                           size="small"
@@ -402,7 +402,7 @@ const LocalAntibioticTreatment = forwardRef<
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={12} md={6}>
+                    <Col xs={24}>
                       <Form.Item label="Vai trò" style={{ marginBottom: 0 }}>
                         <Select
                           size="small"
@@ -414,7 +414,7 @@ const LocalAntibioticTreatment = forwardRef<
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={12} md={12}>
+                    <Col xs={24}>
                       <Form.Item label="Liều lượng" style={{ marginBottom: 0 }}>
                         <Input
                           size="small"
@@ -424,7 +424,7 @@ const LocalAntibioticTreatment = forwardRef<
                         />
                       </Form.Item>
                     </Col>
-                    <Col xs={12} md={12}>
+                    <Col xs={24}>
                       <Form.Item label="Tần suất" style={{ marginBottom: 0 }}>
                         <Input
                           size="small"
