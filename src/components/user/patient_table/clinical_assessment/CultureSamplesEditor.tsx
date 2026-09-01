@@ -82,7 +82,7 @@ const CultureSamplesEditor: React.FC = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col  col-span-2 gap-1.5">
               <label className="text-xs font-semibold text-slate-700">Nhuộm Gram</label>
               <Select
                 value={sample.gramType || undefined}
@@ -104,7 +104,7 @@ const CultureSamplesEditor: React.FC = () => {
               />
             </div>
 
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col  col-span-2 gap-1.5">
               <label className="text-xs font-semibold text-slate-700">
                 Số ngày ủ
               </label>
