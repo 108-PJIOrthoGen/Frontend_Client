@@ -18,6 +18,7 @@ import {
   SettingOutlined,
   UserOutlined,
   WechatOutlined,
+  SlidersOutlined,
 } from '@ant-design/icons';
 import { LogoutAPI } from '@/apis/api';
 import { runLogoutAction } from '@/redux/slice/accountSlice';
@@ -269,7 +270,7 @@ export const LayoutClient = () => {
 
   const aiPredictionMenuItems = [
     { path: '/', label: 'Hoạch định phẫu thuật AI', icon: <WechatOutlined />, step: 'Workspace bác sĩ', roles: ['DOCTOR', 'ADMIN'] },
-    { path: '/scenario-simulator', label: 'Bộ mô phỏng kịch bản kết quả điều trị', icon: <ExperimentOutlined />, step: 'Mô phỏng & so sánh kịch bản', comingSoon: true, roles: ['DOCTOR', 'PHARMACIST', 'ADMIN'] },
+    { path: '/scenario-simulator', label: '3D mô phỏng khớp', icon: <SlidersOutlined />, step: 'Mô phỏng & đánh giá kịch bản', comingSoon: true, roles: ['DOCTOR', 'PHARMACIST', 'ADMIN'] },
     { path: '/antibiotic-planner', label: 'Hoạch định Kháng sinh toàn diện', icon: <ForkOutlined />, step: 'Workspace dược sĩ', comingSoon: false, roles: ['PHARMACIST', 'ADMIN'] },
   ];
   const visibleAiPredictionMenuItems = aiPredictionMenuItems.filter((item) => (
@@ -309,8 +310,8 @@ export const LayoutClient = () => {
 
   const renderNavigationLabel = (label: string, step: string) => (
     <div className="flex min-w-0 flex-col py-1 leading-tight">
-      <span className="truncate text-[15px] font-semibold">{label}</span>
-      <span className="mt-1 truncate text-[13px] opacity-70">{step}</span>
+      <span className="truncate text-[12px] font-semibold">{label}</span>
+      <span className="mt-1 truncate text-[12px] opacity-70">{step}</span>
     </div>
   );
 
@@ -333,11 +334,11 @@ export const LayoutClient = () => {
         key: item.path,
         className: 'feature-border-beam',
         disabled: item.comingSoon,
-        icon: <span className="flex items-center text-[21px]">{item.icon}</span>,
+        icon: <span className="flex items-center text-[20px]">{item.icon}</span>,
         label: item.comingSoon ? (
           <Tooltip title="Sắp ra mắt" placement="right">
             <div className="flex min-w-0 flex-col py-1 leading-tight">
-              <span className="truncate text-[15px] font-semibold">{item.label}</span>
+              <span className="truncate text-[13px] font-semibold">{item.label}</span>
               <span className="mt-1 truncate text-[12px] text-green-500">
                 Sắp ra mắt · {item.step}
               </span>
