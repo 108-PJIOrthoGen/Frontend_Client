@@ -40,7 +40,9 @@ const router = createBrowserRouter([
         path: "/",
         element: (
             <LayoutApp>
-                <LayoutClient />
+                <ProtectedRoute>
+                    <LayoutClient />
+                </ProtectedRoute>
             </LayoutApp>
 
         ),

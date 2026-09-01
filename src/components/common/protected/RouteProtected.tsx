@@ -1,7 +1,7 @@
 import Error403 from "@/pages/errors/ForbiddenPage"
 import { useAppSelector } from "@/redux/hook"
-import { Navigate, useLocation } from "react-router-dom"
-import { Spin } from "antd"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Button, Result, Spin } from "antd"
 
 /** Các role được phép dùng khu vực client ("/"). Khu vực /admin chỉ dành cho ADMIN. */
 const CLIENT_ROLES = ['USER', 'ADMIN', 'DOCTOR', 'NURSE', 'PHARMACIST'];
@@ -35,19 +35,30 @@ const ProtectedRoute = (props: ProtectedRouteProps) => {
     const isAuthenticated = useAppSelector((state) => state.account.isAuthenticated)
     const isLoading = useAppSelector((state) => state.account.isLoading)
     const location = useLocation();
+    const navigate = useNavigate();
 
     if (isLoading) {
         return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><Spin size="large" /></div>
     }
 
-    return (
-        <>
-            {isAuthenticated === true ?
-                <>
-                    <RoleCheck allowedRoles={props.allowedRoles}>{props.children}</RoleCheck>
-                </> : <Navigate to="/login" state={{ from: location }} replace={true} />
-            }
-        </>
-    )
+    if (!isAuthenticated) {
+        return (
+            <Result
+                status="warning"
+                title="Yêu cầu đăng nhập"
+                subTitle="Bạn phải đăng nhập để tiếp tục sử dụng chức năng này."
+                extra={(
+                    <Button
+                        type="primary"
+                        onClick={() => navigate('/login', { state: { from: location } })}
+                    >
+                        Đăng nhập
+                    </Button>
+                )}
+            />
+        );
+    }
+
+    return <RoleCheck allowedRoles={props.allowedRoles}>{props.children}</RoleCheck>;
 }
 export default ProtectedRoute;

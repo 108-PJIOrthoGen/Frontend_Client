@@ -34,10 +34,9 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
-      const hydratedRole = accountResult.payload?.user?.role?.name ?? res.data.user?.role?.name;
-      navigate(requestedPath || homePathForRole(hydratedRole), { replace: true });
+      navigate(requestedPath || homePathForRole(accountRole), { replace: true });
     }
-  }, [isAuthenticated]);
+  }, [accountRole, isAuthenticated, navigate, requestedPath]);
 
   const onFinish = async (values: { username: string; password: string }) => {
     const { username, password } = values;
